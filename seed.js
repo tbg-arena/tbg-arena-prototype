@@ -14,30 +14,30 @@ async function api(method, url, body, token) {
   return data;
 }
 
-// [이름, 전화번호, 벨트, 전략, 기술[이름, 분류, 숙련, 메모]]
+// [이름, 전화번호, 전략, 기술[이름, 분류, 숙련, 메모]]
 const MEMBERS = [
-  ['김도윤', '010-0000-0001', '블루', { stance: '오소독스', guard: '하이가드', style: '인파이팅', focus: ['헤드', '바디'] }, [
+  ['김도윤', '010-0000-0001', { stance: '오소독스', guard: '하이가드', style: '인파이팅', focus: ['헤드', '바디'] }, [
     ['잽', 'jab', 55, '기본기 수업'], ['원투', 'jab', 50], ['레프트 훅', 'hook', 38], ['어퍼컷', 'uppercut', 30], ['리버샷', 'body', 28], ['위빙', 'defense', 30],
   ]],
-  ['이서준', '010-0000-0002', '퍼플', { stance: '사우스포', guard: '숄더롤', style: '카운터', focus: ['헤드'] }, [
+  ['이서준', '010-0000-0002', { stance: '사우스포', guard: '숄더롤', style: '카운터', focus: ['헤드'] }, [
     ['잽', 'jab', 45], ['카운터 훅', 'hook', 42, '카운터 클래스'], ['슬립', 'defense', 44], ['패리', 'defense', 36], ['스트레이트', 'jab', 40],
   ]],
-  ['박지호', '010-0000-0003', '퍼플', { stance: '오소독스', guard: '밸런스', style: '인파이팅', focus: ['바디'] }, [
+  ['박지호', '010-0000-0003', { stance: '오소독스', guard: '밸런스', style: '인파이팅', focus: ['바디'] }, [
     ['바디 훅', 'body', 48], ['리버샷', 'body', 42], ['숏 어퍼컷', 'uppercut', 40], ['레프트 훅', 'hook', 36], ['더킹', 'defense', 30], ['잽', 'jab', 20],
   ]],
-  ['최하은', '010-0000-0004', '블루', { stance: '오소독스', guard: '하이가드', style: '아웃복싱', focus: ['헤드'] }, [
+  ['최하은', '010-0000-0004', { stance: '오소독스', guard: '하이가드', style: '아웃복싱', focus: ['헤드'] }, [
     ['잽', 'jab', 50], ['원투', 'jab', 46], ['더블 잽', 'jab', 40], ['백스텝', 'defense', 38], ['레프트 훅', 'hook', 26],
   ]],
-  ['정우진', '010-0000-0005', '브라운', { stance: '오소독스', guard: '밸런스', style: '인파이팅', focus: ['헤드', '바디'] }, [
+  ['정우진', '010-0000-0005', { stance: '오소독스', guard: '밸런스', style: '인파이팅', focus: ['헤드', '바디'] }, [
     ['원투', 'jab', 42], ['레프트 훅', 'hook', 50], ['라이트 어퍼컷', 'uppercut', 44], ['바디 훅', 'body', 40], ['블로킹', 'defense', 40], ['위빙', 'defense', 34],
   ]],
-  ['한소율', '010-0000-0006', '화이트', { stance: '오소독스', guard: '하이가드', style: '인파이팅', focus: ['헤드'] }, [
+  ['한소율', '010-0000-0006', { stance: '오소독스', guard: '하이가드', style: '인파이팅', focus: ['헤드'] }, [
     ['잽', 'jab', 22, '입문 2주차'], ['원투', 'jab', 18],
   ]],
-  ['윤태민', '010-0000-0007', '그린', { stance: '사우스포', guard: '숄더롤', style: '카운터', focus: ['헤드', '바디'] }, [
+  ['윤태민', '010-0000-0007', { stance: '사우스포', guard: '숄더롤', style: '카운터', focus: ['헤드', '바디'] }, [
     ['잽', 'jab', 34], ['스트레이트', 'jab', 36], ['카운터 훅', 'hook', 30], ['슬립', 'defense', 32], ['바디 잽', 'body', 24],
   ]],
-  ['오세린', '010-0000-0008', '옐로우', { stance: '오소독스', guard: '밸런스', style: '아웃복싱', focus: ['헤드'] }, [
+  ['오세린', '010-0000-0008', { stance: '오소독스', guard: '밸런스', style: '아웃복싱', focus: ['헤드'] }, [
     ['잽', 'jab', 30], ['원투', 'jab', 28], ['훅', 'hook', 20], ['블로킹', 'defense', 22],
   ]],
 ];
@@ -51,12 +51,12 @@ const FIGHTS = [[0, 1], [2, 3], [4, 0], [1, 2], [3, 6], [4, 2], [7, 5], [0, 3]];
   const byPhone = Object.fromEntries(existing.map((m) => [m.phone, m]));
 
   const ids = [], tokens = [];
-  for (const [name, phone, belt, strategy, skills] of MEMBERS) {
+  for (const [name, phone, strategy, skills] of MEMBERS) {
     const digits = phone.replace(/\D/g, '');
     let m = byPhone[digits];
     if (m) console.log(`· ${name} 이미 있음 — 건너뜀`);
     else {
-      m = await api('POST', '/api/coach/members', { name, phone, belt }, coach);
+      m = await api('POST', '/api/coach/members', { name, phone }, coach);
       for (const [sn, category, mastery, desc] of skills) {
         await api('POST', `/api/coach/members/${m.id}/skills`, { name: sn, category, mastery, desc }, coach);
       }

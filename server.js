@@ -34,7 +34,7 @@ function migrate(db) {
 // 훈련/컨디션 시스템 제거 이전 데이터 정리
 for (const m of db.members) {
   if (m.attendDay === undefined) m.attendDay = m.attended ? m.trainDay : null;
-  delete m.trainDay; delete m.trainsLeft; delete m.condition; delete m.condAt;
+  delete m.trainDay; delete m.trainsLeft; delete m.condition; delete m.condAt; delete m.belt;
 }
 // 복싱 전용 전환: 펀치는 이름으로 세부 분류, 복싱이 아닌 기술(킥·태클·그라운드·서브미션 등)은 제거
 const boxingCat = (name) => (/파운딩|엘보|니킥|킥/.test(name) ? null : /바디|리버/.test(name) ? 'body' : /어퍼/.test(name) ? 'uppercut' : /훅/.test(name) ? 'hook' : 'jab');
@@ -69,9 +69,9 @@ function refresh(m) {
   return m;
 }
 
-function newMember({ name, phone, belt }) {
+function newMember({ name, phone }) {
   return {
-    id: uid(), name, phone, belt: belt || '화이트', createdAt: now(),
+    id: uid(), name, phone, createdAt: now(),
     stats: { ...BASE_STATS },
     attendDay: null, attended: false, attendCount: 0,
     strategy: { stance: '오소독스', guard: '밸런스', style: '인파이팅', focus: ['헤드', '바디'] },
@@ -83,7 +83,7 @@ function publicMember(m) {
   refresh(m);
   const skills = skillsOf(m.id);
   return {
-    id: m.id, name: m.name, belt: m.belt,
+    id: m.id, name: m.name,
     stats: Object.fromEntries(Object.entries(m.stats).map(([k, v]) => [k, Math.floor(v)])),
     power: combatPower(m, skills),
     wins: m.wins, losses: m.losses, draws: m.draws, kos: m.kos, subs: m.subs,
@@ -337,7 +337,7 @@ route('POST', '/api/coach/members', 'coach', async (req, res, { body }) => {
   if (!name) return fail(res, 400, '이름을 입력해주세요.');
   if (phone.length < 10 || phone.length > 11) return fail(res, 400, '전화번호를 정확히 입력해주세요.');
   if (db.members.some((m) => m.phone === phone)) return fail(res, 409, '이미 등록된 전화번호입니다.');
-  const m = newMember({ name, phone, belt: String(body.belt || '화이트').slice(0, 10) });
+  const m = newMember({ name, phone });
   db.members.push(m); save();
   send(res, 201, publicMember(m));
 });
@@ -346,7 +346,6 @@ route('PUT', '/api/coach/members/:id', 'coach', async (req, res, { params, body 
   const m = memberById(params.id);
   if (!m) return fail(res, 404, '회원을 찾을 수 없습니다.');
   if (body.name) m.name = String(body.name).trim().slice(0, 20);
-  if (body.belt) m.belt = String(body.belt).slice(0, 10);
   if (body.phone) {
     const p = digits(body.phone);
     if (p.length < 10 || p.length > 11) return fail(res, 400, '전화번호를 정확히 입력해주세요.');

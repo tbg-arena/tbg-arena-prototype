@@ -199,7 +199,7 @@ function fighterCard(m, opts = {}) {
       <div class="p-head">
         <div class="sprite-box"><img src="${sprite(m.id, { pose: 'idle', scale: 2 })}" alt="" /></div>
         <div class="grow" style="min-width:0">
-          <div class="muted small">${esc(m.belt)} 벨트${m.streak >= 2 ? ` · <span class="badge red">${m.streak} WIN STREAK</span>` : ''}</div>
+          ${m.streak >= 2 ? `<div class="small"><span class="badge red">${m.streak} WIN STREAK</span></div>` : ''}
           <div class="name ellipsis">${esc(m.name)}</div>
           <div class="small">${record(m)} <span class="muted">· KO/TKO ${m.kos}</span></div>
         </div>
@@ -315,7 +315,7 @@ function calloutView(me, members, callouts) {
     ${others.length ? others.map((o) => `
       <div class="list-item">
         <div data-go="#/fighter/${o.id}" style="cursor:pointer">${avatar(o.id)}</div>
-        <div class="grow" style="min-width:0;cursor:pointer" data-go="#/fighter/${o.id}"><div class="ellipsis" style="font-weight:800">${esc(o.name)} <span class="muted small">${esc(o.belt)}</span></div>
+        <div class="grow" style="min-width:0;cursor:pointer" data-go="#/fighter/${o.id}"><div class="ellipsis" style="font-weight:800">${esc(o.name)}</div>
           <div class="muted small">전투력 <b class="px" style="color:#fff">${o.power}</b> · ${record(o)} · 기술 ${o.skillCount}</div></div>
         <button class="btn sm primary" data-callout="${o.id}" data-name="${esc(o.name)}" ${o.skillCount ? '' : 'disabled'}>콜아웃</button>
       </div>`).join('') : '<div class="card empty">다른 회원이 아직 없어요.</div>'}
@@ -627,7 +627,7 @@ async function renderCoach(tab) {
         ${members.length ? members.map((m) => `
           <details class="card member" data-mid="${m.id}">
             <summary class="row">${avatar(m.id)}
-              <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(m.name)} <span class="badge">${esc(m.belt)}</span></div>
+              <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(m.name)}</div>
                 <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div></div>
               <button class="btn sm ${m.attended ? '' : 'primary'}" data-attend="${m.id}" ${m.attended ? 'disabled' : ''}>${m.attended ? '출석✓' : '출석'}</button></summary>
             <div style="margin-top:12px">
@@ -656,7 +656,6 @@ function memberForm(m = {}) {
     <div class="stack">
       <div><label class="field">이름</label><input id="f-name" maxlength="20" value="${esc(m.name || '')}" placeholder="홍길동" /></div>
       <div><label class="field">전화번호 (로그인용)</label><input id="f-phone" type="tel" inputmode="numeric" maxlength="13" value="${m.phone ? fmtPhone(m.phone) : ''}" placeholder="010-0000-0000" /></div>
-      <div><label class="field">벨트</label><select id="f-belt">${['화이트', '그레이', '옐로우', '오렌지', '그린', '블루', '퍼플', '브라운', '블랙'].map((b) => `<option ${b === (m.belt || '화이트') ? 'selected' : ''}>${b}</option>`).join('')}</select></div>
     </div>`;
 }
 
@@ -681,7 +680,7 @@ function bindCoachActions(members) {
     phoneFmt(el);
     el.querySelector('#x').onclick = closeModal;
     el.querySelector('#ok').onclick = () => act(async () => {
-      await api('POST', '/api/coach/members', { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value, belt: el.querySelector('#f-belt').value });
+      await api('POST', '/api/coach/members', { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value });
       closeModal(); toast('회원이 등록되었습니다.'); refreshMembers();
     });
   });
@@ -697,7 +696,7 @@ function bindCoachActions(members) {
       phoneFmt(el);
       el.querySelector('#x').onclick = closeModal;
       el.querySelector('#ok').onclick = () => act(async () => {
-        await api('PUT', `/api/coach/members/${m.id}`, { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value, belt: el.querySelector('#f-belt').value });
+        await api('PUT', `/api/coach/members/${m.id}`, { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value });
         closeModal(); toast('저장되었습니다.'); refreshMembers();
       });
     });
