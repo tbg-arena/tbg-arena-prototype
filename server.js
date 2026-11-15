@@ -424,7 +424,8 @@ function handle(req, res) {
 
 async function handleApi(req, res) {
   const url = new URL(req.url, 'http://x');
-  db = await store.load();
+  try { db = await store.load(); }
+  catch (e) { console.error(e); return send(res, 503, { error: `저장소 연결 실패: ${e.message}` }); }
   migrate(db);
   dirty = false;
   // 응답은 저장이 끝난 뒤에 보낸다 (서버리스는 응답 후 바로 멈출 수 있음)
@@ -435,7 +436,7 @@ async function handleApi(req, res) {
   catch (e) { console.error(e); if (!pending) fail(res, 500, '서버 오류'); }
   if (dirty) {
     try { await store.save(db); }
-    catch (e) { console.error(e); res.statusCode = 500; pending = [JSON.stringify({ error: '저장 실패' })]; }
+    catch (e) { console.error(e); res.statusCode = 500; pending = [JSON.stringify({ error: `저장 실패: ${e.message}` })]; }
   }
   end(...(pending || []));
 }

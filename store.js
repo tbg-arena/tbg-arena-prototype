@@ -62,4 +62,12 @@ const fileStore = {
   async events(f) { return f.events || []; },
 };
 
-module.exports = REDIS_URL && REDIS_TOKEN ? redisStore : fileStore;
+// Vercel에서는 파일에 저장할 수 없으므로 Redis가 없으면 원인을 알려준다
+const missingStore = {
+  kind: 'none',
+  async load() { throw new Error('Vercel에 Upstash Redis가 연결되지 않았어요. (KV_REST_API_URL / KV_REST_API_TOKEN 환경변수 없음) 연결 후 Redeploy 해주세요.'); },
+  async save() { throw new Error('저장소 없음'); },
+  async events() { return []; },
+};
+
+module.exports = REDIS_URL && REDIS_TOKEN ? redisStore : process.env.VERCEL ? missingStore : fileStore;
