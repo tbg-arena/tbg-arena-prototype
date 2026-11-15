@@ -31,7 +31,7 @@
     L: { glove: '#f4f4f4', gloveS: '#b5b5b5', trunk: '#f4f4f4', stripe: '#111111', shoe: '#f4f4f4', tag: '#ffffff', band: '#111111' },
     R: { glove: '#e8302b', gloveS: '#a01c18', trunk: '#e8302b', stripe: '#ffffff', shoe: '#1b1b1b', tag: '#ff4b45', band: '#ffffff' },
   };
-  const HAIR = [['#1c1c1c', '#4a4a4a'], ['#3b2a20', '#6a4c39'], ['#e9e9e9', '#ffffff'], ['#151515', '#3d3d3d'], ['#7a7a7a', '#a8a8a8']];
+  const HAIR = [['#1c1c1c', '#4a4a4a'], ['#3b2a20', '#6a4c39'], ['#e9e9e9', '#ffffff'], ['#7a7a7a', '#a8a8a8']];
 
   const clamp01 = (t) => Math.max(0, Math.min(1, t));
   const bump = (t) => Math.sin(Math.PI * clamp01(t));
