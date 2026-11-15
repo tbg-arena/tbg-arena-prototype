@@ -14,7 +14,7 @@
   --pixel: "Galmuri11", "Galmuri9", monospace;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --text: var(--ink);
-  /* 하위 호환 (app.js 인라인 스타일) */
+  /* 하위 호환 (main.js 인라인 스타일) */
   --primary: #ffffff; --green: #ffffff; --danger: var(--red); --gold: #ffffff; --navy: #000;
 }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
