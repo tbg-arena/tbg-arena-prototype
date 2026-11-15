@@ -465,11 +465,20 @@ async function route_(req, res, url) {
   fail(res, 404, 'not found');
 }
 
-module.exports = { handle };
+// 요청 하나를 처리하는 함수 (API + 정적 파일)
+// Vercel이 server.js 를 서버 앱으로 자동 인식해 직접 호출해도 동작하도록 이것을 내보낸다.
+function app(req, res) {
+  const p = new URL(req.url, 'http://x');
+  const rp = p.searchParams.get('__p'); // vercel.json rewrite 형태 복원
+  if (rp !== null) { p.searchParams.delete('__p'); req.url = '/api' + rp + (p.search || ''); }
+  return req.url.startsWith('/api/') ? handle(req, res) : serveStatic(req, res);
+}
+module.exports = app;
+module.exports.handle = handle;
 
-// 로컬 실행: node server.js (정적 파일 + API)
+// 로컬 실행: node server.js
 if (require.main === module) {
-  http.createServer((req, res) => (req.url.startsWith('/api/') ? handle(req, res) : serveStatic(req, res))).listen(PORT, () => {
+  http.createServer(app).listen(PORT, () => {
     console.log(`🥊 TBG ARENA → http://localhost:${PORT}  (저장소: ${store.kind})`);
     if (COACH_PIN === '1234') console.log('⚠️  코치 PIN 기본값(1234) 사용 중 — COACH_PIN 환경변수로 변경하세요.');
   });
