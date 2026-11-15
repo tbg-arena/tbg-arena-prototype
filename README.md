@@ -32,7 +32,7 @@ npm run seed       # 다른 터미널에서 실행
 `server.js` 하나로 로컬 서버와 Vercel 서버리스(`api/index.js`)를 같이 씁니다. 저장소는 `store.js` 가 자동 선택:
 Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 
-1. Vercel에서 이 GitHub 레포를 Import (Framework: Other, 설정은 `vercel.json` 이 처리)
+1. Vercel에서 이 GitHub 레포를 Import (Framework: Other, 빌드 설정은 비워 두면 `public/` 이 정적 파일로, `api/` 가 함수로 배포됨)
 2. 프로젝트 → **Storage** → **Upstash for Redis** 생성 후 연결 → `KV_REST_API_URL`, `KV_REST_API_TOKEN` 자동 등록
 3. **Settings → Environment Variables** 에 `COACH_PIN` 추가 (기본값 1234 그대로 두지 말 것)
 4. Redeploy
