@@ -32,7 +32,7 @@
     R: { glove: '#e8302b', gloveS: '#a01c18', shoe: '#1b1b1b', tag: '#ff4b45', band: '#e8302b' },
   };
   const HAIR = ['#1c1c1c', '#4a4a4a'];                 // 검은 머리 (기본색, 하이라이트)
-  const CLOTH = { c: '#1f2f6b', s: '#141f4a' };         // 남색 반팔·반바지 (기본색, 그늘)
+  const CLOTH = { c: '#1f2f6b', s: '#141f4a', p: '#131c45', ps: '#0a1030' }; // 남색 반팔(c·s) / 조금 더 진한 남색 반바지(p·ps)
 
   const clamp01 = (t) => Math.max(0, Math.min(1, t));
   const bump = (t) => Math.sin(Math.PI * clamp01(t));
@@ -78,17 +78,19 @@
   function drawHead(g, hx, hy, look, st, face) {
     const [hc, hl] = HAIR, girl = look.gender === 'F';
     const outer = [rc(hx + 2, hy + 1, 9, 10, C.skin), rc(hx + 1, hy + 2, 11, 8, C.skin)];
-    // 머리 밖으로 삐져나오는 헤어: 남자 = 삐죽머리, 여자 = 뒷머리 + 머리띠
-    if (girl) outer.push(rc(hx, hy + 3, 3, 7, hc), rc(hx + 6, hy, 2, 1, st.band));
+    // 머리 밖으로 삐져나오는 헤어: 남자 = 삐죽머리, 여자 = 뒷머리 + 두건 매듭 꼬리
+    if (girl) outer.push(rc(hx, hy + 4, 3, 6, hc), rc(hx - 2, hy + 2, 3, 2, st.band), rc(hx - 4, hy + 4, 3, 2, st.band));
     else outer.push(rc(hx + 2, hy - 1, 2, 2, hc), rc(hx + 5, hy - 2, 2, 3, hc), rc(hx + 8, hy - 1, 2, 2, hc), rc(hx, hy + 1, 2, 3, hc));
     group(g, outer);
     const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(hx + x, hy + y, w, h); };
     R(1, 3, 1, 6, C.skinS); R(5, 6, 1, 2, C.skinS); // 뒤통수 그늘, 귀
     // 헤어
     R(2, 1, 9, 1, hc); R(1, 2, 11, 2, hc); R(9, 4, 2, 1, hc);
-    if (girl) { R(0, 4, 5, 3, hc); R(0, 7, 3, 3, hc); R(6, 0, 2, 3, st.band); R(5, 3, 2, 2, st.band); }
-    else R(1, 4, 4, 2, hc);
-    R(3, 2, 2, 1, hl);
+    if (girl) { // 두건: 정수리를 덮고 뒤로 묶음
+      R(0, 4, 5, 3, hc); R(0, 7, 3, 3, hc);
+      R(2, 1, 9, 1, st.band); R(1, 2, 11, 2, st.band); R(1, 4, 2, 1, st.band);
+      R(1, 3, 11, 1, st.gloveS); R(3, 2, 1, 1, st.gloveS); R(7, 2, 1, 1, st.gloveS); R(-3, 5, 1, 1, st.gloveS);
+    } else { R(1, 4, 4, 2, hc); R(3, 2, 2, 1, hl); }
     // 얼굴 (오른쪽을 본다)
     if (face === 'ko') {
       R(8, 5, 1, 1, C.eye); R(10, 5, 1, 1, C.eye); R(9, 6, 1, 1, C.eye); R(8, 7, 1, 1, C.eye); R(10, 7, 1, 1, C.eye);
@@ -177,11 +179,11 @@
       const kx = 2 + k * 8, ky = -9 - k * 6;
       body.push(lb(2, -9, kx, ky, 3, C.skin), lb(kx, ky, kx - 1, ky + 7, 3, C.skin), rc(kx - 3, ky + 6, 4, 2, st.shoe));
     } else body.push(lb(2, -9, fL[0], -2, 3, C.skin), rc(fL[0] - 1, -2, 4, 2, st.shoe));
-    body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, CLOTH.c)); // 반바지
+    body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, CLOTH.p)); // 반바지
     body.push(rc(-4 + ux, -20 + uy, 8, 8, CLOTH.c));                                   // 반팔 티
     group(g, body);
-    g.fillStyle = CLOTH.s; g.fillRect(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 1); // 허리 그늘
-    g.fillRect(-4 + ux, -20 + uy, 2, 8);
+    g.fillStyle = CLOTH.ps; g.fillRect(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 1); // 허리 밴드
+    g.fillStyle = CLOTH.s; g.fillRect(-4 + ux, -20 + uy, 2, 8);
     // 3. 머리
     drawHead(g, -6 + ux + hdx, -31 + uy + hdy, look, st, face);
     // 4. 뒷팔 → 5. 앞팔
