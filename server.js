@@ -52,6 +52,13 @@ for (const m of db.members) {
   if (!Array.isArray(s.focus)) s.focus = ['헤드', '바디'];
   delete s.range;
 }
+// 삭제된 회원이 나온 경기·콜아웃 정리 (회원 삭제 때 같이 지우기 전에 삭제된 회원 포함)
+const alive = new Set(db.members.map((m) => m.id));
+const orphanFights = db.fights.filter((f) => !alive.has(f.a) || !alive.has(f.b)).map((f) => f.id);
+const callouts = db.callouts.length;
+db.fights = db.fights.filter((f) => alive.has(f.a) && alive.has(f.b));
+db.callouts = db.callouts.filter((c) => alive.has(c.challengerId) && alive.has(c.opponentId));
+return { orphanFights, changed: orphanFights.length > 0 || db.callouts.length !== callouts };
 }
 
 const uid = () => crypto.randomBytes(6).toString('hex');
@@ -432,8 +439,9 @@ async function handleApi(req, res) {
   const url = new URL(req.url, 'http://x');
   try { db = await store.load(); }
   catch (e) { console.error(e); return send(res, 503, { error: `저장소 연결 실패: ${e.message}` }); }
-  migrate(db);
-  dirty = false;
+  const mig = migrate(db);
+  dirty = mig.changed; // 정리된 게 있으면 이번 요청에서 저장
+  if (mig.orphanFights.length) await store.dropFights(mig.orphanFights).catch((e) => console.error(e));
   // 응답은 저장이 끝난 뒤에 보낸다 (서버리스는 응답 후 바로 멈출 수 있음)
   const end = res.end.bind(res);
   let pending = null;
