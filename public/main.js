@@ -70,6 +70,12 @@ async function api(method, url, body) {
     body: body ? JSON.stringify(body) : undefined,
   });
   const data = await res.json().catch(() => ({}));
+  // 서버가 새로 배포됐으면 새 코드로 다시 불러오기 (중계 보는 중엔 나간 뒤에)
+  const ver = res.headers.get('x-app-version');
+  if (ver) {
+    if (!state.ver) state.ver = ver;
+    else if (ver !== state.ver && !document.body.classList.contains('fight-mode')) { location.reload(); return new Promise(() => {}); }
+  }
   if (res.status === 401 && state.token) { logout(true); throw new Error(data.error || '다시 로그인해주세요.'); }
   if (!res.ok) throw new Error(data.error || '요청 실패');
   return data;

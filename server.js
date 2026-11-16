@@ -136,8 +136,11 @@ function privateMember(m, view) {
 }
 
 // ───────── HTTP 유틸 ─────────
+// 배포 버전: 앱이 이 값이 바뀐 걸 보면 새 코드로 다시 불러온다 (열어 둔 옛 화면 + 새 서버 조합 방지)
+// (Vercel에서 배포 ID를 못 읽으면 끔: 인스턴스마다 값이 달라 계속 새로고침되는 것 방지)
+const APP_VERSION = process.env.VERCEL_GIT_COMMIT_SHA || process.env.VERCEL_DEPLOYMENT_ID || (process.env.VERCEL ? '' : String(Date.now()));
 function send(res, status, data) {
-  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+  res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store', ...(APP_VERSION ? { 'X-App-Version': APP_VERSION } : {}) });
   res.end(JSON.stringify(data));
 }
 const fail = (res, status, msg) => send(res, status, { error: msg });
