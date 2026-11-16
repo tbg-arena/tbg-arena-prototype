@@ -3,7 +3,22 @@
 TBG 체육관 회원 전용 **복싱 육성 시뮬레이션** 모바일 웹 게임.
 체육관에서 **실제로 배운 기술**이 내 선수의 기술이 되고, **체육관에 실제로 나올수록** 강해집니다. 앱 안에서 버튼으로 키우는 요소는 없고, 회원끼리 **콜아웃**해서 겨룹니다.
 
-## 실행
+## 개발 스펙
+
+| 구분 | 사용 기술 |
+| --- | --- |
+| 언어 | JavaScript (서버: Node.js CommonJS / 클라이언트: 브라우저 ES2020+), HTML5, CSS3 |
+| 런타임 | Node.js 18 이상 (내장 `fetch` 사용) |
+| 서버 | Node.js 내장 `http` 모듈로 직접 구현한 REST API (프레임워크·npm 의존성 없음) |
+| 프론트엔드 | Vanilla JS SPA (프레임워크·번들러·빌드 과정 없음), 모바일 우선 레이아웃 |
+| 그래픽 | HTML5 Canvas 2D: 160×100 도트 버퍼를 nearest-neighbor로 확대해 그리는 픽셀 아트 애니메이션 |
+| 사운드 | Web Audio API로 8비트 효과음 실시간 합성 (음원 파일 없음) |
+| 폰트 | Pretendard (본문), Galmuri (도트 폰트), jsDelivr CDN |
+| 앱 형태 | PWA 매니페스트 (`manifest.webmanifest`): 홈 화면에 추가해 앱처럼 실행 |
+| 인증 | 회원은 전화번호, 코치는 PIN(`COACH_PIN`)으로 로그인 → 토큰을 `localStorage`에 저장 |
+| 저장소 | 로컬: JSON 파일(`data/db.json`) / 배포: Upstash Redis (REST API) |
+| 배포 | Vercel: `public/` 정적 호스팅 + `api/index.js` 서버리스 함수 1개 |
+
 
 ```bash
 npm start                 # http://localhost:3000
