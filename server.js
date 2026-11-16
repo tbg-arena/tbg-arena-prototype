@@ -76,8 +76,10 @@ const memberById = (id) => db.members.find((m) => m.id === id);
 const skillsOf = (id) => db.skills.filter((s) => s.memberId === id);
 
 // 날짜가 바뀌면 오늘 출석 여부 리셋 (조회 시점에 지연 처리)
+// 조회만 하는 요청이 DB 전체를 다시 쓰지 않도록, 실제로 바뀔 때만 저장
+// (Vercel은 여러 인스턴스가 동시에 저장하면 마지막 저장이 이겨서, 4초 폴링이 방금 치른 경기를 덮어쓸 수 있음)
 function refresh(m) {
-  if (m.attendDay !== today()) m.attended = false;
+  if (m.attended && m.attendDay !== today()) { m.attended = false; save(); }
   return m;
 }
 
@@ -91,25 +93,44 @@ function newMember({ name, phone, gender }) {
   };
 }
 
-function publicMember(m) {
+// 회원이 아직 중계를 안 본 경기 = 그 회원에게는 결과를 숨길 경기
+const unseenOf = (me) => db.fights.filter((f) => (f.a === me.id && !f.seenA) || (f.b === me.id && !f.seenB));
+
+// 보는 회원 기준 전적: 안 본 경기를 빼고 다시 계산 (안 본 경기가 없으면 null = 저장된 전적 그대로)
+function viewFor(me) {
+  if (!me) return null;
+  const unseen = unseenOf(me);
+  if (!unseen.length) return null;
+  const hidden = new Set(unseen.map((f) => f.id));
+  const copy = { members: db.members.map((m) => ({ id: m.id })), fights: db.fights.filter((f) => !hidden.has(f.id)) };
+  rebuildRecords(copy);
+  const gain = new Map(); // 안 본 경기에서 오른 숙련도
+  for (const f of unseen) for (const [sid, n] of Object.entries(f.gains || {})) gain.set(sid, (gain.get(sid) || 0) + n);
+  return { hidden, gain, rec: new Map(copy.members.map((r) => [r.id, r])) };
+}
+// 보는 회원 기준 기술 목록 (안 본 경기에서 오른 숙련도는 빼고)
+const skillsView = (id, view) => skillsOf(id).map((s) => (view?.gain.has(s.id) ? { ...s, mastery: s.mastery - view.gain.get(s.id) } : s));
+
+function publicMember(m, view) {
   refresh(m);
-  const skills = skillsOf(m.id);
+  const skills = skillsView(m.id, view);
+  const r = view?.rec.get(m.id) || m; // 전적은 보는 사람 기준
   return {
     id: m.id, name: m.name, gender: m.gender || 'M',
     stats: Object.fromEntries(Object.entries(m.stats).map(([k, v]) => [k, Math.floor(v)])),
     power: combatPower(m, skills),
-    wins: m.wins, losses: m.losses, draws: m.draws, kos: m.kos, subs: m.subs,
-    points: m.points, fans: m.fans, streak: m.streak,
-    titles: Object.entries(m.finishes || {}).filter(([, c]) => c >= FINISH_TITLE_AT).map(([k]) => k),
+    wins: r.wins, losses: r.losses, draws: r.draws, kos: r.kos, subs: r.subs,
+    points: r.points, fans: r.fans, streak: r.streak,
+    titles: Object.entries(r.finishes || {}).filter(([, c]) => c >= FINISH_TITLE_AT).map(([k]) => k),
     skillCount: skills.length,
     busy: db.callouts.some((c) => c.status === 'pending_opponent' && c.opponentId === m.id) ? 'invited' : null,
   };
 }
 
-function privateMember(m) {
+function privateMember(m, view) {
   return {
-    ...publicMember(m),
-    statsRaw: m.stats, strategy: m.strategy, finishes: m.finishes || {},
+    ...publicMember(m, view),
+    statsRaw: m.stats, strategy: m.strategy, finishes: (view?.rec.get(m.id) || m).finishes || {},
     attended: m.attended, attendCount: m.attendCount || 0,
   };
 }
@@ -184,14 +205,18 @@ route('GET', '/api/meta', null, async (req, res) => {
 
 // ── 회원
 route('GET', '/api/me', 'member', async (req, res, { me }) => {
-  const unseen = db.fights.filter((f) => (f.a === me.id && !f.seenA) || (f.b === me.id && !f.seenB)).map((f) => f.id);
+  // 아직 안 본 경기 = 상대가 내 콜아웃을 수락해서 치러진 경기 (상대 이름과 함께)
+  const unseen = unseenOf(me).map((f) => {
+    const oid = f.a === me.id ? f.b : f.a;
+    return { id: f.id, name: memberById(oid)?.name || (f.a === me.id ? f.bName : f.aName) };
+  });
+  const view = viewFor(me);
   send(res, 200, {
-    member: privateMember(me),
-    skills: skillsOf(me.id),
+    member: privateMember(me, view),
+    skills: skillsView(me.id, view),
     pendingForMe: db.callouts.filter((c) => c.opponentId === me.id && c.status === 'pending_opponent').length,
     unseenFights: unseen,
   });
-  save();
 });
 
 route('PUT', '/api/me/strategy', 'member', async (req, res, { me, body }) => {
@@ -202,17 +227,19 @@ route('PUT', '/api/me/strategy', 'member', async (req, res, { me, body }) => {
     if (r.length) s.focus = r;
   }
   me.strategy = s; save();
-  send(res, 200, privateMember(me));
+  send(res, 200, privateMember(me, viewFor(me)));
 });
 
-route('GET', '/api/members', 'any', async (req, res) => {
-  send(res, 200, db.members.map(publicMember).sort((a, b) => b.points - a.points || b.power - a.power));
+route('GET', '/api/members', 'any', async (req, res, { me }) => {
+  const view = viewFor(me);
+  send(res, 200, db.members.map((m) => publicMember(m, view)).sort((a, b) => b.points - a.points || b.power - a.power));
 });
 
-route('GET', '/api/members/:id', 'any', async (req, res, { params }) => {
+route('GET', '/api/members/:id', 'any', async (req, res, { me, params }) => {
   const m = memberById(params.id);
   if (!m) return fail(res, 404, '회원을 찾을 수 없습니다.');
-  send(res, 200, { member: { ...publicMember(m), strategy: m.strategy }, skills: skillsOf(m.id).map(({ name, category, mastery }) => ({ name, category, mastery })) });
+  const view = viewFor(me);
+  send(res, 200, { member: { ...publicMember(m, view), strategy: m.strategy }, skills: skillsView(m.id, view).map(({ name, category, mastery }) => ({ name, category, mastery })) });
 });
 
 // ── 콜아웃
@@ -287,11 +314,12 @@ function runFight(A, B) {
   const dB = Math.round(K * ((1 - scoreA) - (1 - exp)) + (winnerId === B.id && method !== '판정' ? 8 : 0));
   f.delta = { [A.id]: dA, [B.id]: dB };
   applyRecord(A, f); applyRecord(B, f);
-  // 경기에서 성공한 기술은 숙련 +1 (최대 3개)
+  // 경기에서 성공한 기술은 숙련 +1 (최대 3개). 오른 기술은 경기에 기록해 두고, 중계 보기 전엔 숨긴다
+  f.gains = {};
   for (const [mid, list] of Object.entries(sim.landed)) {
     for (const sid of list.slice(0, 3)) {
       const s = db.skills.find((x) => x.id === sid);
-      if (s && s.memberId === mid) s.mastery = clamp(s.mastery + 1, 1, 100);
+      if (s && s.memberId === mid && s.mastery < 100) { s.mastery++; f.gains[sid] = (f.gains[sid] || 0) + 1; }
     }
   }
   db.fights.push(f);
@@ -331,7 +359,9 @@ function fightSummary(f) {
 route('GET', '/api/fights', 'any', async (req, res, { me, session }) => {
   let list = db.fights;
   if (session.role === 'member') list = list.filter((f) => f.a === me.id || f.b === me.id);
-  send(res, 200, list.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 40).map(fightSummary));
+  const hidden = me ? new Set(unseenOf(me).map((f) => f.id)) : new Set();
+  send(res, 200, list.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 40)
+    .map((f) => (hidden.has(f.id) ? { ...fightSummary(f), result: null, delta: null, hidden: true } : fightSummary(f))));
 });
 
 route('GET', '/api/fights/:id', 'any', async (req, res, { me, params }) => {

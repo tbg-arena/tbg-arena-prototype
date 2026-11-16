@@ -90,7 +90,9 @@ function stopTimers() {
   state.pollTimer = state.playTimer = null;
   state.arena?.destroy(); state.arena = null;
 }
-function poll(fn, ms) { clearInterval(state.pollTimer); state.pollTimer = setInterval(fn, ms); }
+function poll(fn, ms) { clearInterval(state.pollTimer); state.pollFn = fn; state.pollTimer = setInterval(fn, ms); }
+// 폰 화면이 꺼졌다 켜지거나 다른 앱에 갔다 오면 다음 주기를 기다리지 않고 바로 확인
+document.addEventListener('visibilitychange', () => { if (!document.hidden && state.pollTimer) state.pollFn?.(); });
 
 function logout(silent) {
   if (!silent && state.token) fetch('/api/logout', { method: 'POST', headers: { Authorization: 'Bearer ' + state.token } });
@@ -241,7 +243,7 @@ async function renderMember(tab) {
     try {
       const d = await load();
       if (state.tab !== tab) return;
-      if (d.me.unseenFights.length > data.me.unseenFights.length) { vibrate([80, 60, 80]); toast('경기 결과가 나왔습니다!'); }
+      if (d.me.unseenFights.length > data.me.unseenFights.length) { vibrate([80, 60, 80]); toast(`${d.me.unseenFights[0].name}님이 경기를 수락했어요!`); }
       const s = sig(d);
       if (s !== lastSig) { lastSig = s; data = d; draw(d); }
     } catch {}
@@ -258,7 +260,7 @@ async function renderMember(tab) {
       { id: 'career', icon: 'career', label: '커리어' },
     ];
     let inner = me.unseenFights.length
-      ? `<div class="banner" data-go="#/fight/${me.unseenFights[0]}">경기 결과 도착! 중계 보기 <span style="margin-left:auto">→</span></div>` : '';
+      ? `<div class="banner" data-go="#/fight/${me.unseenFights[0].id}">${esc(me.unseenFights[0].name)}님이 경기 수락! 중계 보기 <span style="margin-left:auto">→</span></div>` : '';
     if (tab === 'home') inner += homeView(me, callouts);
     if (tab === 'callout') inner += calloutView(me, members, callouts);
     if (tab === 'rank') inner += rankView(me, members);
@@ -366,6 +368,9 @@ function fightRow(f, myId) {
   let badge;
   if (myId) {
     const opp = f.a === myId ? f.bName : f.aName;
+    if (f.hidden) return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
+      <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">vs ${esc(opp)}</div><div class="muted small">결과는 중계를 보면 공개 · ${ago(f.createdAt)}</div></div>
+      <span class="badge red">중계 보기</span></div>`;
     badge = !r.winnerId ? '<span class="badge">DRAW</span>' : r.winnerId === myId ? '<span class="badge solid">WIN</span>' : '<span class="badge red">LOSE</span>';
     const d = f.delta?.[myId];
     return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
