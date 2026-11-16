@@ -44,6 +44,9 @@ const redisStore = {
     const raw = await redis(['GET', `${PREFIX}:fight:${f.id}`]);
     return raw ? JSON.parse(raw) : [];
   },
+  async dropFights(ids) {
+    if (ids.length) await redis(['DEL', ...ids.map((id) => `${PREFIX}:fight:${id}`)]);
+  },
 };
 
 const fileStore = {
@@ -60,6 +63,7 @@ const fileStore = {
     fs.renameSync(tmp, DB_FILE);
   },
   async events(f) { return f.events || []; },
+  async dropFights() {}, // 파일 저장소는 중계 데이터가 db.json 안에 있어 따로 지울 것 없음
 };
 
 // Vercel에서는 파일에 저장할 수 없으므로 Redis가 없으면 원인을 알려준다
@@ -68,6 +72,7 @@ const missingStore = {
   async load() { throw new Error('Vercel에 Upstash Redis가 연결되지 않았어요. (KV_REST_API_URL / KV_REST_API_TOKEN 환경변수 없음) 연결 후 Redeploy 해주세요.'); },
   async save() { throw new Error('저장소 없음'); },
   async events() { return []; },
+  async dropFights() {},
 };
 
 module.exports = REDIS_URL && REDIS_TOKEN ? redisStore : process.env.VERCEL ? missingStore : fileStore;

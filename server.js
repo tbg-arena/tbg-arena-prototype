@@ -363,7 +363,11 @@ route('DELETE', '/api/coach/members/:id', 'coach', async (req, res, { params }) 
   if (!m) return fail(res, 404, '회원을 찾을 수 없습니다.');
   db.members = db.members.filter((x) => x.id !== m.id);
   db.skills = db.skills.filter((s) => s.memberId !== m.id);
-  for (const c of db.callouts) if ((c.challengerId === m.id || c.opponentId === m.id) && c.status.startsWith('pending')) c.status = 'cancelled';
+  // 이 회원이 나온 경기 기록(중계 포함)과 관련 콜아웃도 함께 삭제
+  const gone = db.fights.filter((f) => f.a === m.id || f.b === m.id).map((f) => f.id);
+  db.fights = db.fights.filter((f) => f.a !== m.id && f.b !== m.id);
+  db.callouts = db.callouts.filter((c) => c.challengerId !== m.id && c.opponentId !== m.id);
+  await store.dropFights(gone);
   for (const [t, s] of Object.entries(db.sessions)) if (s.memberId === m.id) delete db.sessions[t];
   save(); send(res, 200, { ok: true });
 });
