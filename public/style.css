@@ -186,6 +186,7 @@ details.group[open] .chev { transform: rotate(90deg); }
 .seg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
 .seg button { padding: 10px 4px; border-radius: var(--radius); background: #000; border: 1px solid var(--line2); font-weight: 700; font-size: 13px; color: var(--muted); }
 .seg button.on { border-color: #fff; background: #fff; color: #000; }
+.seg.two { grid-template-columns: repeat(2, 1fr); }
 .seg.four { grid-template-columns: repeat(4, 1fr); }
 .seg.four button { font-size: 12px; padding: 8px 2px; }
 .seg.five { grid-template-columns: repeat(5, 1fr); }

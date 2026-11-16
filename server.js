@@ -60,6 +60,8 @@ const digits = (s) => String(s || '').replace(/\D/g, '');
 const today = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10); // KST
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
+const GENDER = (g) => (g === 'F' ? 'F' : 'M');
+const genderOf = (id) => memberById(id)?.gender || 'M';
 const memberById = (id) => db.members.find((m) => m.id === id);
 const skillsOf = (id) => db.skills.filter((s) => s.memberId === id);
 
@@ -69,9 +71,9 @@ function refresh(m) {
   return m;
 }
 
-function newMember({ name, phone }) {
+function newMember({ name, phone, gender }) {
   return {
-    id: uid(), name, phone, createdAt: now(),
+    id: uid(), name, phone, gender: GENDER(gender), createdAt: now(),
     stats: { ...BASE_STATS },
     attendDay: null, attended: false, attendCount: 0,
     strategy: { stance: '오소독스', guard: '밸런스', style: '인파이팅', focus: ['헤드', '바디'] },
@@ -83,7 +85,7 @@ function publicMember(m) {
   refresh(m);
   const skills = skillsOf(m.id);
   return {
-    id: m.id, name: m.name,
+    id: m.id, name: m.name, gender: m.gender || 'M',
     stats: Object.fromEntries(Object.entries(m.stats).map(([k, v]) => [k, Math.floor(v)])),
     power: combatPower(m, skills),
     wins: m.wins, losses: m.losses, draws: m.draws, kos: m.kos, subs: m.subs,
@@ -314,7 +316,7 @@ route('GET', '/api/fights/:id', 'any', async (req, res, { me, params }) => {
   if (!f) return fail(res, 404, '경기를 찾을 수 없습니다.');
   if (me && f.a === me.id && !f.seenA) { f.seenA = true; save(); }
   if (me && f.b === me.id && !f.seenB) { f.seenB = true; save(); }
-  send(res, 200, { ...fightSummary(f), events: await store.events(f), maxHp: f.maxHp, roundSec: f.roundSec || 300 });
+  send(res, 200, { ...fightSummary(f), aGender: genderOf(f.a), bGender: genderOf(f.b), events: await store.events(f), maxHp: f.maxHp, roundSec: f.roundSec || 300 });
 });
 
 // ── 코치(관리자)
@@ -337,7 +339,7 @@ route('POST', '/api/coach/members', 'coach', async (req, res, { body }) => {
   if (!name) return fail(res, 400, '이름을 입력해주세요.');
   if (phone.length < 10 || phone.length > 11) return fail(res, 400, '전화번호를 정확히 입력해주세요.');
   if (db.members.some((m) => m.phone === phone)) return fail(res, 409, '이미 등록된 전화번호입니다.');
-  const m = newMember({ name, phone });
+  const m = newMember({ name, phone, gender: body.gender });
   db.members.push(m); save();
   send(res, 201, publicMember(m));
 });
@@ -346,6 +348,7 @@ route('PUT', '/api/coach/members/:id', 'coach', async (req, res, { params, body 
   const m = memberById(params.id);
   if (!m) return fail(res, 404, '회원을 찾을 수 없습니다.');
   if (body.name) m.name = String(body.name).trim().slice(0, 20);
+  if (body.gender) m.gender = GENDER(body.gender);
   if (body.phone) {
     const p = digits(body.phone);
     if (p.length < 10 || p.length > 11) return fail(res, 400, '전화번호를 정확히 입력해주세요.');

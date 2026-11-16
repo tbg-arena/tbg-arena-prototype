@@ -28,10 +28,11 @@
     o: '#050505', skin: '#f6cfab', skinS: '#d99d76', blush: '#ff9a9a', eye: '#111', mouth: '#8c3b2e', white: '#ffffff',
   };
   const SIDE = {
-    L: { glove: '#f4f4f4', gloveS: '#b5b5b5', trunk: '#f4f4f4', stripe: '#111111', shoe: '#f4f4f4', tag: '#ffffff', band: '#111111' },
-    R: { glove: '#e8302b', gloveS: '#a01c18', trunk: '#e8302b', stripe: '#ffffff', shoe: '#1b1b1b', tag: '#ff4b45', band: '#ffffff' },
+    L: { glove: '#f4f4f4', gloveS: '#b5b5b5', shoe: '#f4f4f4', tag: '#ffffff', band: '#f4f4f4' },
+    R: { glove: '#e8302b', gloveS: '#a01c18', shoe: '#1b1b1b', tag: '#ff4b45', band: '#e8302b' },
   };
-  const HAIR = [['#1c1c1c', '#4a4a4a'], ['#3b2a20', '#6a4c39'], ['#e9e9e9', '#ffffff'], ['#7a7a7a', '#a8a8a8']];
+  const HAIR = ['#1c1c1c', '#4a4a4a'];                 // 검은 머리 (기본색, 하이라이트)
+  const CLOTH = { c: '#1f2f6b', s: '#141f4a' };         // 남색 반팔·반바지 (기본색, 그늘)
 
   const clamp01 = (t) => Math.max(0, Math.min(1, t));
   const bump = (t) => Math.sin(Math.PI * clamp01(t));
@@ -50,9 +51,11 @@
   try { document.fonts?.load(`700 16px Galmuri11`); } catch {}
 
   // ───────── 도트 캐릭터 ─────────
-  function lookOf(id) {
-    const h = hash(id);
-    return { hair: h % 6, hc: HAIR[(h >>> 3) % HAIR.length], phase: ((h >>> 7) % 100) / 16 };
+  // 기본 캐릭터: 성별로만 구분 (남자 = 삐죽머리, 여자 = 머리띠). p = 회원 id 또는 { id, gender }
+  function lookOf(p) {
+    const id = typeof p === 'object' && p ? p.id : p;
+    const gender = typeof p === 'object' && p?.gender === 'F' ? 'F' : 'M';
+    return { gender, phase: ((hash(id) >>> 7) % 100) / 16 };
   }
 
   // 파츠 그룹: 외곽선을 먼저 모두 그리고 채우기를 덮어 한 덩어리 실루엣을 만든다
@@ -73,24 +76,19 @@
   const glove = (x, y, st) => [rc(x, y, 5, 5, st.glove), rc(x, y + 4, 5, 1, st.gloveS, 1), rc(x + 1, y + 1, 1, 1, C.white, 1)];
 
   function drawHead(g, hx, hy, look, st, face) {
-    const [hc, hl] = look.hc;
+    const [hc, hl] = HAIR, girl = look.gender === 'F';
     const outer = [rc(hx + 2, hy + 1, 9, 10, C.skin), rc(hx + 1, hy + 2, 11, 8, C.skin)];
-    // 머리 밖으로 삐져나오는 헤어
-    if (look.hair === 0) outer.push(rc(hx + 2, hy - 1, 2, 2, hc), rc(hx + 5, hy - 2, 2, 3, hc), rc(hx + 8, hy - 1, 2, 2, hc), rc(hx, hy + 1, 2, 3, hc));
-    if (look.hair === 2) outer.push(rc(hx + 4, hy - 3, 4, 4, hc));
-    if (look.hair === 3) outer.push(rc(hx - 3, hy + 3, 4, 3, hc));
-    if (look.hair === 4) outer.push(rc(hx - 3, hy + 3, 4, 1, st.band), rc(hx - 2, hy + 5, 3, 1, st.band));
+    // 머리 밖으로 삐져나오는 헤어: 남자 = 삐죽머리, 여자 = 뒷머리 + 머리띠
+    if (girl) outer.push(rc(hx, hy + 3, 3, 7, hc), rc(hx + 6, hy, 2, 1, st.band));
+    else outer.push(rc(hx + 2, hy - 1, 2, 2, hc), rc(hx + 5, hy - 2, 2, 3, hc), rc(hx + 8, hy - 1, 2, 2, hc), rc(hx, hy + 1, 2, 3, hc));
     group(g, outer);
     const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(hx + x, hy + y, w, h); };
     R(1, 3, 1, 6, C.skinS); R(5, 6, 1, 2, C.skinS); // 뒤통수 그늘, 귀
     // 헤어
-    if (look.hair === 0 || look.hair === 3 || look.hair === 5) { R(2, 1, 9, 1, hc); R(1, 2, 11, 2, hc); R(1, 4, 4, 2, hc); R(9, 4, 2, 1, hc); }
-    if (look.hair === 5) { R(1, 6, 3, 3, hc); R(10, 4, 2, 2, hc); }
-    if (look.hair === 1 || look.hair === 4) { R(2, 1, 9, 1, hc); R(1, 2, 11, 1, hc); R(1, 3, 3, 2, hc); }
-    if (look.hair === 2) { R(4, 1, 4, 2, hc); R(1, 3, 2, 3, C.skinS); }
-    if (look.hair === 3) { R(-2, 3, 1, 1, st.band === '#ffffff' ? '#e8302b' : '#ffffff'); }
-    if (look.hair === 4) { R(1, 3, 11, 2, st.band); }
-    if (look.hair !== 2) R(3, 2, 3, 1, hl); else R(5, -2, 1, 2, hl);
+    R(2, 1, 9, 1, hc); R(1, 2, 11, 2, hc); R(9, 4, 2, 1, hc);
+    if (girl) { R(0, 4, 5, 3, hc); R(0, 7, 3, 3, hc); R(6, 0, 2, 3, st.band); R(5, 3, 2, 2, st.band); }
+    else R(1, 4, 4, 2, hc);
+    R(3, 2, 2, 1, hl);
     // 얼굴 (오른쪽을 본다)
     if (face === 'ko') {
       R(8, 5, 1, 1, C.eye); R(10, 5, 1, 1, C.eye); R(9, 6, 1, 1, C.eye); R(8, 7, 1, 1, C.eye); R(10, 7, 1, 1, C.eye);
@@ -179,32 +177,33 @@
       const kx = 2 + k * 8, ky = -9 - k * 6;
       body.push(lb(2, -9, kx, ky, 3, C.skin), lb(kx, ky, kx - 1, ky + 7, 3, C.skin), rc(kx - 3, ky + 6, 4, 2, st.shoe));
     } else body.push(lb(2, -9, fL[0], -2, 3, C.skin), rc(fL[0] - 1, -2, 4, 2, st.shoe));
-    body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, st.trunk));
-    body.push(rc(-4 + ux, -20 + uy, 8, 8, C.skin));
+    body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, CLOTH.c)); // 반바지
+    body.push(rc(-4 + ux, -20 + uy, 8, 8, CLOTH.c));                                   // 반팔 티
     group(g, body);
-    g.fillStyle = st.stripe; g.fillRect(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 1);
-    g.fillRect(-1 + Math.round(ux / 3), -12 + Math.round(uy / 2), 1, 4);
-    g.fillStyle = C.skinS; g.fillRect(-4 + ux, -20 + uy, 2, 8);
+    g.fillStyle = CLOTH.s; g.fillRect(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 1); // 허리 그늘
+    g.fillRect(-4 + ux, -20 + uy, 2, 8);
     // 3. 머리
     drawHead(g, -6 + ux + hdx, -31 + uy + hdy, look, st, face);
     // 4. 뒷팔 → 5. 앞팔
     const sh = [ux, -17 + uy];
     for (const [gp, sx] of [[bG, -1], [fG, 1]]) {
       const gx = Math.round(ux + gp[0]), gy = Math.round(uy + gp[1]);
-      if (gp.length > 2) {
-        const ex = Math.round(ux + gp[2]), ey = Math.round(uy + gp[3]);
-        group(g, [lb(sh[0] + sx, sh[1], ex, ey, 2, C.skin), lb(ex, ey, gx + 2, gy + 2, 2, C.skin), ...glove(gx, gy, st)]);
-      } else group(g, [lb(sh[0] + sx, sh[1], gx + 2, gy + 2, 2, C.skin), ...glove(gx, gy, st)]);
+      const ex = gp.length > 2 ? Math.round(ux + gp[2]) : gx + 2, ey = gp.length > 2 ? Math.round(uy + gp[3]) : gy + 2;
+      const x0 = sh[0] + sx, y0 = sh[1], dl = Math.max(1, Math.hypot(ex - x0, ey - y0)), sl = Math.min(3, dl) / dl;
+      const sleeve = lb(x0, y0, Math.round(x0 + (ex - x0) * sl), Math.round(y0 + (ey - y0) * sl), 3, CLOTH.c); // 반팔 소매
+      if (gp.length > 2) group(g, [lb(x0, y0, ex, ey, 2, C.skin), lb(ex, ey, gx + 2, gy + 2, 2, C.skin), sleeve, ...glove(gx, gy, st)]);
+      else group(g, [lb(x0, y0, gx + 2, gy + 2, 2, C.skin), sleeve, ...glove(gx, gy, st)]);
     }
     g.restore();
   }
 
   // 회원 아바타 / 포즈 이미지 (UI용)
   const imgCache = new Map();
-  function spriteURL(id, opts = {}) {
-    const key = `${id}|${opts.side || 'L'}|${opts.pose || 'bust'}|${opts.scale || 4}|${opts.p ?? ''}`;
+  function spriteURL(p, opts = {}) {
+    const look = lookOf(p);
+    const key = `${look.gender}|${opts.side || 'L'}|${opts.pose || 'bust'}|${opts.scale || 4}|${opts.p ?? ''}`;
     if (imgCache.has(key)) return imgCache.get(key);
-    const look = lookOf(id), st = SIDE[opts.side || 'L'];
+    const st = SIDE[opts.side || 'L'];
     const sp = mkCanvas(SW, SH);
     const pose = { kind: opts.pose === 'bust' ? 'idle' : opts.pose || 'idle', k: 1, hand: 0 };
     if (opts.pose === 'shoot') pose.k = 0.8;
@@ -245,7 +244,7 @@
       if (this.demo) this.demoTick();
     }
     mk(side, p, d) {
-      return { side, d, id: p.id, name: p.name || '', look: lookOf(p.id), st: SIDE[side], sp: mkCanvas(SW, SH),
+      return { side, d, id: p.id, name: p.name || '', look: lookOf(p), st: SIDE[side], sp: mkCanvas(SW, SH),
         x: CX - d * 40, tx: CX, y: 0, vy: 0, kx: 0, lying: 0, tLying: 0, hand: 0, anim: null, ko: false, down: false, win: false, flash: 0, blink: 2 + Math.random() * 3 };
     }
     other(id) { return this.f[this.order[0] === id ? this.order[1] : this.order[0]]; }

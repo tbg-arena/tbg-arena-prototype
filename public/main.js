@@ -22,8 +22,8 @@ const ICONS = {
   users: svg('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14a6 6 0 013.5 6"/>'),
   fight: svg('<path d="M7 4h7a4 4 0 014 4v4a4 4 0 01-4 4H9l-2 4V4z"/><path d="M7 9h6"/>'),
 };
-const sprite = (id, opts) => (window.PixelFighter ? window.PixelFighter.url(id, opts) : '');
-const avatar = (id, cls = '', side) => `<div class="avatar ${cls}"><img src="${sprite(id, { side })}" alt="" /></div>`;
+const sprite = (p, opts) => (window.PixelFighter ? window.PixelFighter.url(p, opts) : '');
+const avatar = (p, cls = '', side) => `<div class="avatar ${cls}"><img src="${sprite(p, { side })}" alt="" /></div>`;
 const POS_LABEL = { clinch: '클린치', ground: '그라운드' }; // 예전(MMA) 경기 다시보기용
 
 const state = {
@@ -119,7 +119,7 @@ function renderLogin(coach) {
       ${coach ? '' : '<div class="muted small center">TBG 등록 회원은 전화번호만으로 바로 입장할 수 있어요.</div>'}
       <div class="foot">TBG BOXING &amp; MMA · SINSA</div>
     </div>`;
-  if (window.Arena) state.arena = new window.Arena(document.getElementById('demo'), { id: 'demo-a' }, { id: 'demo-b7' }, { demo: true });
+  if (window.Arena) state.arena = new window.Arena(document.getElementById('demo'), { id: 'demo-a', gender: 'M' }, { id: 'demo-b7', gender: 'F' }, { demo: true });
   const input = document.getElementById(coach ? 'pin' : 'phone');
   if (!coach) input.addEventListener('input', () => { input.value = fmtPhone(input.value); });
   const submit = () => act(async () => {
@@ -197,7 +197,7 @@ function fighterCard(m, opts = {}) {
   return `
     <div class="card profile">
       <div class="p-head">
-        <div class="sprite-box"><img src="${sprite(m.id, { pose: 'idle', scale: 2 })}" alt="" /></div>
+        <div class="sprite-box"><img src="${sprite(m, { pose: 'idle', scale: 2 })}" alt="" /></div>
         <div class="grow" style="min-width:0">
           ${m.streak >= 2 ? `<div class="small"><span class="badge red">${m.streak} WIN STREAK</span></div>` : ''}
           <div class="name ellipsis">${esc(m.name)}</div>
@@ -314,7 +314,7 @@ function calloutView(me, members, callouts) {
     <div class="section-title">상대 지목하기</div>
     ${others.length ? others.map((o) => `
       <div class="list-item">
-        <div data-go="#/fighter/${o.id}" style="cursor:pointer">${avatar(o.id)}</div>
+        <div data-go="#/fighter/${o.id}" style="cursor:pointer">${avatar(o)}</div>
         <div class="grow" style="min-width:0;cursor:pointer" data-go="#/fighter/${o.id}"><div class="ellipsis" style="font-weight:800">${esc(o.name)}</div>
           <div class="muted small">전투력 <b class="px" style="color:#fff">${o.power}</b> · ${record(o)} · 기술 ${o.skillCount}</div></div>
         <button class="btn sm primary" data-callout="${o.id}" data-name="${esc(o.name)}" ${o.skillCount ? '' : 'disabled'}>콜아웃</button>
@@ -330,7 +330,7 @@ function rankView(me, members) {
     ${members.map((o, i) => `
       <div class="list-item ${o.id === me.member.id ? 'me' : ''}" data-go="#/fighter/${o.id}" style="cursor:pointer">
         <div class="rank r${i + 1}">${i + 1}</div>
-        ${avatar(o.id)}
+        ${avatar(o)}
         <div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:800">${esc(o.name)} ${o.titles.length ? '<span class="badge solid">TITLE</span>' : ''}</div>
           <div class="muted small">${record(o)} · 전투력 ${o.power}</div></div>
         <div class="center"><b class="pts">${o.points}</b><div class="muted px" style="font-size:9px">PTS</div></div>
@@ -482,8 +482,8 @@ async function renderFight(id) {
   if (!state.me && state.role === 'member') state.me = await api('GET', '/api/me').catch(() => null);
   if (seq !== state.seq) return; // 그 사이 다른 화면으로 이동함
   const myId = state.me?.member?.id;
-  const [L, R] = f.b === myId ? [{ id: f.b, name: f.bName, power: f.powerB }, { id: f.a, name: f.aName, power: f.powerA }]
-    : [{ id: f.a, name: f.aName, power: f.powerA }, { id: f.b, name: f.bName, power: f.powerB }];
+  const [L, R] = f.b === myId ? [{ id: f.b, name: f.bName, power: f.powerB, gender: f.bGender }, { id: f.a, name: f.aName, power: f.powerA, gender: f.aGender }]
+    : [{ id: f.a, name: f.aName, power: f.powerA, gender: f.aGender }, { id: f.b, name: f.bName, power: f.powerB, gender: f.bGender }];
   let i = 0, speed = 1;
 
   $app.innerHTML = `<div class="dark">
@@ -493,7 +493,7 @@ async function renderFight(id) {
         ${[L, R].map((p, k) => `
           <div class="fighter-wrap ${k ? 'right' : 'left'}">
             <div class="fighter ${k ? 'right' : 'left'}">
-              ${avatar(p.id, '', k ? 'R' : 'L')}
+              ${avatar(p, '', k ? 'R' : 'L')}
               <div class="meta"><div class="fname ellipsis">${esc(p.name)}${p.id === myId ? ' <span class="muted small">(나)</span>' : ''}</div>
               <div class="pw">PWR ${p.power}</div></div>
             </div>
@@ -626,7 +626,7 @@ async function renderCoach(tab) {
         <div class="section-title">회원 (${members.length}) · 오늘 출석 ${members.filter((m) => m.attended).length}명</div>
         ${members.length ? members.map((m) => `
           <details class="card member" data-mid="${m.id}">
-            <summary class="row">${avatar(m.id)}
+            <summary class="row">${avatar(m)}
               <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(m.name)}</div>
                 <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div></div>
               <button class="btn sm ${m.attended ? '' : 'primary'}" data-attend="${m.id}" ${m.attended ? 'disabled' : ''}>${m.attended ? '출석✓' : '출석'}</button></summary>
@@ -656,6 +656,7 @@ function memberForm(m = {}) {
     <div class="stack">
       <div><label class="field">이름</label><input id="f-name" maxlength="20" value="${esc(m.name || '')}" placeholder="홍길동" /></div>
       <div><label class="field">전화번호 (로그인용)</label><input id="f-phone" type="tel" inputmode="numeric" maxlength="13" value="${m.phone ? fmtPhone(m.phone) : ''}" placeholder="010-0000-0000" /></div>
+      <div><label class="field">성별 (캐릭터)</label><div class="seg two" id="f-gender">${[['M', '남자'], ['F', '여자']].map(([g, t]) => `<button type="button" data-g="${g}" class="${(m.gender || 'M') === g ? 'on' : ''}">${t}</button>`).join('')}</div></div>
     </div>`;
 }
 
@@ -672,7 +673,11 @@ function bindCoachActions(members) {
   bindGo();
   const byId = (id) => members?.find((m) => m.id === id);
   const allSkills = () => (members || []).flatMap((m) => m.skills);
-  const phoneFmt = (el) => { const p = el.querySelector('#f-phone'); p.oninput = () => (p.value = fmtPhone(p.value)); };
+  const phoneFmt = (el) => {
+    const p = el.querySelector('#f-phone'); p.oninput = () => (p.value = fmtPhone(p.value));
+    el.querySelectorAll('#f-gender button').forEach((b) => (b.onclick = () => el.querySelectorAll('#f-gender button').forEach((x) => x.classList.toggle('on', x === b))));
+  };
+  const genderVal = (el) => el.querySelector('#f-gender button.on')?.dataset.g || 'M';
 
   const addBtn = document.getElementById('addMember');
   if (addBtn) addBtn.onclick = () => openModal(`<h3>회원 등록</h3>${memberForm()}
@@ -680,7 +685,7 @@ function bindCoachActions(members) {
     phoneFmt(el);
     el.querySelector('#x').onclick = closeModal;
     el.querySelector('#ok').onclick = () => act(async () => {
-      await api('POST', '/api/coach/members', { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value });
+      await api('POST', '/api/coach/members', { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value, gender: genderVal(el) });
       closeModal(); toast('회원이 등록되었습니다.'); refreshMembers();
     });
   });
@@ -696,7 +701,7 @@ function bindCoachActions(members) {
       phoneFmt(el);
       el.querySelector('#x').onclick = closeModal;
       el.querySelector('#ok').onclick = () => act(async () => {
-        await api('PUT', `/api/coach/members/${m.id}`, { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value });
+        await api('PUT', `/api/coach/members/${m.id}`, { name: el.querySelector('#f-name').value, phone: el.querySelector('#f-phone').value, gender: genderVal(el) });
         closeModal(); toast('저장되었습니다.'); refreshMembers();
       });
     });
