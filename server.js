@@ -58,7 +58,10 @@ const orphanFights = db.fights.filter((f) => !alive.has(f.a) || !alive.has(f.b))
 const callouts = db.callouts.length;
 db.fights = db.fights.filter((f) => alive.has(f.a) && alive.has(f.b));
 db.callouts = db.callouts.filter((c) => alive.has(c.challengerId) && alive.has(c.opponentId));
-return { orphanFights, changed: orphanFights.length > 0 || db.callouts.length !== callouts };
+// 지워진 경기가 있으면(또는 한 번도 안 맞춰봤으면) 전적을 남은 경기로 다시 계산
+const rebuild = orphanFights.length > 0 || !db.recordsV;
+if (rebuild) { rebuildRecords(db); db.recordsV = 1; }
+return { orphanFights, changed: rebuild || db.callouts.length !== callouts };
 }
 
 const uid = () => crypto.randomBytes(6).toString('hex');
@@ -283,17 +286,7 @@ function runFight(A, B) {
   const dA = Math.round(K * (scoreA - exp) + (winnerId === A.id && method !== '판정' ? 8 : 0));
   const dB = Math.round(K * ((1 - scoreA) - (1 - exp)) + (winnerId === B.id && method !== '판정' ? 8 : 0));
   f.delta = { [A.id]: dA, [B.id]: dB };
-  for (const [m, d] of [[A, dA], [B, dB]]) {
-    m.points = Math.max(0, m.points + d);
-    if (!winnerId) { m.draws++; m.streak = 0; m.fans += 5; }
-    else if (winnerId === m.id) {
-      m.wins++; m.streak = Math.max(1, m.streak + 1);
-      m.fans += method === '판정' ? 10 : 25;
-      if (method === 'KO' || method === 'TKO') m.kos++;
-      if (method === '서브미션') m.subs++;
-      if (skill && method !== '판정') { m.finishes = m.finishes || {}; m.finishes[skill] = (m.finishes[skill] || 0) + 1; }
-    } else { m.losses++; m.streak = Math.min(-1, m.streak - 1); m.fans += 3; }
-  }
+  applyRecord(A, f); applyRecord(B, f);
   // 경기에서 성공한 기술은 숙련 +1 (최대 3개)
   for (const [mid, list] of Object.entries(sim.landed)) {
     for (const sid of list.slice(0, 3)) {
@@ -303,6 +296,29 @@ function runFight(A, B) {
   }
   db.fights.push(f);
   return f;
+}
+
+// 경기 결과를 선수 전적에 반영 (승패·KO·포인트·팬·연승·피니시 칭호)
+function applyRecord(m, f) {
+  const { winnerId, method, skill } = f.result || {};
+  m.points = Math.max(0, m.points + (f.delta?.[m.id] || 0));
+  if (!winnerId) { m.draws++; m.streak = 0; m.fans += 5; }
+  else if (winnerId === m.id) {
+    m.wins++; m.streak = Math.max(1, m.streak + 1);
+    m.fans += method === '판정' ? 10 : 25;
+    if (method === 'KO' || method === 'TKO') m.kos++;
+    if (method === '서브미션') m.subs++;
+    if (skill && method !== '판정') { m.finishes = m.finishes || {}; m.finishes[skill] = (m.finishes[skill] || 0) + 1; }
+  } else { m.losses++; m.streak = Math.min(-1, m.streak - 1); m.fans += 3; }
+}
+
+// 남아 있는 경기 기록으로 전적을 처음부터 다시 계산 (경기가 지워졌을 때)
+function rebuildRecords(db) {
+  const byId = new Map(db.members.map((m) => [m.id, m]));
+  for (const m of db.members) Object.assign(m, { wins: 0, losses: 0, draws: 0, kos: 0, subs: 0, points: 1000, fans: 0, finishes: {}, streak: 0 });
+  for (const f of db.fights.slice().sort((a, b) => a.createdAt - b.createdAt)) {
+    for (const id of [f.a, f.b]) if (byId.has(id)) applyRecord(byId.get(id), f);
+  }
 }
 
 function fightSummary(f) {
@@ -374,6 +390,7 @@ route('DELETE', '/api/coach/members/:id', 'coach', async (req, res, { params }) 
   const gone = db.fights.filter((f) => f.a === m.id || f.b === m.id).map((f) => f.id);
   db.fights = db.fights.filter((f) => f.a !== m.id && f.b !== m.id);
   db.callouts = db.callouts.filter((c) => c.challengerId !== m.id && c.opponentId !== m.id);
+  if (gone.length) rebuildRecords(db); // 상대 선수 승패·포인트에서도 빠지도록
   await store.dropFights(gone);
   for (const [t, s] of Object.entries(db.sessions)) if (s.memberId === m.id) delete db.sessions[t];
   save(); send(res, 200, { ok: true });
