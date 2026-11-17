@@ -11,6 +11,7 @@ const STATUS = {
   declined: ['상대 거절', 'badge'],
   cancelled: ['취소됨', 'badge'],
   done: ['경기 완료', 'badge green'],
+  live: ['경기 중', 'badge red'], // 경기는 치러졌지만 아직 중계를 안 봄
 };
 const svg = (d) => `<svg viewBox="0 0 24 24">${d}</svg>`;
 const ICONS = {
@@ -299,7 +300,7 @@ function calloutView(me, members, callouts) {
   const outgoing = callouts.filter((c) => c.challengerId === myId && open(c));
   const past = callouts.filter((c) => !open(c)).slice(0, 10);
   const others = members.filter((x) => x.id !== myId);
-  const st = (c) => `<span class="${STATUS[c.status][1]}">${STATUS[c.status][0]}</span>`;
+  const st = (c) => { const [t, cls] = STATUS[c.live ? 'live' : c.status]; return `<span class="${cls}">${t}</span>`; };
   return `
     <div class="steps"><span>① 콜아웃</span>›<span>② 코치 승인</span>›<span>FIGHT</span></div>
     <div class="section-title">받은 콜아웃</div>
@@ -376,13 +377,16 @@ function fightRow(f, myId) {
     const opp = f.a === myId ? f.bName : f.aName;
     if (f.hidden) return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
       <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">vs ${esc(opp)}</div><div class="muted small">결과는 중계를 보면 공개 · ${ago(f.createdAt)}</div></div>
-      <span class="badge red">중계 보기</span></div>`;
+      <span class="badge red">경기 중</span></div>`;
     badge = !r.winnerId ? '<span class="badge">DRAW</span>' : r.winnerId === myId ? '<span class="badge solid">WIN</span>' : '<span class="badge red">LOSE</span>';
     const d = f.delta?.[myId];
     return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
       <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">vs ${esc(opp)}</div><div class="muted small">${methodText(r)} · ${ago(f.createdAt)}</div></div>
       <div class="center">${badge}${d != null ? `<div class="small ${d >= 0 ? 'delta-up' : 'delta-down'}">${d >= 0 ? '+' : ''}${d}</div>` : ''}</div></div>`;
   }
+  if (f.hidden) return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
+    <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(f.aName)} vs ${esc(f.bName)}</div><div class="muted small">결과는 중계를 보면 공개 · ${ago(f.createdAt)}</div></div>
+    <span class="badge red">경기 중</span></div>`;
   const w = r.winnerId ? (r.winnerId === f.a ? f.aName : f.bName) : null;
   return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
     <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(f.aName)} vs ${esc(f.bName)}</div><div class="muted small">${methodText(r)} · ${ago(f.createdAt)}</div></div>
@@ -628,7 +632,7 @@ async function renderCoach(tab) {
           </div>`).join('') : '<div class="card empty">승인 대기 중인 콜아웃이 없습니다.</div>'}
         <div class="section-title">최근 처리 내역</div>
         ${callouts.filter((c) => c.status !== 'pending_coach').slice(0, 15).map((c) => `
-          <div class="list-item small"><div class="grow ellipsis">${esc(c.challenger)} → ${esc(c.opponent)}</div><span class="${STATUS[c.status][1]}">${STATUS[c.status][0]}</span>
+          <div class="list-item small"><div class="grow ellipsis">${esc(c.challenger)} → ${esc(c.opponent)}</div><span class="${STATUS[c.live ? 'live' : c.status][1]}">${STATUS[c.live ? 'live' : c.status][0]}</span>
           ${c.fightId ? `<button class="btn sm" data-go="#/fight/${c.fightId}">중계</button>` : ''}</div>`).join('') || '<div class="card empty">내역 없음</div>'}`;
     }
     if (tab === 'members') {

@@ -62,9 +62,12 @@ const callouts = db.callouts.length;
 db.fights = db.fights.filter((f) => alive.has(f.a) && alive.has(f.b));
 db.callouts = db.callouts.filter((c) => alive.has(c.challengerId) && alive.has(c.opponentId));
 // 지워진 경기가 있으면(또는 한 번도 안 맞춰봤으면) 전적을 남은 경기로 다시 계산
+// 코치 관전 여부(seenCoach) 도입 전 경기는 코치가 이미 본 것으로 처리
+let coachSeen = 0;
+for (const f of db.fights) if (f.seenCoach === undefined) { f.seenCoach = true; coachSeen++; }
 const rebuild = orphanFights.length > 0 || !db.recordsV;
 if (rebuild) { rebuildRecords(db); db.recordsV = 1; }
-return { orphanFights, changed: rebuild || moved > 0 || db.callouts.length !== callouts };
+return { orphanFights, changed: rebuild || moved > 0 || coachSeen > 0 || db.callouts.length !== callouts };
 }
 
 const uid = () => crypto.randomBytes(6).toString('hex');
@@ -249,14 +252,18 @@ route('GET', '/api/members/:id', 'any', async (req, res, { me, params }) => {
 });
 
 // ── 콜아웃
-function calloutView(c) {
-  return { ...c, challenger: memberById(c.challengerId)?.name, opponent: memberById(c.opponentId)?.name };
+// 보는 사람이 그 경기 중계를 봤는지 (me 없음 = 코치)
+const seenBy = (f, me) => (me ? (f.a === me.id ? f.seenA : f.b === me.id ? f.seenB : true) : f.seenCoach);
+// live: 경기는 치러졌지만 보는 사람이 아직 중계를 안 봄 → '경기 중'으로 표시
+function calloutView(c, me) {
+  const f = c.fightId && db.fights.find((x) => x.id === c.fightId);
+  return { ...c, challenger: memberById(c.challengerId)?.name, opponent: memberById(c.opponentId)?.name, live: !!f && !seenBy(f, me) };
 }
 
 route('GET', '/api/callouts', 'any', async (req, res, { me, session }) => {
   let list = db.callouts;
   if (session.role === 'member') list = list.filter((c) => c.challengerId === me.id || c.opponentId === me.id);
-  send(res, 200, list.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 50).map(calloutView));
+  send(res, 200, list.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 50).map((c) => calloutView(c, me)));
 });
 
 route('POST', '/api/callouts', 'member', async (req, res, { me, body }) => {
@@ -287,14 +294,14 @@ route('POST', '/api/callouts/:id/respond', 'member', async (req, res, { me, para
   const c = db.callouts.find((x) => x.id === params.id);
   if (!c || c.opponentId !== me.id) return fail(res, 404, '콜아웃을 찾을 수 없습니다.');
   if (c.status !== 'pending_opponent') return fail(res, 409, '코치 승인 후 응답할 수 있습니다.');
-  if (!body.accept) { c.status = 'declined'; save(); return send(res, 200, calloutView(c)); }
+  if (!body.accept) { c.status = 'declined'; save(); return send(res, 200, calloutView(c, me)); }
   const A = memberById(c.challengerId), B = memberById(c.opponentId);
   if (!A || !B) return fail(res, 404, '선수 정보가 없습니다.');
   const fight = runFight(A, B);
   c.status = 'done'; c.fightId = fight.id;
   fight.seenB = true; // 수락한 사람은 바로 관전
   save();
-  send(res, 200, calloutView(c));
+  send(res, 200, calloutView(c, me));
 });
 
 // ── 경기
@@ -308,7 +315,7 @@ function runFight(A, B) {
   );
   const f = {
     id: uid(), a: A.id, b: B.id, aName: A.name, bName: B.name, powerA: pa, powerB: pb,
-    createdAt: now(), events: sim.events, result: sim.result, maxHp: sim.maxHp, roundSec: sim.roundSec, seenA: false, seenB: false,
+    createdAt: now(), events: sim.events, result: sim.result, maxHp: sim.maxHp, roundSec: sim.roundSec, seenA: false, seenB: false, seenCoach: false,
   };
 
   // 결과 반영
@@ -365,16 +372,17 @@ function fightSummary(f) {
 route('GET', '/api/fights', 'any', async (req, res, { me, session }) => {
   let list = db.fights;
   if (session.role === 'member') list = list.filter((f) => f.a === me.id || f.b === me.id);
-  const hidden = me ? new Set(unseenOf(me).map((f) => f.id)) : new Set();
+  const hidden = new Set(list.filter((f) => !seenBy(f, me)).map((f) => f.id)); // 중계 보기 전엔 결과 숨김
   send(res, 200, list.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, 40)
     .map((f) => (hidden.has(f.id) ? { ...fightSummary(f), result: null, delta: null, hidden: true } : fightSummary(f))));
 });
 
-route('GET', '/api/fights/:id', 'any', async (req, res, { me, params }) => {
+route('GET', '/api/fights/:id', 'any', async (req, res, { me, params, session }) => {
   const f = db.fights.find((x) => x.id === params.id);
   if (!f) return fail(res, 404, '경기를 찾을 수 없습니다.');
   if (me && f.a === me.id && !f.seenA) { f.seenA = true; save(); }
   if (me && f.b === me.id && !f.seenB) { f.seenB = true; save(); }
+  if (session.role === 'coach' && !f.seenCoach) { f.seenCoach = true; save(); }
   send(res, 200, { ...fightSummary(f), aGender: genderOf(f.a), bGender: genderOf(f.b), events: await store.events(f), maxHp: f.maxHp, roundSec: f.roundSec || 300 });
 });
 
