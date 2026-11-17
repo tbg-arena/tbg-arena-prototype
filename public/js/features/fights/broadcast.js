@@ -6,6 +6,7 @@ import { addPage, go } from '../../core/router.js';
 import { Arena } from '../../arena/arena.js';
 import { SFX } from '../../arena/sfx.js';
 import { clock } from './components.js';
+import { shareStory } from './story.js';
 
 const POS_LABEL = { clinch: '클린치', ground: '그라운드' }; // 예전(MMA) 경기 다시보기용
 
@@ -93,9 +94,20 @@ async function renderFight(id) {
         <div style="margin-top:6px;font-weight:800">${esc(r.method)}${r.skill ? ` · ${esc(r.skill)}` : ''}${r.detail ? ` (${esc(r.detail)})` : ''}</div>
         <div class="muted small">${r.round}R ${clock(r.time)}${r.cards ? ` · 채점 ${r.cards.map((c) => (f.a === L.id ? c : [c[1], c[0]]).join('-')).join(', ')}` : ''}</div>
         ${d != null ? `<div class="${d >= 0 ? 'delta-up' : 'delta-down'}" style="margin-top:8px;font-weight:800">RANK PTS ${d >= 0 ? '+' : ''}${d}</div>` : ''}
-        <button class="btn primary block" style="margin-top:14px" id="back2">돌아가기</button>
+        ${isPlayer ? '<button class="btn block" style="margin-top:14px" id="story">📸 결과 이미지 저장</button>' : ''}
+        <button class="btn primary block" style="margin-top:${isPlayer ? 8 : 14}px" id="back2">돌아가기</button>
       </div>`;
     document.getElementById('back2').onclick = leave;
+    if (isPlayer) document.getElementById('story').onclick = (e) => {
+      e.target.disabled = true;
+      const cards = r.cards ? ` · 채점 ${r.cards.map((c) => (f.a === L.id ? c : [c[1], c[0]]).join('-')).join(', ')}` : '';
+      shareStory({
+        ring: document.getElementById('ring'), L, R, winnerId: r.winnerId, title: text, lose: !win && !!r.winnerId,
+        method: `${r.method}${r.skill ? ` · ${r.skill}` : ''}${r.detail ? ` (${r.detail})` : ''}`,
+        meta: `${r.round}R ${clock(r.time)}${cards}`, delta: d,
+        date: new Date(f.createdAt || Date.now()).toLocaleDateString('ko-KR'),
+      }).catch((err) => toast(err.message, true)).finally(() => { e.target.disabled = false; });
+    };
   }
   function step() {
     if (state.tab !== 'fight') return;
