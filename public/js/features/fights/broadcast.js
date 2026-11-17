@@ -21,8 +21,10 @@ async function renderFight(id) {
   if (!state.me && state.role === 'member') state.me = await api('GET', '/api/me').catch(() => null);
   if (seq !== state.seq) return; // 그 사이 다른 화면으로 이동함
   const myId = state.me?.member?.id;
-  const [L, R] = f.b === myId ? [{ id: f.b, name: f.bName, power: f.powerB, gender: f.bGender }, { id: f.a, name: f.aName, power: f.powerA, gender: f.aGender }]
-    : [{ id: f.a, name: f.aName, power: f.powerA, gender: f.aGender }, { id: f.b, name: f.bName, power: f.powerB, gender: f.bGender }];
+  // look: 장착한 장비 색 (상점)
+  const A = { id: f.a, name: f.aName, power: f.powerA, gender: f.aGender, look: f.aLook };
+  const B = { id: f.b, name: f.bName, power: f.powerB, gender: f.bGender, look: f.bLook };
+  const [L, R] = f.b === myId ? [B, A] : [A, B];
   let i = 0, speed = 1;
   const nameOf = (id) => (id === f.a ? f.aName : f.bName);
 
@@ -89,12 +91,13 @@ async function renderFight(id) {
     const wname = r.winnerId ? (r.winnerId === f.a ? f.aName : f.bName) : null;
     const text = !r.winnerId ? 'DRAW' : isPlayer ? (win ? 'YOU WIN' : 'YOU LOSE') : `${esc(wname)} WIN`;
     const d = isPlayer ? f.delta?.[myId] : null;
+    const coin = isPlayer ? f.coins?.[myId] : null; // 이 경기에서 받은 코인 (상점)
     document.getElementById('result').innerHTML = `
       <div class="card result">
         <div class="big ${isPlayer && !win && r.winnerId ? 'lose' : 'win'}">${text}</div>
         <div style="margin-top:6px;font-weight:800">${esc(r.method)}${r.skill ? ` · ${esc(r.skill)}` : ''}${r.detail ? ` (${esc(r.detail)})` : ''}</div>
         <div class="muted small">${r.round}R ${clock(r.time)}${r.cards ? ` · 채점 ${r.cards.map((c) => (f.a === L.id ? c : [c[1], c[0]]).join('-')).join(', ')}` : ''}</div>
-        ${d != null ? `<div class="${d >= 0 ? 'delta-up' : 'delta-down'}" style="margin-top:8px;font-weight:800">RANK PTS ${d >= 0 ? '+' : ''}${d}</div>` : ''}
+        ${d != null ? `<div class="${d >= 0 ? 'delta-up' : 'delta-down'}" style="margin-top:8px;font-weight:800">RANK PTS ${d >= 0 ? '+' : ''}${d}${coin ? ` · COIN +${coin}` : ''}</div>` : ''}
         ${isPlayer ? '<button class="btn block" style="margin-top:14px" id="story">📸 결과 이미지 저장</button>' : ''}
         <button class="btn primary block" style="margin-top:${isPlayer ? 8 : 14}px" id="back2">돌아가기</button>
       </div>`;

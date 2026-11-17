@@ -1,5 +1,6 @@
 // 화면 이동: 주소(#/...)에 맞는 화면을 그린다. 화면은 각 기능이 등록한다.
-//   addPage('fight', renderFight)       → #/fight/<id> 같은 단독 화면
+//   addPage('fight', renderFight)       → #/fight/<id> 같은 단독 화면 (탭바 없음)
+//   addPage('shop', renderShop, { needsId: false }) → #/shop 처럼 id 없이 여는 단독 화면
 //   setLoginPage(renderLogin)           → 로그인 전 화면
 //   setRoleHome('member', renderMember) → 그 밖의 주소는 역할별 탭 화면 (core/tabs.js)
 import { state } from './state.js';
@@ -10,7 +11,7 @@ const pages = new Map();
 const homes = new Map();
 let loginPage = () => {};
 
-export const addPage = (name, render) => { pages.set(name, render); };
+export const addPage = (name, render, opts = {}) => { pages.set(name, { render, needsId: opts.needsId !== false }); };
 export const setLoginPage = (render) => { loginPage = render; };
 export const setRoleHome = (role, render) => { homes.set(role, render); };
 
@@ -21,7 +22,8 @@ export async function route() {
   state.seq = (state.seq || 0) + 1;
   document.body.classList.remove('fight-mode');
   const [, view, id] = location.hash.split('/');
-  if (id && pages.has(view)) return pages.get(view)(id);
+  const page = pages.get(view);
+  if (page && (id || !page.needsId)) return page.render(id);
   return homes.get(state.role === 'coach' ? 'coach' : 'member')(view);
 }
 window.addEventListener('hashchange', route);

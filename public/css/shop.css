@@ -1,0 +1,22 @@
+/* ── 상점 · 옷장 (js/features/shop) */
+.shop-hero { display: flex; gap: 14px; align-items: flex-end; }
+.shop-wearing { font-size: 12px; font-weight: 700; line-height: 1.6; margin-top: 2px; }
+.shop-wearing .px { font-size: 10px; color: var(--muted); margin-right: 6px; }
+.shop-item { display: flex; gap: 12px; align-items: center; cursor: pointer; }
+.shop-item.on { border-color: #fff; box-shadow: 3px 3px 0 var(--red); }
+.shop-thumb { width: 66px; height: 66px; flex-shrink: 0; background: #fff; border: 1px solid #fff; display: grid; place-items: center; overflow: hidden; }
+.shop-thumb img { width: 64px; height: 64px; image-rendering: pixelated; display: block; }
+.shop-item .brand { font-size: 10px; font-weight: 700; letter-spacing: 1px; color: var(--red); }
+.shop-item .iname { font-weight: 800; line-height: 1.35; }
+.reqs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.req { font-size: 11px; font-weight: 700; padding: 2px 6px; border: 1px dashed var(--line2); color: var(--muted); }
+.req.ok { border-style: solid; border-color: #fff; color: #fff; }
+.shop-buy { flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.shop-buy .price { font-size: 12px; font-weight: 700; }
+.wardrobe { display: flex; flex-wrap: wrap; gap: 6px; }
+.ward { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; background: #000; border: 1px solid var(--line2); font-size: 12px; font-weight: 700; color: var(--muted); }
+.ward.on { border-color: #fff; color: #fff; cursor: default; }
+.ward .sw { height: 22px; width: auto; flex-shrink: 0; image-rendering: pixelated; }
+.shop-cats { margin-top: 4px; }
+.shop-cats button { padding: 9px 2px; font-size: 12px; }
+.ward .sw.face { background: #fff; border: 1px solid #fff; height: 24px; }
