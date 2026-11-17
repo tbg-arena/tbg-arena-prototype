@@ -48,7 +48,7 @@ export function comboModal(me) {
         : '<div class="card empty">아직 콤보가 없어요.</div>';
       el.querySelector('#c-fin').innerHTML = finisher
         ? `<div class="list-item small"><span class="badge red">FINISHER</span><div class="grow">${finisher.map(nameOf).join(' → ')}</div><button class="btn sm ghost" id="c-fin-del" aria-label="필살기 삭제">✕</button></div>`
-        : '<div class="card empty">아래에서 콤보를 만들고 '필살기로 지정'을 누르세요.</div>';
+        : '<div class="card empty">아래에서 콤보를 만들고 "필살기로 지정"을 누르세요.</div>';
       const fd = el.querySelector('#c-fin-del'); if (fd) fd.onclick = () => { finisher = null; draw(); };
       el.querySelector('#c-draft').innerHTML = draft.length ? draft.map(nameOf).join(' → ') : '<span class="muted small">기술을 눌러 순서를 정하세요</span>';
       const ready = draft.length >= M.min && draft.some(isAtk);
