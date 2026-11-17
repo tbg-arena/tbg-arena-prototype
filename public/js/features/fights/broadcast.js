@@ -119,8 +119,7 @@ async function renderFight(id) {
     state.playTimer = setTimeout(step, base / speed);
   }
   if (f.taunt) {
-    // 도전장 한마디: 피드 맨 아래(가장 오래된 줄)에 남기고, 링 위에 잠깐 띄운 뒤 경기 시작
-    $feed.insertAdjacentHTML('afterbegin', `<div class="ev taunt-line ${f.taunt.by === L.id ? 'l' : 'r'}"><span class="t">도전장</span>${esc(nameOf(f.taunt.by))}: “${esc(f.taunt.text)}”</div>`);
+    // 도전장 한마디: 링 위에 잠깐 띄운 뒤 경기 시작 (피드엔 남기지 않음 — 해설 톤과 섞임)
     state.playTimer = setTimeout(() => { document.getElementById('taunt')?.remove(); step(); }, 2800);
   } else step();
 }
