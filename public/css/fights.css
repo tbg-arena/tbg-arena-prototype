@@ -46,6 +46,13 @@
 @keyframes flash { 0% { transform: translateX(-6px); } 20% { transform: translateX(6px); } 40% { transform: translateX(-4px); } 60% { transform: translateX(3px); } 100% { transform: none; } }
 .ring { border: 1px solid var(--line2); background: #000; flex-shrink: 0; margin: 0 -12px; border-left: 0; border-right: 0; }
 .ring canvas { display: block; width: 100%; image-rendering: pixelated; }
+.ring { position: relative; }
+/* 도전장 인트로: 경기 시작 전 링 위에 잠깐 */
+.taunt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 20px; text-align: center; background: rgba(0,0,0,.72); animation: slam .5s cubic-bezier(.2,1.6,.4,1); }
+.taunt span { font-family: var(--pixel); font-size: 11px; font-weight: 700; color: #000; background: var(--red); padding: 2px 6px 1px; }
+.taunt b { font-size: 16px; color: #fff; }
+.taunt p { margin: 0; font-size: 18px; font-weight: 900; color: #fff; text-shadow: 2px 2px 0 var(--red); max-width: 100%; overflow-wrap: anywhere; }
+.ev.taunt-line { font-style: italic; color: var(--muted); }
 .dark .feed { min-height: 20dvh; max-height: 30dvh; }
 @media (min-width: 560px) { .ring { margin: 0; border-left: 1px solid var(--line2); border-right: 1px solid var(--line2); } }
 
