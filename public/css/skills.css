@@ -1,0 +1,9 @@
+/* ── 기술 목록 (js/features/skills) */
+details.group[open] .chev { transform: rotate(90deg); }
+.chev { transition: transform .15s; display: inline-block; }
+.avg { font-family: var(--pixel); font-weight: 700; color: #fff; font-size: 18px; font-variant-numeric: tabular-nums; }
+.skills { margin-top: 12px; border-top: 1px solid var(--line); }
+.skillrow { display: flex; align-items: center; gap: 10px; padding: 10px 2px; border-bottom: 1px solid var(--line); }
+.skillrow:last-child { border-bottom: 0; padding-bottom: 0; }
+.sname { font-weight: 700; }
+.mval { font-family: var(--pixel); font-weight: 700; width: 30px; text-align: right; font-variant-numeric: tabular-nums; }

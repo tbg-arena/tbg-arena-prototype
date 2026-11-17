@@ -1,0 +1,3 @@
+# 줄바꿈을 LF로 통일 (Windows·Mac이 섞여도 파일 전체가 바뀐 것처럼 잡히지 않도록)
+* text=auto eol=lf
+*.png binary
