@@ -25,10 +25,10 @@ export function finisherModal(me) {
     <div class="muted small" style="margin-bottom:10px">경기 막판(3라운드 후반이나 상대가 지쳤을 때) 한 번 터져요. 첫 펀치가 맞으면 끝까지 들어가고, 나보다 센 상대일수록 더 세게 들어가요. 🛡️ 방어 기술을 넣으면 피하면서 다음 펀치가 더 세져요.</div>
     <div class="stack">
       <div><label class="field">기술을 순서대로 누르세요 (${L.min}개 이상, 공격 1개 이상)</label>
-        <div class="card" id="c-draft" style="min-height:22px;margin:0 0 8px"></div>
-        <div class="seg five" id="c-cat" style="margin-bottom:6px">${Object.entries(C).map(([k, v]) => `<button data-c="${k}" ${picks.some((s) => s.category === k) ? '' : 'disabled'}>${v.icon}<br/>${esc(v.label)}</button>`).join('')}</div>
-        <div class="seg" style="grid-template-columns:repeat(3,1fr);grid-auto-rows:38px;height:126px;overflow-y:auto;align-content:start" id="c-pick"></div>
-        <div class="row" style="margin-top:8px"><button class="btn sm grow" id="c-undo">한 칸 지우기</button><button class="btn sm grow" id="c-clear">전부 지우기</button></div>
+        <div class="card" id="c-draft" style="min-height:22px;margin:0 0 16px"></div>
+        <div class="seg five" id="c-cat" style="margin-bottom:14px;gap:8px">${Object.entries(C).map(([k, v]) => `<button data-c="${k}" ${picks.some((s) => s.category === k) ? '' : 'disabled'}>${v.icon}<br/>${esc(v.label)}</button>`).join('')}</div>
+        <div class="seg" style="grid-template-columns:repeat(3,1fr);grid-auto-rows:38px;gap:10px;height:134px;overflow-y:auto;align-content:start" id="c-pick"></div>
+        <div class="row" style="margin-top:16px;gap:10px"><button class="btn sm grow" id="c-undo">한 칸 지우기</button><button class="btn sm grow" id="c-clear">전부 지우기</button></div>
       </div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button><button class="btn primary grow" id="ok">저장</button></div>`, (el) => {
