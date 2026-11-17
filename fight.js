@@ -38,6 +38,11 @@ const ROUNDS = 3;
 const ROUND_SEC = 180;
 const MAX_HP = 100;
 const DMG_SCALE = 0.72; // 전체 데미지 배율 (낮을수록 판정까지 가는 경기 ↑)
+const COMBO_RATE = 0.3;   // 공격 차례에 콤보 루틴을 쓸 확률
+const COMBO_ACC = 0.06;   // 콤보에서 앞 펀치가 맞을 때마다 다음 펀치 명중 +
+const COMBO_DMG = 0.85;   // 콤보 두 번째 펀치부터 데미지 배율
+const COMBO_BREAK = 0.06; // 콤보가 중간에 끊기면 상대 카운터 확률 +
+const COMBO_MAX = { combos: 5, min: 2, max: 5 };
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -69,9 +74,12 @@ function simulateFight(A, B) {
   const mk = (p) => {
     const skills = known(p);
     const defs = skills.filter((s) => CATEGORIES[s.category].group === 'defense');
+    const attacks = skills.filter((s) => CATEGORIES[s.category].group === 'attack');
+    // 콤보 루틴: 기술 id 목록 → 공격 기술 목록 (지워졌거나 공격이 아닌 기술은 빠짐, 2타 미만이면 버림)
+    const combos = (p.combos || []).map((ids) => ids.map((id) => attacks.find((s) => s.id === id)).filter(Boolean)).filter((c) => c.length >= 2);
     return {
       ...p, skills, st: p.stats, strat: p.strategy, hp: MAX_HP, gas: 100, score: 0, landed: {},
-      attacks: skills.filter((s) => CATEGORIES[s.category].group === 'attack'),
+      attacks, combos,
       defs, defM: defs.reduce((mx, s) => Math.max(mx, s.mastery), 0), // 가장 잘하는 디펜스 숙련
     };
   };
@@ -143,6 +151,7 @@ function simulateFight(A, B) {
     const w = (f) => f.st.speed * ({ 인파이팅: 1.35, 카운터: 0.8, 아웃복싱: 1 }[f.strat.style] || 1) * gasF(f) + 3;
     const att = Math.random() < w(a) / (w(a) + w(b)) ? a : b;
     const def = other(att.id);
+    if (att.combos.length && Math.random() < COMBO_RATE) return combo(att, def, pick(att.combos));
     const s = chooseSkill(att);
     act = s ? { att: att.id, cat: s.category, name: s.name, move: moveOf(s) } : null;
 
@@ -199,7 +208,39 @@ function simulateFight(A, B) {
       return;
     }
 
-    // 3) 빗나감 — 디펜스 기술로 피했다면 숙련 성장 대상, 카운터 기회
+    missed(att, def, s);
+  }
+
+  // 콤보: 맞을 때마다 다음 펀치 명중 ↑, 빗나가면 끊기고 카운터 위험 ↑. 이어지는 펀치는 데미지 조금 ↓
+  function combo(att, def, list) {
+    const parts = [];
+    let total = 0, anyBig = false;
+    const chain = list.map((s) => s.name).join('-');
+    const comboAct = (s) => ({ att: att.id, cat: s.category, name: s.name, move: moveOf(s), combo: parts.slice() });
+    for (const [i, s] of list.entries()) {
+      drain(att, 3);
+      const p = Math.min(0.92, successProb(att, def, s) + parts.length * COMBO_ACC);
+      if (Math.random() >= p) {
+        if (parts.length) { act = comboAct(list[i - 1]); ev(anyBig ? 'big' : 'strike', `${att.name}의 ${chain}! ${parts.length}발 들어가고 ${josa(s.name, '이가')} 끊긴다.`, att.id); }
+        act = { att: att.id, cat: s.category, name: s.name, move: moveOf(s) };
+        return missed(att, def, s, parts.length ? COMBO_BREAK : 0);
+      }
+      const { dmg, big } = hit(att, def, s, i ? COMBO_DMG : 1);
+      parts.push({ cat: s.category, name: s.name, move: moveOf(s) });
+      total += dmg; anyBig = anyBig || big;
+      if (def.hp <= 0) {
+        act = comboAct(s);
+        ev('finish', `${att.name}의 ${chain}!!! ${parts.length}연타가 그대로 꽂힌다! ${josa(def.name, '이가')} 쓰러진다! 경기 끝!`, att.id);
+        return finish(att, big || CATEGORIES[s.category].target === 'body' ? 'KO' : 'TKO', s.name);
+      }
+    }
+    act = comboAct(list[list.length - 1]);
+    ev(anyBig ? 'big' : 'strike', `${att.name}의 ${chain}! ${parts.length}연타 콤보가 전부 들어간다!${total > 18 ? ' 묵직하다!' : ''}`, att.id);
+  }
+
+  // 빗나감 — 디펜스 기술로 피했다면 숙련 성장 대상, 카운터 기회 (콤보가 끊기면 카운터 확률 ↑)
+  function missed(att, def, s, counterBonus = 0) {
+    const name = `${att.name}의`;
     const dSkill = useDefense(def, s.category);
     const from = dSkill ? moveOf(dSkill) : null; // 카운터가 이 회피 동작에서 이어진다
     if (dSkill) {
@@ -209,7 +250,7 @@ function simulateFight(A, B) {
       ev('miss', `${name} ${s.name}, ${josa(def.name, '이가')} ${josa(dSkill.name, '으로')} 흘려낸다.`, def.id);
     } else if (Math.random() < 0.35) ev('miss', `${name} ${s.name}, ${josa(def.name, '이가')} 피해낸다.`, def.id);
 
-    const counterChance = (def.strat.style === '카운터' ? 0.12 : 0.04) + (def.strat.guard === '숄더롤' ? 0.04 : 0) + def.defM / 700;
+    const counterChance = (def.strat.style === '카운터' ? 0.12 : 0.04) + (def.strat.guard === '숄더롤' ? 0.04 : 0) + def.defM / 700 + counterBonus;
     if (def.attacks.length && Math.random() < counterChance) {
       const cs = weighted(def.attacks, (x) => x.mastery + 5);
       act = { att: def.id, cat: cs.category, name: cs.name, move: moveOf(cs), counter: true, from };
@@ -275,4 +316,4 @@ function simulateFight(A, B) {
   return { events, result, landed, maxHp: MAX_HP, roundSec: ROUND_SEC };
 }
 
-module.exports = { simulateFight, combatPower, CATEGORIES, MOVES, guessMove, validMove, ROUND_SEC };
+module.exports = { simulateFight, combatPower, CATEGORIES, MOVES, guessMove, validMove, COMBO_MAX, ROUND_SEC };

@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { simulateFight, combatPower, CATEGORIES, MOVES, guessMove, validMove } = require('./fight');
+const { simulateFight, combatPower, CATEGORIES, MOVES, guessMove, validMove, COMBO_MAX } = require('./fight');
 const store = require('./store');
 
 const PORT = process.env.PORT || 3000;
@@ -136,7 +136,7 @@ function publicMember(m, view) {
 function privateMember(m, view) {
   return {
     ...publicMember(m, view),
-    statsRaw: m.stats, strategy: m.strategy, finishes: (view?.rec.get(m.id) || m).finishes || {},
+    statsRaw: m.stats, strategy: m.strategy, combos: m.combos || [], finishes: (view?.rec.get(m.id) || m).finishes || {},
     attended: m.attended, attendCount: m.attendCount || 0,
   };
 }
@@ -209,7 +209,7 @@ route('POST', '/api/logout', 'any', async (req, res, { token }) => {
 });
 
 route('GET', '/api/meta', null, async (req, res) => {
-  send(res, 200, { categories: CATEGORIES, moves: MOVES, strategy: STRATEGY, finishTitleAt: FINISH_TITLE_AT });
+  send(res, 200, { categories: CATEGORIES, moves: MOVES, comboMax: COMBO_MAX, strategy: STRATEGY, finishTitleAt: FINISH_TITLE_AT });
 });
 
 // ── 회원
@@ -236,6 +236,19 @@ route('PUT', '/api/me/strategy', 'member', async (req, res, { me, body }) => {
     if (r.length) s.focus = r;
   }
   me.strategy = s; save();
+  send(res, 200, privateMember(me, viewFor(me)));
+});
+
+// 콤보 루틴: 내 공격 기술 id 2~5개씩, 최대 5개
+route('PUT', '/api/me/combos', 'member', async (req, res, { me, body }) => {
+  const mine = new Set(skillsOf(me.id).filter((s) => CATEGORIES[s.category]?.group === 'attack').map((s) => s.id));
+  const list = Array.isArray(body.combos) ? body.combos : null;
+  if (!list || list.length > COMBO_MAX.combos) return fail(res, 400, `콤보는 최대 ${COMBO_MAX.combos}개까지 만들 수 있어요.`);
+  for (const c of list) {
+    if (!Array.isArray(c) || c.length < COMBO_MAX.min || c.length > COMBO_MAX.max) return fail(res, 400, `콤보 하나에 펀치는 ${COMBO_MAX.min}~${COMBO_MAX.max}개예요.`);
+    if (!c.every((id) => mine.has(id))) return fail(res, 400, '내 공격 기술로만 콤보를 만들 수 있어요.');
+  }
+  me.combos = list.map((c) => c.map(String)); save();
   send(res, 200, privateMember(me, viewFor(me)));
 });
 
@@ -310,8 +323,8 @@ function runFight(A, B) {
   const sa = skillsOf(A.id), sb = skillsOf(B.id);
   const pa = combatPower(A, sa), pb = combatPower(B, sb);
   const sim = simulateFight(
-    { id: A.id, name: A.name, stats: A.stats, strategy: A.strategy, skills: sa },
-    { id: B.id, name: B.name, stats: B.stats, strategy: B.strategy, skills: sb },
+    { id: A.id, name: A.name, stats: A.stats, strategy: A.strategy, skills: sa, combos: A.combos },
+    { id: B.id, name: B.name, stats: B.stats, strategy: B.strategy, skills: sb, combos: B.combos },
   );
   const f = {
     id: uid(), a: A.id, b: B.id, aName: A.name, bName: B.name, powerA: pa, powerB: pb,
@@ -491,8 +504,11 @@ route('PUT', '/api/coach/skills/:id', 'coach', async (req, res, { params, body }
 route('DELETE', '/api/coach/skills/:id', 'coach', async (req, res, { params }) => {
   const s = db.skills.find((x) => x.id === params.id);
   if (!s) return fail(res, 404, '기술을 찾을 수 없습니다.');
-  db.skills = db.skills.filter((x) => x.id !== s.id); save();
-  send(res, 200, { ok: true });
+  db.skills = db.skills.filter((x) => x.id !== s.id);
+  // 지운 기술은 콤보에서 빼고, 2타 미만으로 남은 콤보는 버린다
+  const m = memberById(s.memberId);
+  if (m?.combos) m.combos = m.combos.map((c) => c.filter((id) => id !== s.id)).filter((c) => c.length >= COMBO_MAX.min);
+  save(); send(res, 200, { ok: true });
 });
 
 // ───────── 서버 ─────────

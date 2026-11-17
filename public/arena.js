@@ -32,6 +32,14 @@
     return null;
   }
   const boxingMove = (a) => MOVE_FX[a.move] || MOVE_FX[guessMove(a.cat, a.name)] || null;
+  // 콤보: 들어간 펀치들의 동작을 이어 붙인다. seq 셋째 칸 = 그 펀치가 끝나는 지점(중간 타격 연출용)
+  function comboMove(parts) {
+    const ms = parts.map(boxingMove).filter(Boolean);
+    if (!ms.length) return null;
+    const last = ms[ms.length - 1];
+    return { seq: ms.flatMap((m) => m.seq.map(([k, d], i) => [k, d, i === m.seq.length - 1 ? m : null])),
+      trail: ms[0].trail, hit: last.hit, dy: last.dy, label: `${parts.length} HIT COMBO!`, combo: true };
+  }
   const DODGE_LABEL = { slip: 'SLIP', duck: 'DUCK', weave: 'WEAVE', roll: 'ROLL', block: 'BLOCK', parry: 'PARRY', back: 'BACKSTEP' };
   const DODGE_DUR = { duck: 0.5, weave: 0.55, back: 0.45 };
   const FONT = 'Galmuri11, "Galmuri11", monospace';
@@ -352,7 +360,7 @@
 
       if (strike && att) {
         att.hand ^= 1;
-        const mv = boxingMove(a);
+        const mv = a.combo?.length > 1 ? comboMove(a.combo) : boxingMove(a);
         const kind = mv ? mv.seq[0][0] : this.isMount(att) ? 'gnp' : a.cat;
         let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
         const swing = () => {
@@ -368,6 +376,18 @@
         if (mv) for (const [k2, d2] of mv.seq.slice(1)) {
           lead += dur * 0.85; dur = d2;
           this.later(lead * 1000, () => { att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand }; this.whoosh(att, mv.trail); this.sfx('whoosh', 0); });
+        }
+        // 콤보: 마지막 펀치 전까지 펀치마다 가볍게 맞는 반응
+        if (mv?.combo) {
+          let t2 = pre, d = mv.seq[0][1];
+          mv.seq.forEach(([, dd, end], i) => {
+            if (i) { t2 += d * 0.85; d = dd; }
+            if (end && i < mv.seq.length - 1) this.later((t2 + dd * 0.45) * 1000, () => {
+              const [hx, hy] = this.headPos(def);
+              def.anim = { kind: end.hit, t0: this.gt, dur: 0.22 }; def.kx = -def.d * 25; def.flash = 0.05;
+              this.burst(hx - def.d * 4, hy + (end.dy || 1), false); this.sfx('hit', 0);
+            });
+          });
         }
         if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
         if (landed && a.guard) {
@@ -389,7 +409,8 @@
             const [hx, hy] = this.headPos(def);
             const px = hx - def.d * 4, py = hy + (mv ? mv.dy || 1 : a.cat === 'kick' ? 4 : 1);
             def.anim = { kind: mv ? mv.hit : 'hit', t0: this.gt, dur: big ? 0.5 : 0.32 };
-            if (mv && !big) this.text(mv.label, att, a.cat === 'jab' ? '#cfcfcf' : '#ffffff', a.cat === 'jab' ? 0.7 : 0.9, -20, att.d * 6);
+            if (mv?.combo) this.text(mv.label, att, '#ff4b45', 1.1, -22, att.d * 6);
+            else if (mv && !big) this.text(mv.label, att, a.cat === 'jab' ? '#cfcfcf' : '#ffffff', a.cat === 'jab' ? 0.7 : 0.9, -20, att.d * 6);
             if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#cfefff', '#9fd8ff']);
             if (mv && a.cat === 'uppercut') this.spray(px, py - 2, 0, 6, ['#ffffff']);
             def.flash = big ? 0.1 : 0.06;

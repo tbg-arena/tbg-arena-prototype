@@ -288,6 +288,7 @@ function homeView(me, callouts) {
     <div class="section-title">내 준비</div>
     <div class="card row"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div></div>
     <div class="card row" id="editStrategy" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">STR</div><div class="grow"><b>내 기본 전략</b><div class="muted small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div></div><span class="link" style="padding:0">바꾸기 →</span></div>
+    <div class="card row" id="editCombos" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">CMB</div><div class="grow"><b>내 콤보 루틴 (${comboList(me).length})</b><div class="muted small ellipsis">${comboList(me).length ? comboList(me).map((c) => c.map((s) => esc(s.name)).join('-')).join(' · ') : '배운 기술을 엮어 나만의 연타를 만들어 보세요'}</div></div><span class="link" style="padding:0">편집 →</span></div>
     <div class="section-title">내 기술 (${me.skills.length}) <span class="muted" style="text-transform:none;font-weight:600">· 배운 기술만 경기에 나와요</span></div>
     ${skillGroups(me.skills)}
     <div class="muted small" style="margin:10px 2px">숫자는 숙련도예요. 숙련이 높을수록 경기에서 자주 나오고 잘 들어가요. 코치가 수업에서 본 실력대로 조정하고, 경기에서 성공하면 조금씩 올라요. 같은 기술로 ${state.meta.finishTitleAt}번 피니시하면 칭호가 붙어요.</div>`;
@@ -401,6 +402,8 @@ function bindMemberActions(me) {
   bindGo();
   const strat = document.getElementById('editStrategy');
   if (strat) strat.onclick = () => strategyModal(me.member.strategy);
+  const combos = document.getElementById('editCombos');
+  if (combos) combos.onclick = () => comboModal(me);
 
   document.querySelectorAll('[data-callout]').forEach((b) => (b.onclick = () => {
     openModal(`
@@ -428,6 +431,51 @@ function bindMemberActions(me) {
   document.querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = () => act(async () => {
     await api('POST', `/api/callouts/${b.dataset.cancel}/cancel`); route();
   })));
+}
+
+// 콤보 루틴: 저장된 기술 id 목록을 기술 객체로 (지워진 기술은 빠짐)
+function comboList(me) {
+  const byId = new Map(me.skills.map((s) => [s.id, s]));
+  return (me.member.combos || []).map((c) => c.map((id) => byId.get(id)).filter(Boolean)).filter((c) => c.length >= 2);
+}
+
+function comboModal(me) {
+  const M = state.meta.comboMax || { combos: 5, min: 2, max: 5 };
+  const attacks = me.skills.filter((s) => state.meta.categories[s.category]?.group === 'attack');
+  const list = comboList(me).map((c) => c.map((s) => s.id));
+  let draft = [];
+  const nameOf = (id) => esc(attacks.find((s) => s.id === id)?.name || '');
+  openModal(`
+    <h3>내 콤보 루틴</h3>
+    <div class="muted small" style="margin-bottom:10px">경기 중 공격 차례에 가끔 콤보를 써요. 앞 펀치가 맞을수록 다음 펀치가 잘 들어가지만, 중간에 빗나가면 끊기고 카운터를 맞기 쉬워요.</div>
+    <div class="stack">
+      <div id="c-list"></div>
+      <div><label class="field">새 콤보 — 기술을 순서대로 누르세요 (${M.min}~${M.max}타)</label>
+        <div class="card" id="c-draft" style="min-height:22px;margin:0 0 8px"></div>
+        <div class="seg" style="grid-template-columns:repeat(3,1fr)" id="c-pick">${attacks.map((s) => `<button data-id="${s.id}">${esc(s.name)}</button>`).join('')}</div>
+        <div class="row" style="margin-top:8px"><button class="btn sm grow" id="c-undo">한 칸 지우기</button><button class="btn sm navy grow" id="c-add">콤보 추가</button></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button><button class="btn primary grow" id="ok">저장</button></div>`, (el) => {
+    const draw = () => {
+      el.querySelector('#c-list').innerHTML = list.length
+        ? list.map((c, i) => `<div class="list-item small"><div class="grow">${c.map(nameOf).join(' → ')}</div><button class="btn sm ghost" data-del="${i}" aria-label="콤보 삭제">✕</button></div>`).join('')
+        : '<div class="card empty">아직 콤보가 없어요.</div>';
+      el.querySelector('#c-draft').innerHTML = draft.length ? draft.map(nameOf).join(' → ') : '<span class="muted small">기술을 눌러 순서를 정하세요</span>';
+      el.querySelector('#c-add').disabled = draft.length < M.min || list.length >= M.combos;
+      el.querySelectorAll('#c-pick button').forEach((b) => (b.disabled = draft.length >= M.max));
+      el.querySelectorAll('[data-del]').forEach((b) => (b.onclick = () => { list.splice(+b.dataset.del, 1); draw(); }));
+    };
+    el.querySelectorAll('#c-pick button').forEach((b) => (b.onclick = () => { draft.push(b.dataset.id); draw(); }));
+    el.querySelector('#c-undo').onclick = () => { draft.pop(); draw(); };
+    el.querySelector('#c-add').onclick = () => { list.push(draft); draft = []; draw(); };
+    el.querySelector('#x').onclick = closeModal;
+    el.querySelector('#ok').onclick = () => act(async () => {
+      await api('PUT', '/api/me/combos', { combos: list }); closeModal(); toast('콤보를 저장했어요.'); route();
+    });
+    if (!attacks.length) el.querySelector('#c-pick').outerHTML = '<div class="card empty">공격 기술이 없어요. 코치에게 기술 등록을 받으세요.</div>';
+    draw();
+  });
 }
 
 function strategyModal(cur) {
