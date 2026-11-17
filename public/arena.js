@@ -7,21 +7,33 @@
   const SW = 64, SH = 64, OX = 32, OY = 56; // 스프라이트 버퍼, 발 기준점
   const STRIKES = ['punch', 'kick', 'knee', 'elbow', 'jab', 'hook', 'uppercut', 'body'];
   // 복싱 기술별 동작: seq(연속 동작) · 궤적(trail) · 맞는 반응(hit) · 라벨
-  function boxingMove(a) {
-    const n = a.name || '';
-    switch (a.cat) {
-      case 'jab':
-        if (/원투|1-2|원-투/.test(n)) return { seq: [['jab', 0.2], ['cross', 0.26]], trail: 'straight', hit: 'hit', label: 'ONE-TWO' };
-        if (/더블|트리플/.test(n)) return { seq: [['jab', 0.18], ['jab', 0.2]], trail: 'straight', hit: 'hit', label: 'DOUBLE JAB' };
-        if (/스트레이트|크로스/.test(n)) return { seq: [['cross', 0.28]], trail: 'straight', hit: 'hit', label: 'STRAIGHT' };
-        return { seq: [['jab', 0.2]], trail: 'straight', hit: 'hit', label: 'JAB' };
-      case 'hook': return { seq: [['hook', 0.38]], trail: 'arc', hit: 'hitSide', label: 'HOOK!' };
-      case 'uppercut': return { seq: [['upper', 0.42]], trail: 'up', hit: 'hitUp', label: 'UPPERCUT!', dy: 3 };
-      case 'body': return { seq: [['body', 0.34]], trail: 'low', hit: 'hitBody', label: 'BODY!', dy: 12 };
-    }
+  // a.move: 세부 기술 (예전 경기 기록에는 없어서 이름으로 추정)
+  const MOVE_FX = {
+    jab: { seq: [['jab', 0.2]], trail: 'straight', hit: 'hit', label: 'JAB' },
+    onetwo: { seq: [['jab', 0.2], ['cross', 0.26]], trail: 'straight', hit: 'hit', label: 'ONE-TWO' },
+    double: { seq: [['jab', 0.18], ['jab', 0.2]], trail: 'straight', hit: 'hit', label: 'DOUBLE JAB' },
+    straight: { seq: [['cross', 0.28]], trail: 'straight', hit: 'hit', label: 'STRAIGHT' },
+    hook: { seq: [['hook', 0.38]], trail: 'arc', hit: 'hitSide', label: 'HOOK!' },
+    shorthook: { seq: [['shorthook', 0.28]], trail: 'arc', hit: 'hitSide', label: 'SHORT HOOK' },
+    overhand: { seq: [['overhand', 0.44]], trail: 'arc', hit: 'hitSide', label: 'OVERHAND!' },
+    uppercut: { seq: [['upper', 0.42]], trail: 'up', hit: 'hitUp', label: 'UPPERCUT!', dy: 3 },
+    shortupper: { seq: [['shortupper', 0.3]], trail: 'up', hit: 'hitUp', label: 'SHORT UPPER', dy: 4 },
+    bodystraight: { seq: [['body', 0.34]], trail: 'low', hit: 'hitBody', label: 'BODY!', dy: 12 },
+    bodyhook: { seq: [['bodyhook', 0.38]], trail: 'low', hit: 'hitBody', label: 'BODY HOOK!', dy: 11 },
+    liver: { seq: [['bodyhook', 0.4]], trail: 'low', hit: 'hitBody', label: 'LIVER!', dy: 13 },
+    bodyupper: { seq: [['bodyupper', 0.36]], trail: 'up', hit: 'hitBody', label: 'BODY UPPER!', dy: 10 },
+  };
+  function guessMove(cat, name) {
+    const n = String(name || '').replace(/\s/g, '');
+    if (cat === 'jab') return /원투|1-2/.test(n) ? 'onetwo' : /더블|트리플/.test(n) ? 'double' : /스트레이트|크로스/.test(n) ? 'straight' : 'jab';
+    if (cat === 'hook') return /오버핸드/.test(n) ? 'overhand' : /숏|쇼트/.test(n) ? 'shorthook' : 'hook';
+    if (cat === 'uppercut') return /숏|쇼트/.test(n) ? 'shortupper' : 'uppercut';
+    if (cat === 'body') return /리버/.test(n) ? 'liver' : /어퍼/.test(n) ? 'bodyupper' : /훅/.test(n) ? 'bodyhook' : 'bodystraight';
     return null;
   }
-  const DODGE_LABEL = { slip: 'SLIP', duck: 'DUCK', block: 'BLOCK', parry: 'PARRY', back: 'BACKSTEP' };
+  const boxingMove = (a) => MOVE_FX[a.move] || MOVE_FX[guessMove(a.cat, a.name)] || null;
+  const DODGE_LABEL = { slip: 'SLIP', duck: 'DUCK', weave: 'WEAVE', roll: 'ROLL', block: 'BLOCK', parry: 'PARRY', back: 'BACKSTEP' };
+  const DODGE_DUR = { duck: 0.5, weave: 0.55, back: 0.45 };
   const FONT = 'Galmuri11, "Galmuri11", monospace';
 
   const C = {
@@ -133,22 +145,44 @@
       // ── 복싱: 공격
       case 'jab': ux = k * 2; fG = [8 + k * 15, -24]; bG = [6, -25]; break;
       case 'cross': ux = k * 4; bG = [8 + k * 17, -24]; fG = [6, -26]; bL = [-6 + k * 2, 0]; break;
-      case 'hook': {
-        const p = pose.p ?? k;
-        if (p < 0.3) { const w = p / 0.3; ux = -w; fG = [8 - w * 5, -24, 3 - w * 2, -22]; }
-        else { const s = Math.sin(Math.min(1, (p - 0.3) / 0.35) * Math.PI / 2) * (p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1); ux = s * 3; fG = [3 + s * 10, -24 - s * 3, 3 + s * 4, -22 - s * 5]; }
+      case 'hook': case 'shorthook': { // 숏 훅: 팔을 짧게 접어 작은 궤적
+        const p = pose.p ?? k, A = pose.kind === 'shorthook' ? 0.6 : 1;
+        if (p < 0.3) { const w = p / 0.3 * A; ux = -w; fG = [8 - w * 5, -24, 3 - w * 2, -22]; }
+        else { const s = Math.sin(Math.min(1, (p - 0.3) / 0.35) * Math.PI / 2) * (p > 0.7 ? 1 - (p - 0.7) / 0.3 : 1) * A; ux = s * 3; fG = [3 + s * 10, -24 - s * 3, 3 + s * 4, -22 - s * 5]; }
         bG = [6, -26]; break;
       }
-      case 'upper': {
+      case 'overhand': { // 뒷손을 위로 크게 돌려 내려친다
         const p = pose.p ?? k;
-        if (p < 0.35) { const w = p / 0.35; uy += Math.round(w * 3); fG = [7, -22 + w * 8]; }
-        else { const s = Math.min(1, (p - 0.35) / 0.3), lift = s * (p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1); uy += Math.round(3 - lift * 5); ux = lift * 3; fG = [7 + lift * 5, -14 - lift * 16, 7 + lift * 3, -13 - lift * 5]; }
+        if (p < 0.35) { const w = p / 0.35; ux = -w; uy += Math.round(w); bG = [4 - w * 2, -27 - w * 6, 2, -24 - w * 3]; }
+        else { const s = Math.min(1, (p - 0.35) / 0.3) * (p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1); ux = s * 5; uy += Math.round(1 + s); bG = [2 + s * 16, -33 + s * 10, 3 + s * 7, -29 + s * 3]; }
+        fG = [6, -22]; break;
+      }
+      case 'upper': case 'shortupper': { // 숏 어퍼: 붙은 거리에서 짧게
+        const p = pose.p ?? k, A = pose.kind === 'shortupper' ? 0.6 : 1;
+        if (p < 0.35) { const w = p / 0.35 * A; uy += Math.round(w * 3); fG = [7, -22 + w * 8]; }
+        else { const s = Math.min(1, (p - 0.35) / 0.3), lift = s * (p > 0.75 ? 1 - (p - 0.75) / 0.25 : 1) * A; uy += Math.round(3 * A - lift * 5); ux = lift * 3; fG = [7 + lift * 5, -14 - lift * 16, 7 + lift * 3, -13 - lift * 5]; }
         bG = [6, -26]; break;
+      }
+      case 'bodyhook': { // 무릎을 굽혀 옆구리로 휘두른다
+        const p = pose.p ?? k, s = Math.sin(Math.PI * clamp01(p));
+        uy += Math.round(s * 5); ux = s * 2; hdx = Math.round(s);
+        fG = [3 + s * 11, -17 - s, 3 + s * 4, -17 - s * 3]; bG = [6, -25]; bL = [-6 - s * 2, 0]; fL = [4 + s * 2, 0]; break;
+      }
+      case 'bodyupper': { // 몸을 낮췄다가 명치로 올려친다
+        const p = pose.p ?? k, s = Math.sin(Math.PI * clamp01(p));
+        uy += Math.round(s * 4); ux = s * 2;
+        fG = [7 + s * 7, -12 - s * 7, 7 + s * 3, -12]; bG = [6, -25]; break;
       }
       case 'body': uy += Math.round(k * 5); ux = k * 3; hdx = Math.round(k); fG = [8 + k * 13, -19]; bG = [6, -25]; bL = [-6 - k * 2, 0]; fL = [4 + k * 2, 0]; break;
       // ── 복싱: 디펜스
       case 'slip': ux = -3 * k; hdx = -Math.round(2 * k); hdy = Math.round(k); fG = [7, -24]; bG = [5, -24]; break;
       case 'duck': uy += Math.round(7 * k); ux = -k; fG = [7, -23]; bG = [5, -23]; break;
+      case 'weave': { // U자로 숙여 펀치 밑을 지나 빠져나감
+        const p = pose.p ?? k;
+        uy += Math.round(Math.sin(Math.PI * p) * 6); ux = -2 + Math.cos(Math.PI * p) * 2; hdx = Math.round(Math.sin(Math.PI * p)); fG = [7, -23]; bG = [5, -23]; break;
+      }
+      case 'roll': ux = -2 * k; hdx = -Math.round(2 * k); fG = [5 - k, -19]; bG = [8, -27]; if (k > 0.3) face = 'effort'; break; // 앞어깨를 세우고 뒷손은 턱
+      case 'back': ux = -4 * k; hdx = -Math.round(2 * k); bL = [-8 - k * 2, 0]; fL = [2 - k * 2, 0]; fG = [8, -25]; bG = [6, -26]; break;
       case 'block': ux = -k; fG = [9, -28]; bG = [8, -26]; if (k > 0.3) face = 'effort'; break;
       case 'parry': ux = -k; fG = [11 - k * 2, -24 + k * 7]; bG = [6, -25]; break;
       // ── 복싱: 맞는 반응
@@ -321,17 +355,35 @@
         const mv = boxingMove(a);
         const kind = mv ? mv.seq[0][0] : this.isMount(att) ? 'gnp' : a.cat;
         let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
-        att.anim = { kind, t0: this.gt, dur, hand: att.hand };
-        this.whoosh(att, mv ? mv.trail : kind);
-        this.sfx(a.cat === 'kick' ? 'kick' : 'whoosh', 0);
+        const swing = () => {
+          att.anim = { kind, t0: this.gt, dur, hand: att.hand };
+          this.whoosh(att, mv ? mv.trail : kind);
+          this.sfx(a.cat === 'kick' ? 'kick' : 'whoosh', 0);
+        };
+        // 카운터: 방금 피한 동작(슬립·위빙 등)에서 바로 받아친다
+        const pre = a.counter && DODGE_LABEL[a.from] ? 0.22 : 0;
+        if (pre) { att.anim = { kind: a.from, t0: this.gt, dur: pre + 0.06 }; this.later(pre * 1000, swing); } else swing();
         // 원투·더블 잽: 이어지는 펀치
-        let lead = 0;
+        let lead = pre;
         if (mv) for (const [k2, d2] of mv.seq.slice(1)) {
           lead += dur * 0.85; dur = d2;
           this.later(lead * 1000, () => { att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand }; this.whoosh(att, mv.trail); this.sfx('whoosh', 0); });
         }
-        if (a.counter) { this.text('COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
-        if (landed) {
+        if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
+        if (landed && a.guard) {
+          // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
+          this.later((lead + dur * 0.45) * 1000, () => {
+            const [hx, hy] = this.headPos(def);
+            def.anim = { kind: a.guard, t0: this.gt, dur: 0.35 };
+            def.kx = -def.d * 25;
+            this.stop = 0.04; this.shake = 0.15;
+            this.burst(hx - def.d * 7, hy + (a.guard === 'roll' ? 6 : 2), false);
+            this.text(a.guard === 'roll' ? 'ROLL' : 'GUARD', def, '#cfcfcf', 0.85, -12);
+            const d = dmgOf(def.id);
+            if (d) this.num(`-${d}`, hx - def.d * 4, hy - 5, false);
+            this.sfx('hit', 0);
+          });
+        } else if (landed) {
           const big = e.type !== 'strike';
           this.later((lead + dur * 0.45) * 1000, () => {
             const [hx, hy] = this.headPos(def);
@@ -364,8 +416,9 @@
         } else if (e.type === 'miss') {
           this.later((lead + dur * 0.3) * 1000, () => {
             const dk = a.dodge;
-            def.anim = { kind: dk && dk !== 'back' ? dk : 'dodge', t0: this.gt, dur: dk === 'duck' ? 0.5 : 0.4 };
+            def.anim = { kind: DODGE_LABEL[dk] ? dk : 'dodge', t0: this.gt, dur: DODGE_DUR[dk] || 0.4 };
             if (dk === 'back') def.kx = -def.d * 70;
+            if (dk === 'weave') def.kx = def.d * 20; // 펀치 밑으로 파고든다
             if (dk === 'block') { const [hx, hy] = this.headPos(def); this.burst(hx - def.d * 6, hy + 2, false); }
             this.text(dk ? DODGE_LABEL[dk] : 'MISS', def, dk ? '#ffffff' : '#8a8a8a', dk ? 0.9 : 0.8, -12);
             this.sfx(dk === 'block' ? 'hit' : 'miss', 0);
@@ -464,11 +517,14 @@
     demoTick() {
       const [a, b] = this.fighters;
       const att = Math.random() < 0.5 ? a : b;
-      const r = Math.random();
-      const [cat, name] = r < 0.3 ? ['jab', '잽'] : r < 0.5 ? ['jab', '원투'] : r < 0.72 ? ['hook', '훅'] : r < 0.88 ? ['body', '바디샷'] : ['uppercut', '어퍼컷'];
+      const DEMO = [['jab', 'jab'], ['jab', 'onetwo'], ['jab', 'double'], ['jab', 'straight'], ['hook', 'hook'], ['hook', 'shorthook'], ['hook', 'overhand'], ['uppercut', 'uppercut'], ['uppercut', 'shortupper'], ['body', 'bodystraight'], ['body', 'bodyhook'], ['body', 'liver'], ['body', 'bodyupper']];
+      const [cat, move] = DEMO[Math.floor(Math.random() * DEMO.length)], name = '';
       const type = Math.random() < 0.3 ? 'miss' : Math.random() < 0.18 ? 'big' : 'strike';
-      const dodge = type === 'miss' ? ['slip', 'duck', 'block', 'parry', 'back'][Math.floor(Math.random() * 5)] : undefined;
-      this.play({ type, act: { att: att.id, cat, name, dodge }, pos: 'stand', top: null });
+      const kinds = Object.keys(DODGE_LABEL), pickK = () => kinds[Math.floor(Math.random() * kinds.length)];
+      const dodge = type === 'miss' ? pickK() : undefined;
+      const guard = type === 'strike' && Math.random() < 0.25 ? (Math.random() < 0.5 ? 'block' : 'roll') : undefined;
+      const counter = type === 'strike' && !guard && Math.random() < 0.15;
+      this.play({ type, act: { att: att.id, cat, name, move, dodge, guard, counter, from: counter ? pickK() : undefined }, pos: 'stand', top: null });
       this.demoTimer = setTimeout(() => this.running && this.demoTick(), 700 + Math.random() * 900);
     }
 
@@ -638,7 +694,7 @@
         else {
           pose.kind = an.kind; pose.hand = an.hand; pose.p = p;
           pose.k = an.kind === 'shoot' ? Math.min(1, easeOut(p * 1.6)) * (p > 0.8 ? (1 - p) * 5 : 1) : bump(p);
-          if (['punch', 'kick', 'knee', 'elbow', 'gnp', 'jab', 'cross', 'hook', 'upper', 'body'].includes(an.kind)) pose.face = 'effort';
+          if (['punch', 'kick', 'knee', 'elbow', 'gnp', 'jab', 'cross', 'hook', 'upper', 'body', 'shorthook', 'overhand', 'shortupper', 'bodyhook', 'bodyupper'].includes(an.kind)) pose.face = 'effort';
         }
       }
       if (!f.anim && this.pos === 'clinch' && f.lying < 0.5) pose.kind = 'clinch';

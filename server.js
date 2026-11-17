@@ -4,7 +4,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { simulateFight, combatPower, CATEGORIES } = require('./fight');
+const { simulateFight, combatPower, CATEGORIES, MOVES, guessMove, validMove } = require('./fight');
 const store = require('./store');
 
 const PORT = process.env.PORT || 3000;
@@ -44,6 +44,9 @@ db.skills = db.skills.filter((s) => {
   if (c) s.category = c;
   return !!c;
 });
+// 세부 기술(move)이 없는 예전 기술은 이름으로 채운다
+let moved = 0;
+for (const s of db.skills) if (!validMove(s.category, s.move)) { s.move = guessMove(s.category, s.name); moved++; }
 for (const m of db.members) {
   const s = m.strategy;
   if (!s) continue;
@@ -61,7 +64,7 @@ db.callouts = db.callouts.filter((c) => alive.has(c.challengerId) && alive.has(c
 // 지워진 경기가 있으면(또는 한 번도 안 맞춰봤으면) 전적을 남은 경기로 다시 계산
 const rebuild = orphanFights.length > 0 || !db.recordsV;
 if (rebuild) { rebuildRecords(db); db.recordsV = 1; }
-return { orphanFights, changed: rebuild || db.callouts.length !== callouts };
+return { orphanFights, changed: rebuild || moved > 0 || db.callouts.length !== callouts };
 }
 
 const uid = () => crypto.randomBytes(6).toString('hex');
@@ -203,7 +206,7 @@ route('POST', '/api/logout', 'any', async (req, res, { token }) => {
 });
 
 route('GET', '/api/meta', null, async (req, res) => {
-  send(res, 200, { categories: CATEGORIES, strategy: STRATEGY, finishTitleAt: FINISH_TITLE_AT });
+  send(res, 200, { categories: CATEGORIES, moves: MOVES, strategy: STRATEGY, finishTitleAt: FINISH_TITLE_AT });
 });
 
 // ── 회원
@@ -455,7 +458,8 @@ route('POST', '/api/coach/members/:id/skills', 'coach', async (req, res, { param
   if (!name || !category) return fail(res, 400, '기술 이름과 분류를 입력해주세요.');
   if (skillsOf(m.id).length >= 30) return fail(res, 400, '기술은 최대 30개까지 등록할 수 있습니다.');
   if (skillsOf(m.id).some((s) => s.name === name)) return fail(res, 409, '이미 등록된 기술입니다.');
-  const s = { id: uid(), memberId: m.id, name, category, mastery, desc: String(body.desc || '').slice(0, 60), createdAt: now() };
+  const move = validMove(category, body.move) ? body.move : guessMove(category, name);
+  const s = { id: uid(), memberId: m.id, name, category, move, mastery, desc: String(body.desc || '').slice(0, 60), createdAt: now() };
   db.skills.push(s); save();
   send(res, 201, s);
 });
@@ -466,6 +470,8 @@ route('PUT', '/api/coach/skills/:id', 'coach', async (req, res, { params, body }
   if (body.mastery != null) s.mastery = clamp(parseInt(body.mastery, 10) || 1, 1, 100);
   if (body.name) s.name = String(body.name).trim().slice(0, 24);
   if (CATEGORIES[body.category]) s.category = body.category;
+  if (validMove(s.category, body.move)) s.move = body.move;
+  else if (!validMove(s.category, s.move)) s.move = guessMove(s.category, s.name);
   save(); send(res, 200, s);
 });
 
