@@ -208,7 +208,7 @@ function fighterCard(m, opts = {}) {
       <div class="p-head">
         <div class="sprite-box"><img src="${sprite(m, { pose: 'idle', scale: 2 })}" alt="" /></div>
         <div class="grow" style="min-width:0">
-          ${m.streak >= 2 ? `<div class="small"><span class="badge red">${m.streak} WIN STREAK</span></div>` : ''}
+          ${m.streak >= 2 ? `<div class="small" style="margin-bottom:8px"><span class="badge red">${m.streak} WIN STREAK</span></div>` : ''}
           <div class="name ellipsis">${esc(m.name)}</div>
           <div class="small">${record(m)} <span class="muted">· KO/TKO ${m.kos}</span></div>
         </div>
