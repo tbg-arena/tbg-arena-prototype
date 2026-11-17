@@ -152,13 +152,12 @@ export class Arena {
           });
         });
       }
-      // 필살기 컷인: 화면 멈춤 → 레터박스 + FINISHER 배너 + 공격자 줌인·스포트라이트 (later()는 게임 시간 기준이라 펀치도 멈춘 뒤 나감)
+      // 필살기 시작: 섬광 + 공격자 줌인·스포트라이트
       if (a.finisher) {
         const [ax, ay] = this.headPos(att);
-        this.stop = 0.8; this.flash = 0.35; this.invert = 0.06; this.hype = 1.5;
+        this.flash = 0.35; this.invert = 0.06; this.hype = 1.5;
         this.dim = 1; this.spot = att;
         this.cam.punch = 0.45; this.cam.fx = ax; this.cam.fy = ay + 8;
-        this.banner('FINISHER', 1.5, { sub: (a.combo?.length ? a.combo : [a]).map((p) => p.name).join(' - '), bars: true });
         this.sfx('counter', 2);
       }
       if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
@@ -403,7 +402,7 @@ export class Arena {
     this.invert = Math.max(0, this.invert - rdt);
     this.hype = Math.max(0, this.hype - rdt * 0.35);
     this.bars += (this.tbars - this.bars) * (1 - Math.exp(-rdt * 10));
-    if (this.stop <= 0) this.dim = Math.max(0, this.dim - rdt * 0.7); // 필살기 스포트라이트는 멈춤이 풀리면 서서히 걷힘
+    if (this.stop <= 0) this.dim = Math.max(0, this.dim - rdt * 0.7); // 필살기 스포트라이트는 서서히 걷힘
     // 카메라: 두 선수 중간을 따라가고, 타격 순간 임팩트 지점으로 펀치 줌
     const [a, b] = this.fighters;
     const lockFx = this.fx.find((x) => x.kind === 'lock');
