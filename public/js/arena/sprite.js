@@ -9,7 +9,7 @@ const C = {
 };
 export const SIDE = {
   L: { glove: '#f4f4f4', gloveS: '#b5b5b5', shoe: '#f4f4f4', tag: '#ffffff', band: '#f4f4f4' },
-  R: { glove: '#e8302b', gloveS: '#a01c18', shoe: '#1b1b1b', tag: '#ff4b45', band: '#e8302b' },
+  R: { glove: '#2a2a2a', gloveS: '#111111', shoe: '#1b1b1b', tag: '#ff4b45', band: '#2a2a2a' }, // 외곽선(#050505)과 구분되게 완전 검정 대신 짙은 회색
 };
 const HAIR = ['#1c1c1c', '#4a4a4a'];                 // 검은 머리 (기본색, 하이라이트)
 const CLOTH = { c: '#1f2f6b', s: '#141f4a', p: '#131c45', ps: '#0a1030' }; // 남색 반팔(c·s) / 조금 더 진한 남색 반바지(p·ps)
