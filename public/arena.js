@@ -32,13 +32,18 @@
     return null;
   }
   const boxingMove = (a) => MOVE_FX[a.move] || MOVE_FX[guessMove(a.cat, a.name)] || null;
-  // 콤보: 들어간 펀치들의 동작을 이어 붙인다. seq 셋째 칸 = 그 펀치가 끝나는 지점(중간 타격 연출용)
+  // 콤보: 들어간 펀치·방어 동작을 이어 붙인다. seq 셋째 칸 = 그 펀치가 끝나는 지점(중간 타격 연출용), 넷째 칸 = 방어 동작
   function comboMove(parts) {
-    const ms = parts.map(boxingMove).filter(Boolean);
+    const ms = parts.filter((p) => p.cat !== 'defense').map(boxingMove).filter(Boolean);
     if (!ms.length) return null;
     const last = ms[ms.length - 1];
-    return { seq: ms.flatMap((m) => m.seq.map(([k, d], i) => [k, d, i === m.seq.length - 1 ? m : null])),
-      trail: ms[0].trail, hit: last.hit, dy: last.dy, label: `${parts.length} HIT COMBO!`, combo: true };
+    const seq = parts.flatMap((p) => {
+      if (p.cat === 'defense') return DODGE_LABEL[p.move] ? [[p.move, 0.3, null, true]] : [];
+      const m = boxingMove(p);
+      return m ? m.seq.map(([k, d], i) => [k, d, i === m.seq.length - 1 ? m : null]) : [];
+    });
+    while (seq.length && seq[seq.length - 1][3]) seq.pop(); // 마지막 펀치 뒤 방어 동작은 생략 (타격 연출이 펀치에 맞게)
+    return { seq, trail: ms[0].trail, hit: last.hit, dy: last.dy, label: `${ms.length} HIT COMBO!`, combo: true };
   }
   const DODGE_LABEL = { slip: 'SLIP', duck: 'DUCK', weave: 'WEAVE', roll: 'ROLL', block: 'BLOCK', parry: 'PARRY', back: 'BACKSTEP' };
   const DODGE_DUR = { duck: 0.5, weave: 0.55, back: 0.45 };
@@ -365,6 +370,7 @@
         let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
         const swing = () => {
           att.anim = { kind, t0: this.gt, dur, hand: att.hand };
+          if (DODGE_LABEL[kind]) return this.text(DODGE_LABEL[kind], att, '#cfcfcf', 0.8, -12); // 콤보가 방어 동작으로 시작
           this.whoosh(att, mv ? mv.trail : kind);
           this.sfx(a.cat === 'kick' ? 'kick' : 'whoosh', 0);
         };
@@ -375,7 +381,11 @@
         let lead = pre;
         if (mv) for (const [k2, d2] of mv.seq.slice(1)) {
           lead += dur * 0.85; dur = d2;
-          this.later(lead * 1000, () => { att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand }; this.whoosh(att, mv.trail); this.sfx('whoosh', 0); });
+          this.later(lead * 1000, () => {
+            att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand };
+            if (DODGE_LABEL[k2]) return this.text(DODGE_LABEL[k2], att, '#cfcfcf', 0.8, -12); // 콤보 속 방어 동작
+            this.whoosh(att, mv.trail); this.sfx('whoosh', 0);
+          });
         }
         // 콤보: 마지막 펀치 전까지 펀치마다 가볍게 맞는 반응
         if (mv?.combo) {

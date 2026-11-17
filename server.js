@@ -239,14 +239,17 @@ route('PUT', '/api/me/strategy', 'member', async (req, res, { me, body }) => {
   send(res, 200, privateMember(me, viewFor(me)));
 });
 
-// 콤보 루틴: 내 공격 기술 id 2~5개씩, 최대 5개
+// 콤보 루틴: 내 기술 id 2개 이상(공격 1개 이상), 최대 5개
 route('PUT', '/api/me/combos', 'member', async (req, res, { me, body }) => {
-  const mine = new Set(skillsOf(me.id).filter((s) => CATEGORIES[s.category]?.group === 'attack').map((s) => s.id));
+  const own = skillsOf(me.id).filter((s) => CATEGORIES[s.category]);
+  const mine = new Set(own.map((s) => s.id));
+  const attack = new Set(own.filter((s) => CATEGORIES[s.category].group === 'attack').map((s) => s.id));
   const list = Array.isArray(body.combos) ? body.combos : null;
   if (!list || list.length > COMBO_MAX.combos) return fail(res, 400, `콤보는 최대 ${COMBO_MAX.combos}개까지 만들 수 있어요.`);
   for (const c of list) {
-    if (!Array.isArray(c) || c.length < COMBO_MAX.min || c.length > COMBO_MAX.max) return fail(res, 400, `콤보 하나에 펀치는 ${COMBO_MAX.min}~${COMBO_MAX.max}개예요.`);
-    if (!c.every((id) => mine.has(id))) return fail(res, 400, '내 공격 기술로만 콤보를 만들 수 있어요.');
+    if (!Array.isArray(c) || c.length < COMBO_MAX.min || c.length > COMBO_MAX.max) return fail(res, 400, `콤보 하나에 기술은 ${COMBO_MAX.min}~${COMBO_MAX.max}개예요.`);
+    if (!c.every((id) => mine.has(id))) return fail(res, 400, '내 기술로만 콤보를 만들 수 있어요.');
+    if (!c.some((id) => attack.has(id))) return fail(res, 400, '콤보에 공격 기술이 하나는 있어야 해요.');
   }
   me.combos = list.map((c) => c.map(String)); save();
   send(res, 200, privateMember(me, viewFor(me)));
