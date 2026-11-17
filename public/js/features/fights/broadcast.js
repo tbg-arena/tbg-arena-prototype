@@ -24,6 +24,7 @@ async function renderFight(id) {
   const [L, R] = f.b === myId ? [{ id: f.b, name: f.bName, power: f.powerB, gender: f.bGender }, { id: f.a, name: f.aName, power: f.powerA, gender: f.aGender }]
     : [{ id: f.a, name: f.aName, power: f.powerA, gender: f.aGender }, { id: f.b, name: f.bName, power: f.powerB, gender: f.bGender }];
   let i = 0, speed = 1;
+  const nameOf = (id) => (id === f.a ? f.aName : f.bName);
 
   $app.innerHTML = `<div class="dark">
     <div class="topbar"><button class="link" id="back">← 나가기</button><div class="logo"><img src="/logo.png" alt="TBG" /><span class="arena-tag">LIVE</span></div><button class="sound-btn" id="snd"></button></div>
@@ -40,7 +41,7 @@ async function renderFight(id) {
           </div>`).join('<div class="vs">VS</div>')}
       </div>
       <div class="scoreboard"><span id="rnd">1R</span><b id="clk">${clock(f.roundSec || 300)}</b><span id="pos" class="badge" style="display:none"></span></div>
-      <div class="ring"><canvas id="ring"></canvas></div>
+      <div class="ring"><canvas id="ring"></canvas>${f.taunt ? `<div class="taunt" id="taunt"><span>도전장</span><b>${esc(nameOf(f.taunt.by))}</b><p>“${esc(f.taunt.text)}”</p></div>` : ''}</div>
       <div class="feed" id="feed"></div>
       <div id="result"></div>
       <div class="row" id="ctrl"><button class="btn grow" id="spd">▶ 1x</button><button class="btn primary grow" id="skip">결과 바로 보기 ⏭</button></div>
@@ -55,7 +56,7 @@ async function renderFight(id) {
   sndLabel();
   $snd.onclick = () => { SFX.toggle(); sndLabel(); vibrate(15); };
   document.getElementById('spd').onclick = (e) => { speed = speed === 1 ? 3 : speed === 3 ? 8 : 1; e.target.textContent = `▶ ${speed}x`; if (arena) arena.speed = speed; };
-  document.getElementById('skip').onclick = () => { clearTimeout(state.playTimer); while (i < f.events.length) show(f.events[i++], true); if (arena) arena.silent = true; arena?.snap(f.events[f.events.length - 1], f.result); end(); };
+  document.getElementById('skip').onclick = () => { clearTimeout(state.playTimer); document.getElementById('taunt')?.remove(); while (i < f.events.length) show(f.events[i++], true); if (arena) arena.silent = true; arena?.snap(f.events[f.events.length - 1], f.result); end(); };
 
   const $feed = document.getElementById('feed');
   function show(e, silent) {
@@ -117,5 +118,8 @@ async function renderFight(id) {
     const base = ({ finish: 1800, big: 1400, down: 1600, sub: 1500, round: 1300 }[e.type] || 900) + (e.act?.finisher ? 1600 : 0); // 필살기는 연타·마무리 연출 시간만큼 더
     state.playTimer = setTimeout(step, base / speed);
   }
-  step();
+  if (f.taunt) {
+    // 도전장 한마디: 링 위에 잠깐 띄운 뒤 경기 시작 (피드엔 남기지 않음 — 해설 톤과 섞임)
+    state.playTimer = setTimeout(() => { document.getElementById('taunt')?.remove(); step(); }, 2800);
+  } else step();
 }

@@ -1,7 +1,7 @@
 // 회원 콜아웃 탭: 받은/보낸 콜아웃 · 상대 지목 · 지난 콜아웃
 import { esc, svg, ago, avatar, record, toast, vibrate, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
-import { route, go } from '../../core/router.js';
+import { route } from '../../core/router.js';
 import { memberTab } from '../../core/tabs.js';
 import { statusBadge as st } from './status.js';
 
@@ -19,7 +19,7 @@ memberTab({
 
 function calloutView(me, members, callouts) {
   const myId = me.member.id;
-  const open = (c) => ['pending_opponent', 'pending_coach'].includes(c.status);
+  const open = (c) => c.status === 'pending_coach';
   const incoming = callouts.filter((c) => c.opponentId === myId && open(c));
   const outgoing = callouts.filter((c) => c.challengerId === myId && open(c));
   const past = callouts.filter((c) => !open(c)).slice(0, 10);
@@ -31,9 +31,7 @@ function calloutView(me, members, callouts) {
       <div class="card">
         <div class="row"><div class="grow"><b>${esc(c.challenger)}</b> <span class="muted">님의 도전!</span></div>${st(c)}</div>
         ${c.message ? `<div style="margin-top:6px">“${esc(c.message)}”</div>` : ''}
-        ${c.status === 'pending_opponent'
-          ? `<div class="row" style="margin-top:12px"><button class="btn primary grow" data-accept="${c.id}">수락 — 바로 경기</button><button class="btn" data-go="#/fighter/${c.challengerId}">분석</button><button class="btn" data-decline="${c.id}">거절</button></div>`
-          : '<div class="muted small" style="margin-top:6px">코치가 승인하면 바로 경기가 치러져요.</div>'}
+        <div class="row" style="margin-top:10px"><span class="muted small grow">코치가 승인하면 바로 경기가 치러져요.</span><button class="btn sm" data-go="#/fighter/${c.challengerId}">분석</button></div>
       </div>`).join('') : '<div class="card empty">받은 콜아웃이 없어요.</div>'}
 
     <div class="section-title">보낸 콜아웃</div>
@@ -72,15 +70,6 @@ function bindCalloutActions() {
       });
     });
   }));
-  document.querySelectorAll('[data-accept]').forEach((b) => (b.onclick = () => act(async () => {
-    b.disabled = true;
-    const c = await api('POST', `/api/callouts/${b.dataset.accept}/respond`, { accept: true });
-    vibrate([80, 60, 80]); go(`#/fight/${c.fightId}`);
-  })));
-  document.querySelectorAll('[data-decline]').forEach((b) => (b.onclick = () => act(async () => {
-    if (!confirm('콜아웃을 거절할까요?')) return;
-    await api('POST', `/api/callouts/${b.dataset.decline}/respond`, { accept: false }); route();
-  })));
   document.querySelectorAll('[data-cancel]').forEach((b) => (b.onclick = () => act(async () => {
     await api('POST', `/api/callouts/${b.dataset.cancel}/cancel`); route();
   })));

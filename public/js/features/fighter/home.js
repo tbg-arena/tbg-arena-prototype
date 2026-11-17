@@ -23,11 +23,11 @@ memberTab({
 
 function homeView(me, callouts) {
   const m = me.member;
-  const pending = (callouts || []).filter((c) => c.opponentId === m.id && c.status === 'pending_opponent');
+  const pending = (callouts || []).filter((c) => c.opponentId === m.id && c.status === 'pending_coach');
   const s = m.strategy;
   return `
     ${fighterCard(m)}
-    ${pending.length ? `<div class="banner blue" data-go="#/callout">받은 콜아웃 ${pending.length}건 — 수락하면 바로 경기! <span style="margin-left:auto">→</span></div>` : ''}
+    ${pending.map((c) => `<div class="banner blue" data-go="#/callout"><div class="grow" style="min-width:0"><b>${esc(c.challenger)}</b> 님의 도전장!${c.message ? `<div class="ellipsis">“${esc(c.message)}”</div>` : ''}<div class="small" style="opacity:.75">코치가 승인하면 바로 경기</div></div><span>→</span></div>`).join('')}
     <div class="section-title">내 준비</div>
     <div class="card row"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div></div>
     <div class="card row" id="editStrategy" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">STR</div><div class="grow"><b>내 기본 전략</b><div class="muted small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div></div><span class="link" style="padding:0">바꾸기 →</span></div>
