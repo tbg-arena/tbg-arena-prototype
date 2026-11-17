@@ -1,0 +1,29 @@
+/* ── 선수 카드 · 능력치 · 랭킹 (js/features/fighter) */
+.profile { padding: 0; overflow: hidden; }
+.profile .p-head { display: flex; gap: 14px; align-items: flex-end; padding: 16px 16px 14px; background: #000; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+.profile .p-head::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 9px); pointer-events: none; }
+.profile .p-body { padding: 14px 16px 16px; }
+.profile .name { font-size: 24px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.2; }
+.sprite-box { width: 82px; height: 86px; flex-shrink: 0; position: relative; background: #fff; border: 1px solid #fff; display: grid; place-items: end center; overflow: hidden; }
+.sprite-box::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #d8d8d8; border-top: 1px solid #bcbcbc; }
+.sprite-box img { height: 84px; width: auto; image-rendering: pixelated; position: relative; z-index: 1; margin-bottom: -2px; animation: idle .5s steps(1) infinite; }
+@keyframes idle { 50% { transform: translateY(2px); } }
+.cp { text-align: right; flex-shrink: 0; }
+.cp span { display: block; font-family: var(--pixel); font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+.cp b { font-family: var(--pixel); font-size: 30px; font-weight: 700; color: #fff; line-height: 1.05; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.titles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+/* 체력바처럼 칸이 나뉜 도트 게이지 */
+.sbar { height: 8px; background: #111; overflow: hidden; }
+.sbar > i { display: block; height: 100%; background: #fff; -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); }
+.stat-grid { margin-top: 14px; display: grid; gap: 9px; padding-top: 14px; border-top: 1px dashed var(--line2); }
+.statrow { display: grid; grid-template-columns: 70px 1fr 30px; align-items: center; gap: 10px; font-size: 13px; }
+.statrow b { text-align: right; font-family: var(--pixel); font-weight: 700; font-variant-numeric: tabular-nums; }
+.statrow .sl { color: var(--muted); font-weight: 700; }
+.statrow .sl i { font-style: normal; font-family: var(--pixel); color: #fff; font-size: 11px; margin-right: 4px; }
+
+/* 랭킹 */
+.rank { width: 30px; text-align: center; font-family: var(--pixel); font-weight: 700; font-size: 18px; color: var(--dim); flex-shrink: 0; }
+.rank.r1 { color: #000; background: #fff; } .rank.r2, .rank.r3 { color: #fff; }
+.rank.r1, .rank.r2, .rank.r3 { padding: 4px 0; }
+.rank.r2 { border: 1px solid #fff; } .rank.r3 { border: 1px dashed #777; }
+.pts { font-family: var(--pixel); font-weight: 700; font-size: 16px; }

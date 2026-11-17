@@ -1,0 +1,72 @@
+// 회원 홈 탭: 내 선수 카드 · 출석 · 기본 전략 · 내 기술
+import { state } from '../../core/state.js';
+import { esc, svg, toast, openModal, closeModal } from '../../core/ui.js';
+import { api, act } from '../../core/api.js';
+import { route } from '../../core/router.js';
+import { memberTab } from '../../core/tabs.js';
+import { fighterCard } from './components.js';
+import { skillGroups } from '../skills/components.js';
+
+memberTab({
+  id: 'home', order: 10, label: '홈',
+  icon: svg('<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>'),
+  load: async () => ({ callouts: await api('GET', '/api/callouts') }),
+  view: ({ me, callouts }) => homeView(me, callouts),
+  bind: ({ me }) => {
+    const strat = document.getElementById('editStrategy');
+    if (strat) strat.onclick = () => strategyModal(me.member.strategy);
+  },
+});
+
+function homeView(me, callouts) {
+  const m = me.member;
+  const pending = (callouts || []).filter((c) => c.opponentId === m.id && c.status === 'pending_opponent');
+  const s = m.strategy;
+  return `
+    ${fighterCard(m)}
+    ${pending.length ? `<div class="banner blue" data-go="#/callout">받은 콜아웃 ${pending.length}건 — 수락하면 바로 경기! <span style="margin-left:auto">→</span></div>` : ''}
+    <div class="section-title">내 준비</div>
+    <div class="card row"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div></div>
+    <div class="card row" id="editStrategy" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">STR</div><div class="grow"><b>내 기본 전략</b><div class="muted small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div></div><span class="link" style="padding:0">바꾸기 →</span></div>
+    <div class="section-title">내 기술 (${me.skills.length}) <span class="muted" style="text-transform:none;font-weight:600">· 배운 기술만 경기에 나와요</span></div>
+    ${skillGroups(me.skills)}
+    <div class="muted small" style="margin:10px 2px">숫자는 숙련도예요. 숙련이 높을수록 경기에서 자주 나오고 잘 들어가요. 코치가 수업에서 본 실력대로 조정하고, 경기에서 성공하면 조금씩 올라요. 같은 기술로 ${state.meta.finishTitleAt}번 피니시하면 칭호가 붙어요.</div>`;
+}
+
+function strategyModal(cur) {
+  const S = state.meta.strategy;
+  const sel = { ...cur, focus: [...(cur.focus || ['헤드', '바디'])] };
+  const HELP = {
+    stance: { 오소독스: '왼발 앞. 가장 흔한 자세', 사우스포: '오른발 앞. 오소독스 상대로 타격 정확도 ↑' },
+    guard: { 하이가드: '얼굴 펀치 방어 ↑ / 바디에 약간 취약', 숄더롤: '잽·스트레이트 방어 ↑↑ · 카운터 ↑ / 훅에 약함', 밸런스: '모든 펀치 방어 조금 ↑' },
+    style: { 인파이팅: '공격권 ↑ · 훅·어퍼컷·바디 비중 ↑', 카운터: '공격권 ↓ · 상대 펀치가 빗나가면 받아치기', 아웃복싱: '잽·스트레이트 비중 ↑ · 어퍼컷 비중 ↓' },
+  };
+  const seg = (k) => `<div class="seg" style="grid-template-columns:repeat(${S[k].length},1fr)">${S[k].map((v) => `<button data-k="${k}" data-v="${esc(v)}" class="${(k === 'focus' ? sel.focus.includes(v) : sel[k] === v) ? 'on' : ''}">${esc(v)}</button>`).join('')}</div>`;
+  const help = (k) => (HELP[k] ? `<div class="muted small" id="h-${k}" style="margin-top:4px">${HELP[k][sel[k]]}</div>` : '');
+  openModal(`
+    <h3>내 기본 전략</h3>
+    <div class="stack">
+      <div><label class="field">스탠스</label>${seg('stance')}${help('stance')}</div>
+      <div><label class="field">가드</label>${seg('guard')}${help('guard')}</div>
+      <div><label class="field">스타일</label>${seg('style')}${help('style')}</div>
+      <div><label class="field">공략 부위 (복수 선택) — 해당 펀치를 더 자주 시도</label>${seg('focus')}</div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button><button class="btn primary grow" id="ok">저장</button></div>`, (el) => {
+    el.querySelectorAll('.seg button').forEach((b) => (b.onclick = () => {
+      const { k, v } = b.dataset;
+      if (k === 'focus') {
+        if (sel.focus.includes(v)) { if (sel.focus.length > 1) sel.focus = sel.focus.filter((x) => x !== v); }
+        else sel.focus.push(v);
+        el.querySelectorAll(`[data-k="focus"]`).forEach((x) => x.classList.toggle('on', sel.focus.includes(x.dataset.v)));
+      } else {
+        sel[k] = v;
+        el.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.toggle('on', x.dataset.v === v));
+        const h = el.querySelector(`#h-${k}`); if (h) h.textContent = HELP[k][v];
+      }
+    }));
+    el.querySelector('#x').onclick = closeModal;
+    el.querySelector('#ok').onclick = () => act(async () => {
+      await api('PUT', '/api/me/strategy', sel); closeModal(); toast('전략을 저장했어요.'); route();
+    });
+  });
+}
