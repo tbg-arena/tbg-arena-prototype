@@ -249,7 +249,7 @@ async function renderMember(tab) {
     try {
       const d = await load();
       if (state.tab !== tab) return;
-      if (d.me.unseenFights.length > data.me.unseenFights.length) { vibrate([80, 60, 80]); toast(`${d.me.unseenFights[0].name}님이 경기를 수락했어요!`); }
+      if (d.me.unseenFights.length > data.me.unseenFights.length) { vibrate([80, 60, 80]); toast(`${d.me.unseenFights[0].name}님과의 경기가 치러졌어요!`); }
       const s = sig(d);
       if (s !== lastSig) { lastSig = s; data = d; draw(d); }
     } catch {}
@@ -266,7 +266,7 @@ async function renderMember(tab) {
       { id: 'career', icon: 'career', label: '커리어' },
     ];
     let inner = me.unseenFights.length
-      ? `<div class="banner" data-go="#/fight/${me.unseenFights[0].id}">${esc(me.unseenFights[0].name)}님이 경기 수락! 중계 보기 <span style="margin-left:auto">→</span></div>` : '';
+      ? `<div class="banner" data-go="#/fight/${me.unseenFights[0].id}">${esc(me.unseenFights[0].name)}님과 경기 성사! 중계 보기 <span style="margin-left:auto">→</span></div>` : '';
     if (tab === 'home') inner += homeView(me, callouts);
     if (tab === 'callout') inner += calloutView(me, members, callouts);
     if (tab === 'rank') inner += rankView(me, members);
@@ -301,7 +301,7 @@ function calloutView(me, members, callouts) {
   const others = members.filter((x) => x.id !== myId);
   const st = (c) => `<span class="${STATUS[c.status][1]}">${STATUS[c.status][0]}</span>`;
   return `
-    <div class="steps"><span>① 콜아웃</span>›<span>② 코치 승인</span>›<span>③ 상대 수락</span>›<span>FIGHT</span></div>
+    <div class="steps"><span>① 콜아웃</span>›<span>② 코치 승인</span>›<span>FIGHT</span></div>
     <div class="section-title">받은 콜아웃</div>
     ${incoming.length ? incoming.map((c) => `
       <div class="card">
@@ -309,7 +309,7 @@ function calloutView(me, members, callouts) {
         ${c.message ? `<div style="margin-top:6px">“${esc(c.message)}”</div>` : ''}
         ${c.status === 'pending_opponent'
           ? `<div class="row" style="margin-top:12px"><button class="btn primary grow" data-accept="${c.id}">수락 — 바로 경기</button><button class="btn" data-go="#/fighter/${c.challengerId}">분석</button><button class="btn" data-decline="${c.id}">거절</button></div>`
-          : '<div class="muted small" style="margin-top:6px">코치 승인 후 수락할 수 있어요.</div>'}
+          : '<div class="muted small" style="margin-top:6px">코치가 승인하면 바로 경기가 치러져요.</div>'}
       </div>`).join('') : '<div class="card empty">받은 콜아웃이 없어요.</div>'}
 
     <div class="section-title">보낸 콜아웃</div>
@@ -401,7 +401,7 @@ function bindMemberActions(me) {
   document.querySelectorAll('[data-callout]').forEach((b) => (b.onclick = () => {
     openModal(`
       <h3>${esc(b.dataset.name)} 님에게 콜아웃</h3>
-      <div class="muted small" style="margin-bottom:10px">코치 승인 → 상대 수락 순간 경기가 치러집니다. 그 전에 전략을 챙기세요!</div>
+      <div class="muted small" style="margin-bottom:10px">코치가 승인하는 순간 바로 경기가 치러집니다. 그 전에 전략을 챙기세요!</div>
       <input id="msg" maxlength="80" placeholder="한마디 (선택) 예: 금요일 스파링 빚 갚으러 간다" />
       <div class="row" style="margin-top:12px"><button class="btn grow" id="cancel">닫기</button><button class="btn primary grow" id="send">도전장 보내기</button></div>`,
     (el) => {
@@ -772,7 +772,7 @@ function bindCoachActions(members) {
     await api('DELETE', `/api/coach/skills/${b.dataset.delskill}`); refreshMembers();
   })));
   document.querySelectorAll('[data-approve]').forEach((b) => (b.onclick = () => act(async () => {
-    await api('POST', `/api/coach/callouts/${b.dataset.approve}`, { approve: true }); toast('승인했습니다. 상대의 수락을 기다립니다.'); route();
+    await api('POST', `/api/coach/callouts/${b.dataset.approve}`, { approve: true }); toast('승인했습니다. 경기가 치러졌습니다.'); route();
   })));
   document.querySelectorAll('[data-reject]').forEach((b) => (b.onclick = () => act(async () => {
     const note = prompt('반려 사유 (선택)');

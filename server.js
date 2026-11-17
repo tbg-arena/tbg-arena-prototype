@@ -211,7 +211,7 @@ route('GET', '/api/meta', null, async (req, res) => {
 
 // ── 회원
 route('GET', '/api/me', 'member', async (req, res, { me }) => {
-  // 아직 안 본 경기 = 상대가 내 콜아웃을 수락해서 치러진 경기 (상대 이름과 함께)
+  // 아직 안 본 경기 = 코치 승인으로 치러진 경기 (상대 이름과 함께)
   const unseen = unseenOf(me).map((f) => {
     const oid = f.a === me.id ? f.b : f.a;
     return { id: f.id, name: memberById(oid)?.name || (f.a === me.id ? f.bName : f.aName) };
@@ -383,8 +383,13 @@ route('POST', '/api/coach/callouts/:id', 'coach', async (req, res, { params, bod
   const c = db.callouts.find((x) => x.id === params.id);
   if (!c) return fail(res, 404, '콜아웃을 찾을 수 없습니다.');
   if (c.status !== 'pending_coach') return fail(res, 409, '이미 처리된 콜아웃입니다.');
-  c.status = body.approve ? 'pending_opponent' : 'rejected';
   c.coachNote = String(body.note || '').slice(0, 80);
+  if (!body.approve) { c.status = 'rejected'; save(); return send(res, 200, calloutView(c)); }
+  // 코치가 승인하면 상대 수락 없이 바로 경기
+  const A = memberById(c.challengerId), B = memberById(c.opponentId);
+  if (!A || !B) return fail(res, 404, '선수 정보가 없습니다.');
+  const fight = runFight(A, B);
+  c.status = 'done'; c.fightId = fight.id;
   save(); send(res, 200, calloutView(c));
 });
 

@@ -75,11 +75,10 @@ const FIGHTS = [[0, 1], [2, 3], [4, 0], [1, 2], [3, 6], [4, 2], [7, 5], [0, 3]];
     if (i !== 5) await api('POST', `/api/coach/members/${ids[i]}/attend`, null, coach);
   }
 
-  // 경기: 콜아웃 → 코치 승인 → 상대 수락
+  // 경기: 콜아웃 → 코치 승인 (승인하면 바로 경기)
   for (const [a, b] of FIGHTS) {
     const c = await api('POST', '/api/callouts', { opponentId: ids[b], message: '한판 붙자' }, tokens[a]);
-    await api('POST', `/api/coach/callouts/${c.id}`, { approve: true }, coach);
-    const done = await api('POST', `/api/callouts/${c.id}/respond`, { accept: true }, tokens[b]);
+    const done = await api('POST', `/api/coach/callouts/${c.id}`, { approve: true }, coach);
     const f = await api('GET', `/api/fights/${done.fightId}`, null, coach);
     const w = f.result.winnerId ? (f.result.winnerId === f.a ? f.aName : f.bName) : '무승부';
     console.log(`🥊 ${f.aName} vs ${f.bName} → ${w} (${f.result.method}${f.result.skill ? ' · ' + f.result.skill : ''})`);
@@ -87,13 +86,10 @@ const FIGHTS = [[0, 1], [2, 3], [4, 0], [1, 2], [3, 6], [4, 2], [7, 5], [0, 3]];
 
   // 대기 중 콜아웃 (흐름 테스트용)
   await api('POST', '/api/callouts', { opponentId: ids[4], message: '지난번 빚 갚으러 간다' }, tokens[3]); // 코치 승인 대기
-  const p = await api('POST', '/api/callouts', { opponentId: ids[0], message: '금요일 스파링 어때요?' }, tokens[6]);
-  await api('POST', `/api/coach/callouts/${p.id}`, { approve: true }, coach); // 김도윤 수락 대기
 
   console.log(`
 완료!  코치 PIN: ${PIN}
 회원 로그인 전화번호: 010-0000-0001 ~ 010-0000-0008
- - 010-0000-0001 김도윤 : 받은 콜아웃(수락 대기) 있음
  - 코치 화면 : 승인 대기 콜아웃 1건 (최하은 → 정우진)
  - 010-0000-0006 한소율 : 오늘 미출석 (출석 체크 테스트)`);
 })().catch((e) => { console.error('실패:', e.message, '\n서버가 켜져 있는지 확인하세요 (npm start).'); process.exit(1); });
