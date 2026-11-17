@@ -31,7 +31,7 @@ export class Arena {
     this.pos = 'stand'; this.top = null;
     this.rt = 0; this.gt = 0; this.stop = 0; this.slow = 1; this.slowT = 0;
     this.fx = []; this.parts = []; this.q = []; this.speed = 1;
-    this.shake = 0; this.flash = 0; this.invert = 0; this.bars = 0; this.tbars = 0; this.hype = 0; this.lockOn = 0;
+    this.shake = 0; this.flash = 0; this.invert = 0; this.bars = 0; this.tbars = 0; this.hype = 0; this.lockOn = 0; this.dim = 0; this.spot = null;
     this.cam = { x: CX, y: 52, z: 1.15, punch: 0, fx: CX, fy: 52, fz: 0 };
     this.crowd = Array.from({ length: 2 }, (_, row) => Array.from({ length: 26 }, (_, i) => ({ x: i * 7 - 4 + row * 3 + (hash(i + 'c' + row) % 3), p: (hash(i + 'p' + row) % 100) / 15, s: hash(i + 's' + row) % 3 })));
     this.resize();
@@ -139,18 +139,28 @@ export class Arena {
       }
       // 콤보: 마지막 펀치 전까지 펀치마다 가볍게 맞는 반응
       if (mv?.combo) {
-        let t2 = pre, d = mv.seq[0][1];
+        let t2 = pre, d = mv.seq[0][1], n = 0;
         mv.seq.forEach(([, dd, end], i) => {
+          const hitNo = end ? ++n : 0;
           if (i) { t2 += d * 0.85; d = dd; }
           if (end && i < mv.seq.length - 1) this.later((t2 + dd * 0.45) * 1000, () => {
             const [hx, hy] = this.headPos(def);
             def.anim = { kind: end.hit, t0: this.gt, dur: 0.22 }; def.kx = -def.d * 25; def.flash = 0.05;
             this.burst(hx - def.d * 4, hy + (end.dy || 1), false); this.sfx('hit', 0);
+            // 필살기 연타 카운트업: 숫자가 커지고 흔들림·멈춤이 점점 세짐
+            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#ff4b45', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
           });
         });
       }
-      // 필살기: 슬로모션 + 섬광 + 큰 글자
-      if (a.finisher) { this.text('FINISHER!', att, '#ff4b45', 1.5, -32); this.slowmo(0.4, 1); this.flash = 0.45; this.invert = 0.1; this.hype = 1.5; this.sfx('counter', 2); }
+      // 필살기 컷인: 화면 멈춤 → 레터박스 + FINISHER 배너 + 공격자 줌인·스포트라이트 (later()는 게임 시간 기준이라 펀치도 멈춘 뒤 나감)
+      if (a.finisher) {
+        const [ax, ay] = this.headPos(att);
+        this.stop = 0.8; this.flash = 0.35; this.invert = 0.06; this.hype = 1.5;
+        this.dim = 1; this.spot = att;
+        this.cam.punch = 0.45; this.cam.fx = ax; this.cam.fy = ay + 8;
+        this.banner('FINISHER', 1.5, { sub: (a.combo?.length ? a.combo : [a]).map((p) => p.name).join(' - '), bars: true });
+        this.sfx('counter', 2);
+      }
       if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
@@ -171,7 +181,14 @@ export class Arena {
           const [hx, hy] = this.headPos(def);
           const px = hx - def.d * 4, py = hy + (mv ? mv.dy || 1 : a.cat === 'kick' ? 4 : 1);
           def.anim = { kind: mv ? mv.hit : 'hit', t0: this.gt, dur: big ? 0.5 : 0.32 };
-          if (mv?.combo) this.text(mv.label, att, '#ff4b45', 1.1, -22, att.d * 6);
+          // 필살기 마무리: 긴 슬로모션 + 반전 플래시 + 스피드라인 + 크게 밀려남 + 총 데미지
+          if (a.finisher) {
+            this.slowmo(0.3, 1.3); this.invert = 0.14; this.flash = 0.9; this.shake = 1.4; this.stop = 0.22;
+            this.speedLines = { t0: this.rt, dur: 1.3 }; this.hype = 2; this.dim = 0;
+            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#ff4b45', 1.7, -30, att.d * 6);
+            this.later(10, () => { def.kx = -def.d * 150; def.vy = -50; });
+            this.sfx('big', 2);
+          } else if (mv?.combo) this.text(mv.label, att, '#ff4b45', 1.1, -22, att.d * 6);
           else if (mv && !big) this.text(mv.label, att, a.cat === 'jab' ? '#cfcfcf' : '#ffffff', a.cat === 'jab' ? 0.7 : 0.9, -20, att.d * 6);
           if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#cfefff', '#9fd8ff']);
           if (mv && a.cat === 'uppercut') this.spray(px, py - 2, 0, 6, ['#ffffff']);
@@ -184,7 +201,7 @@ export class Arena {
           this.shake = big ? 1 : 0.35;
           this.cam.punch = big ? 0.35 : 0.08; this.cam.fx = px; this.cam.fy = py;
           const d = dmgOf(def.id);
-          if (d) this.num(`-${d}`, px, py - 6, big);
+          if (d) a.finisher ? this.text(`-${d}`, def, '#ff4b45', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
           if (big) {
             this.flash = 0.5; this.hype = Math.min(1.5, this.hype + 0.8);
             this.text(e.type === 'down' ? 'DOWN!' : ['BIG HIT!', 'BAM!', 'CRACK!'][Math.floor(Math.random() * 3)], def, '#ffffff', e.type === 'down' ? 1.6 : 1.3, -16);
@@ -204,6 +221,8 @@ export class Arena {
           if (dk === 'weave') def.kx = def.d * 20; // 펀치 밑으로 파고든다
           if (dk === 'block') { const [hx, hy] = this.headPos(def); this.burst(hx - def.d * 6, hy + 2, false); }
           this.text(dk ? DODGE_LABEL[dk] : 'MISS', def, dk ? '#ffffff' : '#8a8a8a', dk ? 0.9 : 0.8, -12);
+          // 필살기 실패: 열기가 식고 공격자 위로 허탈한 MISS…
+          if (a.finisher) { this.dim = 0; this.hype = 0; this.slowmo(0.5, 0.6); this.later(250, () => this.text('MISS…', att, '#8a8a8a', 1.4, -28)); }
           this.sfx(dk === 'block' ? 'hit' : 'miss', 0);
         });
       }
@@ -384,6 +403,7 @@ export class Arena {
     this.invert = Math.max(0, this.invert - rdt);
     this.hype = Math.max(0, this.hype - rdt * 0.35);
     this.bars += (this.tbars - this.bars) * (1 - Math.exp(-rdt * 10));
+    if (this.stop <= 0) this.dim = Math.max(0, this.dim - rdt * 0.7); // 필살기 스포트라이트는 멈춤이 풀리면 서서히 걷힘
     // 카메라: 두 선수 중간을 따라가고, 타격 순간 임팩트 지점으로 펀치 줌
     const [a, b] = this.fighters;
     const lockFx = this.fx.find((x) => x.kind === 'lock');
@@ -573,6 +593,13 @@ export class Arena {
     c.imageSmoothingEnabled = false;
     c.fillStyle = '#000'; c.fillRect(0, 0, W, H);
     c.drawImage(this.world, x0, y0, vw, vh, shx - 4 * this.dpr * this.shake, shy, W + 8 * this.dpr * this.shake, H);
+    // 필살기 스포트라이트: 공격자 주변만 밝게
+    if (this.dim > 0.01 && this.spot) {
+      const sx = (this.spot.x - x0) * S, sy = (FLOOR - 18 - y0) * S;
+      const g = c.createRadialGradient(sx, sy, W * 0.08, sx, sy, W * 0.65);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${0.78 * this.dim})`);
+      c.fillStyle = g; c.fillRect(0, 0, W, H);
+    }
     const toS = (wx, wy) => [(wx - x0) * S + shx, (wy - y0) * S + shy];
     const px = H / 100; // 화면 기준 단위
 

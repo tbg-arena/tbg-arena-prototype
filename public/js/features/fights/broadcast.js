@@ -102,7 +102,7 @@ async function renderFight(id) {
     if (i >= f.events.length) return end();
     const e = f.events[i++];
     show(e);
-    const base = { finish: 1800, big: 1400, down: 1600, sub: 1500, round: 1300 }[e.type] || 900;
+    const base = ({ finish: 1800, big: 1400, down: 1600, sub: 1500, round: 1300 }[e.type] || 900) + (e.act?.finisher ? 2400 : 0); // 필살기는 컷인·연타 시간만큼 더
     state.playTimer = setTimeout(step, base / speed);
   }
   step();
