@@ -29,3 +29,16 @@ export function guessMove(cat, name) {
 export const boxingMove = (a) => MOVE_FX[a.move] || MOVE_FX[guessMove(a.cat, a.name)] || null;
 export const DODGE_LABEL = { slip: 'SLIP', duck: 'DUCK', weave: 'WEAVE', roll: 'ROLL', block: 'BLOCK', parry: 'PARRY', back: 'BACKSTEP' };
 export const DODGE_DUR = { duck: 0.5, weave: 0.55, back: 0.45 };
+// 콤보: 들어간 펀치·방어 동작을 이어 붙인다. seq 셋째 칸 = 그 펀치가 끝나는 지점(중간 타격 연출용), 넷째 칸 = 방어 동작
+export function comboMove(parts) {
+  const ms = parts.filter((p) => p.cat !== 'defense').map(boxingMove).filter(Boolean);
+  if (!ms.length) return null;
+  const last = ms[ms.length - 1];
+  const seq = parts.flatMap((p) => {
+    if (p.cat === 'defense') return DODGE_LABEL[p.move] ? [[p.move, 0.3, null, true]] : [];
+    const m = boxingMove(p);
+    return m ? m.seq.map(([k, d], i) => [k, d, i === m.seq.length - 1 ? m : null]) : [];
+  });
+  while (seq.length && seq[seq.length - 1][3]) seq.pop(); // 마지막 펀치 뒤 방어 동작은 생략 (타격 연출이 펀치에 맞게)
+  return { seq, trail: ms[0].trail, hit: last.hit, dy: last.dy, label: `${ms.length} HIT COMBO!`, combo: true };
+}
