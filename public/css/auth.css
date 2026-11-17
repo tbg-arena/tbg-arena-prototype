@@ -1,0 +1,12 @@
+/* ── 로그인 (js/features/auth) */
+.login { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 22px 20px calc(24px + var(--safe-b)); gap: 14px; }
+.login .hero { position: relative; padding: 4px 0 6px; }
+.login .hero-logo { width: 74%; max-width: 300px; display: block; margin: 0 auto; }
+.login .arena-word { font-family: var(--pixel); font-weight: 700; text-align: center; font-size: 13px; letter-spacing: 10px; margin: 14px 0 0 10px; color: #fff; }
+.login .stage { margin-top: 18px; border: 1px solid var(--line2); background: #000; position: relative; }
+.login .stage canvas { display: block; width: 100%; image-rendering: pixelated; }
+.login .stage::after { content: "LIVE"; position: absolute; top: 8px; left: 8px; font-family: var(--pixel); font-size: 10px; font-weight: 700; color: #fff; background: var(--red); padding: 2px 5px 1px; animation: blink 1.2s steps(1) infinite; }
+.login .tag { font-size: 22px; font-weight: 900; line-height: 1.35; letter-spacing: -0.8px; margin-top: 22px; text-align: center; }
+.login .tag em { font-style: normal; background: #fff; color: #000; padding: 0 4px; }
+.phone-input { font-family: var(--pixel); font-size: 22px; text-align: center; letter-spacing: 2px; padding: 16px; font-weight: 700; }
+.foot { text-align: center; font-family: var(--pixel); font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-top: 10px; }

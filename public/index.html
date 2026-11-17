@@ -13,14 +13,19 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/galmuri@2.40.3/dist/galmuri.css" />
-  <link rel="stylesheet" href="/style.css" />
+  <!-- 공용 → 기능별 순서 (새 기능 CSS는 아래에 한 줄 추가) -->
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/auth.css" />
+  <link rel="stylesheet" href="/css/fighter.css" />
+  <link rel="stylesheet" href="/css/skills.css" />
+  <link rel="stylesheet" href="/css/callouts.css" />
+  <link rel="stylesheet" href="/css/fights.css" />
+  <link rel="stylesheet" href="/css/members.css" />
 </head>
 <body>
   <div id="app"></div>
   <div id="modal" class="modal hidden"></div>
   <div id="toast" class="toast hidden"></div>
-  <script src="/sfx.js"></script>
-  <script src="/arena.js"></script>
-  <script src="/main.js"></script>
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>
