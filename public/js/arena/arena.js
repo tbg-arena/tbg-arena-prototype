@@ -543,7 +543,7 @@ export class Arena {
       }
     } else if (x.kind === 'whoosh') {
       const f = x.f, [hx, hy] = this.headPos(f);
-      w.globalAlpha = 1 - p; w.fillStyle = '#fff';
+      w.globalAlpha = 1 - p; w.fillStyle = f.look.gear?.trail || '#fff'; // 브랜드 글러브는 궤적도 브랜드 색 (상점)
       if (x.style === 'arc') { // 훅: 바깥에서 휘어 들어오는 궤적
         for (let i = 0; i < 7; i++) { const t = (i / 6) * Math.min(1, p * 1.6), ang = -Math.PI * 0.9 + t * Math.PI * 0.9; w.fillRect(Math.round(f.x + f.d * (6 + Math.cos(ang) * 9)), Math.round(hy + 3 + Math.sin(ang) * 6), 2, 1); }
         w.globalAlpha = 1;

@@ -19,5 +19,7 @@ import './features/members/coach.js';
 import './features/fights/career.js';
 import './features/fights/coach.js';
 import './features/fights/broadcast.js';
+// 상점: 회원 옷장·상점 화면 (#/shop, 홈에서 들어감)
+import './features/shop/member.js';
 
 route();
