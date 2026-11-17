@@ -1,4 +1,4 @@
-// 회원 홈 탭: 내 선수 카드 · 출석 · 기본 전략 · 콤보 루틴 · 내 기술
+// 회원 홈 탭: 내 선수 카드 · 출석 · 기본 전략 · 필살기 콤보 · 내 기술
 import { state } from '../../core/state.js';
 import { esc, svg, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
@@ -6,7 +6,7 @@ import { route } from '../../core/router.js';
 import { memberTab } from '../../core/tabs.js';
 import { fighterCard } from './components.js';
 import { skillGroups } from '../skills/components.js';
-import { comboList, finisherOf, comboModal } from './combos.js';
+import { finisherOf, finisherModal } from './finisher.js';
 
 memberTab({
   id: 'home', order: 10, label: '홈',
@@ -16,8 +16,8 @@ memberTab({
   bind: ({ me }) => {
     const strat = document.getElementById('editStrategy');
     if (strat) strat.onclick = () => strategyModal(me.member.strategy);
-    const combos = document.getElementById('editCombos');
-    if (combos) combos.onclick = () => comboModal(me);
+    const fin = document.getElementById('editFinisher');
+    if (fin) fin.onclick = () => finisherModal(me);
   },
 });
 
@@ -31,7 +31,7 @@ function homeView(me, callouts) {
     <div class="section-title">내 준비</div>
     <div class="card row"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div></div>
     <div class="card row" id="editStrategy" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">STR</div><div class="grow"><b>내 기본 전략</b><div class="muted small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div></div><span class="link" style="padding:0">바꾸기 →</span></div>
-    <div class="card row" id="editCombos" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">CMB</div><div class="grow"><b>내 콤보 루틴 (${comboList(me).length})${finisherOf(me) ? ' <span class="badge red">필살기</span>' : ''}</b><div class="muted small ellipsis">${finisherOf(me) ? `★ ${finisherOf(me).map((s) => esc(s.name)).join('-')}${comboList(me).length ? ' · ' : ''}` : ''}${comboList(me).length ? comboList(me).map((c) => c.map((s) => esc(s.name)).join('-')).join(' · ') : (finisherOf(me) ? '' : '배운 기술을 엮어 나만의 연타를 만들어 보세요')}</div></div><span class="link" style="padding:0">편집 →</span></div>
+    <div class="card row" id="editFinisher" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">FIN</div><div class="grow"><b>필살기 콤보</b><div class="muted small ellipsis">${finisherOf(me) ? finisherOf(me).map((s) => esc(s.name)).join('-') : '배운 기술을 엮어 막판 한 방을 만들어 보세요'}</div></div><span class="link" style="padding:0">${finisherOf(me) ? '바꾸기' : '만들기'} →</span></div>
     <div class="section-title">내 기술 (${me.skills.length}) <span class="muted" style="text-transform:none;font-weight:600">· 배운 기술만 경기에 나와요</span></div>
     ${skillGroups(me.skills)}
     <div class="muted small" style="margin:10px 2px">숫자는 숙련도예요. 숙련이 높을수록 경기에서 자주 나오고 잘 들어가요. 코치가 수업에서 본 실력대로 조정하고, 경기에서 성공하면 조금씩 올라요. 같은 기술로 ${state.meta.finishTitleAt}번 피니시하면 칭호가 붙어요.</div>`;
