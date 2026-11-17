@@ -149,6 +149,8 @@ export class Arena {
           });
         });
       }
+      // 필살기: 슬로모션 + 섬광 + 큰 글자
+      if (a.finisher) { this.text('FINISHER!', att, '#ff4b45', 1.5, -32); this.slowmo(0.4, 1); this.flash = 0.45; this.invert = 0.1; this.hype = 1.5; this.sfx('counter', 2); }
       if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
