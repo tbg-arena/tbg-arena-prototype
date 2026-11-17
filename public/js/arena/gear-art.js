@@ -4,7 +4,7 @@
 // 글러브 art: { type: 'glove', body, accent?(투톤 색), cuff, piping, closure: 'lace' | 'velcro',
 //              lace?(끈 색), strap?(벨크로 색), label?(손목 위 작은 로고 패치 색), text?: ['줄1', '줄2'], textColor? }
 // 트렁크 art: { type: 'trunks', body, band, bandText?(허리 밴드 글자 색), stripe?(옆선 색), hem?(밑단 색) }
-// 티셔츠 art: { type: 'shirt', body, collar?(목 둘레 색), print?(가슴 글자 색), text?: ['줄1', …] }
+// 티셔츠 art: { type: 'shirt', body, collar?(목 둘레 색), print?(가슴 글자 색), text?: ['줄1', …], sleeveless?(탱크탑) }
 import { mkCanvas } from './util.js';
 
 const N = 32;
@@ -180,6 +180,7 @@ function trunks(a) {
 
 // ── 티셔츠 (앞모습: 반팔, 둥근 목, 가슴 프린트)
 function shirt(a) {
+  if (a.sleeveless) return tank(a);
   const G = grid();
   const collar = a.collar || tone(a.body, 1);
   for (let y = 4; y <= 30; y++) {
@@ -204,6 +205,24 @@ function shirt(a) {
   for (let x = 12; x <= 19; x++) G.set(x, 3, null);
   // 가슴 프린트
   if (a.text) text(G, a.text, 15.5, 7, a.print || '#ffffff', null);
+  outline(G);
+  return G;
+}
+
+// ── 탱크탑 (소매 없음: 어깨끈, 깊게 파인 목·진동둘레)
+function tank(a) {
+  const G = grid();
+  const trim = a.collar || tone(a.body, 1);
+  for (let y = 7; y <= 30; y++) {
+    const x0 = y === 7 ? 9 : y === 8 ? 8 : 7, x1 = y === 7 ? 22 : y === 8 ? 23 : 24; // 진동둘레 곡선
+    for (let x = x0; x <= x1; x++) G.set(x, y, tone(a.body, x <= x0 + 1 ? 1 : x >= x1 - 1 ? -1 : y === 30 ? -1 : 0));
+  }
+  for (let y = 3; y <= 6; y++) for (const x of [10, 11, 20, 21]) G.set(x, y, tone(a.body, x === 10 || x === 20 ? 1 : 0)); // 어깨끈
+  // 목선: 끈 사이를 깊게 파고 테두리
+  for (let y = 7; y <= 10; y++) for (let x = 12 + Math.max(0, y - 8); x <= 19 - Math.max(0, y - 8); x++) G.set(x, y, null);
+  for (const [x, y] of [[12, 8], [13, 9], [14, 10], [15, 11], [16, 11], [17, 10], [18, 9], [19, 8], [12, 7], [19, 7]]) G.set(x, y, trim);
+  for (const [x, y] of [[9, 7], [8, 8], [22, 7], [23, 8]]) G.set(x, y, trim); // 진동둘레 테두리
+  if (a.text) text(G, a.text, 15.5, 15, a.print || '#ffffff', null);
   outline(G);
   return G;
 }
