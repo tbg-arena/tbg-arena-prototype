@@ -66,9 +66,23 @@ function simulateFight(A, B) {
   };
   const gasF = (f) => 0.6 + 0.4 * (f.gas / 100);
   const drain = (f, base) => { f.gas = clamp(f.gas - base * (1.45 - f.st.stamina / 100), 5, 100); };
-  const useDefense = (f) => (f.defs.length ? weighted(f.defs, (s) => s.mastery + 5) : null);
-  // 애니메이션용 회피 동작 (기술 이름으로 추정)
-  const dodgeKind = (n) => (/위빙|더킹|덕|웨이브|보빙/.test(n) ? 'duck' : /블로킹|블록|가드|커버/.test(n) ? 'block' : /패리|파링/.test(n) ? 'parry' : /백스텝|스텝|풋워크/.test(n) ? 'back' : 'slip');
+  // 디펜스 동작 종류 (기술 이름으로 추정, 띄어쓰기 무시)
+  const dodgeKind = (name) => {
+    const n = String(name).replace(/\s/g, '');
+    return /위빙|보빙|웨이브/.test(n) ? 'weave' : /더킹|덕/.test(n) ? 'duck' : /숄더|롤/.test(n) ? 'roll'
+      : /블로킹|블록|가드|커버/.test(n) ? 'block' : /패리|파링/.test(n) ? 'parry' : /백스텝|스텝|풋워크/.test(n) ? 'back' : 'slip';
+  };
+  // 들어오는 펀치에 잘 맞는 디펜스일수록 그 기술을 고른다 (훅은 숙여 빠지고, 잽은 흘리고, 어퍼는 막거나 물러난다)
+  const FIT = {
+    jab:      { slip: 3, parry: 3, back: 2, roll: 2, block: 1.5, weave: 1, duck: 1 },
+    hook:     { weave: 3, duck: 3, roll: 2, block: 2, back: 1.5, slip: 0.7, parry: 0.5 },
+    uppercut: { block: 3, back: 3, roll: 2, slip: 1, parry: 0.7, weave: 0.4, duck: 0.3 },
+    body:     { block: 3, back: 2.5, roll: 2, parry: 1, slip: 0.7, weave: 0.6, duck: 0.4 },
+  };
+  const useDefense = (f, cat, only) => {
+    const list = only ? f.defs.filter((s) => only.includes(dodgeKind(s.name))) : f.defs;
+    return list.length ? weighted(list, (s) => (s.mastery + 5) * (FIT[cat]?.[dodgeKind(s.name)] ?? 1)) : null;
+  };
 
   function chooseSkill(f) {
     if (!f.attacks.length) return null;
@@ -94,10 +108,10 @@ function simulateFight(A, B) {
     return clamp(p * gasF(att), 0.08, 0.88);
   }
 
-  function hit(att, def, s, scale = 1) {
+  function hit(att, def, s, scale = 1, canBig = true) {
     const cat = CATEGORIES[s.category];
     let dmg = (4 + att.st.power * 0.22 + s.mastery * 0.08) * cat.dmg * rand(0.7, 1.3) * scale * DMG_SCALE / (1 + def.st.chin / 60);
-    const big = Math.random() < 0.06 + (cat.big || 0) + s.mastery / 1000 + att.st.power / 1500;
+    const big = canBig && Math.random() < 0.06 + (cat.big || 0) + s.mastery / 1000 + att.st.power / 1500;
     if (big) dmg *= 1.8;
     if (cat.gas) drain(def, cat.gas);
     def.hp = Math.max(0, def.hp - dmg);
@@ -126,6 +140,19 @@ function simulateFight(A, B) {
     drain(att, 3);
 
     if (Math.random() < successProb(att, def, s)) {
+      // 맞긴 했지만 가드(블로킹·숄더롤)로 받아 데미지 절반, 큰 충격 없음
+      const guard = Math.random() < def.defM / 250 ? useDefense(def, s.category, ['block', 'roll']) : null;
+      if (guard) {
+        (def.landed[guard.id] = (def.landed[guard.id] || 0) + 1);
+        act = { ...act, guard: dodgeKind(guard.name) };
+        hit(att, def, s, 0.5, false);
+        if (def.hp <= 0) {
+          ev('finish', `${name} ${s.name}! 가드 위로 쏟아지는 연타에 심판이 경기를 멈춘다!`, att.id);
+          return finish(att, 'TKO', s.name);
+        }
+        ev('strike', `${name} ${s.name}, ${josa(def.name, '이가')} ${josa(guard.name, '으로')} 받아낸다.`, att.id);
+        return;
+      }
       const { dmg, big } = hit(att, def, s);
       if (def.hp <= 0) {
         if (cat.target === 'body') ev('finish', `${name} ${s.name}!!! ${josa(def.name, '이가')} 배를 움켜쥐고 무릎을 꿇는다! 카운트 아웃!`, att.id);
@@ -156,7 +183,8 @@ function simulateFight(A, B) {
     }
 
     // 3) 빗나감 — 디펜스 기술로 피했다면 숙련 성장 대상, 카운터 기회
-    const dSkill = useDefense(def);
+    const dSkill = useDefense(def, s.category);
+    const from = dSkill ? dodgeKind(dSkill.name) : null; // 카운터가 이 회피 동작에서 이어진다
     if (dSkill) {
       (def.landed[dSkill.id] = (def.landed[dSkill.id] || 0) + 1);
       act = { ...act, dodge: dodgeKind(dSkill.name) };
@@ -167,7 +195,7 @@ function simulateFight(A, B) {
     const counterChance = (def.strat.style === '카운터' ? 0.12 : 0.04) + (def.strat.guard === '숄더롤' ? 0.04 : 0) + def.defM / 700;
     if (def.attacks.length && Math.random() < counterChance) {
       const cs = weighted(def.attacks, (x) => x.mastery + 5);
-      act = { att: def.id, cat: cs.category, name: cs.name, counter: true };
+      act = { att: def.id, cat: cs.category, name: cs.name, counter: true, from };
       const { big } = hit(def, att, cs, 0.8);
       if (att.hp <= 0) {
         ev('finish', `카운터!!! ${def.name}의 ${josa(cs.name, '이가')} 정확히 걸렸다! ${josa(att.name, '이가')} 쓰러진다!`, def.id);
