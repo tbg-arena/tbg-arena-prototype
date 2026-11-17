@@ -189,6 +189,7 @@ details.group[open] .chev { transform: rotate(90deg); }
 .seg.two { grid-template-columns: repeat(2, 1fr); }
 .seg.four { grid-template-columns: repeat(4, 1fr); }
 .seg.four button { font-size: 12px; padding: 8px 2px; }
+.seg.moves { grid-auto-rows: 38px; height: 82px; align-content: start; } /* 분류를 바꿔도 창 높이가 그대로 */
 .seg.five { grid-template-columns: repeat(5, 1fr); }
 .seg.five button { font-size: 11px; padding: 8px 1px; word-break: keep-all; }
 label.field { display: block; font-size: 12px; color: var(--muted); font-weight: 700; margin-bottom: 6px; }

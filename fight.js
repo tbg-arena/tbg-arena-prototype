@@ -9,7 +9,30 @@ const CATEGORIES = {
   body:     { label: '바디샷',        icon: '🎯', group: 'attack',  target: 'body', dmg: 0.8,  acc: 0.02,  gas: 7 },
   defense:  { label: '디펜스',        icon: '🛡️', group: 'defense' },
 };
-const FOCUS_CATS = { 헤드: ['jab', 'hook', 'uppercut'], 바디: ['body'] };
+// 세부 기술: 분류 안에서 경기 화면에 나오는 동작 (첫 번째가 기본). 데미지·명중은 분류 기준 그대로
+const MOVES = {
+  jab:      [['jab', '잽'], ['onetwo', '원투'], ['double', '더블 잽'], ['straight', '스트레이트']],
+  hook:     [['hook', '훅'], ['shorthook', '숏 훅'], ['overhand', '오버핸드']],
+  uppercut: [['uppercut', '어퍼컷'], ['shortupper', '숏 어퍼']],
+  body:     [['bodystraight', '바디 스트레이트'], ['bodyhook', '바디 훅'], ['liver', '리버샷'], ['bodyupper', '바디 어퍼']],
+  defense:  [['slip', '슬립'], ['weave', '위빙'], ['duck', '더킹'], ['roll', '숄더롤'], ['block', '블로킹'], ['parry', '패리'], ['back', '백스텝']],
+};
+// 세부 기술이 없는 예전 기술은 이름으로 추정 (띄어쓰기 무시)
+function guessMove(category, name) {
+  const n = String(name || '').replace(/\s/g, '');
+  const rules = {
+    jab: [[/원투|1-2/, 'onetwo'], [/더블|트리플/, 'double'], [/스트레이트|크로스/, 'straight']],
+    hook: [[/오버핸드/, 'overhand'], [/숏|쇼트/, 'shorthook']],
+    uppercut: [[/숏|쇼트/, 'shortupper']],
+    body: [[/리버/, 'liver'], [/어퍼/, 'bodyupper'], [/훅/, 'bodyhook']],
+    defense: [[/위빙|보빙|웨이브/, 'weave'], [/더킹|덕/, 'duck'], [/숄더|롤/, 'roll'], [/블로킹|블록|가드|커버/, 'block'], [/패리|파링/, 'parry'], [/백스텝|스텝|풋워크/, 'back']],
+  }[category] || [];
+  const hit = rules.find(([re]) => re.test(n));
+  return hit ? hit[1] : MOVES[category]?.[0][0] || null;
+}
+const validMove = (category, move) => (MOVES[category] || []).some(([id]) => id === move);
+const moveOf = (s) => (validMove(s.category, s.move) ? s.move : guessMove(s.category, s.name));
+const FOCUS_CATS ={ 헤드: ['jab', 'hook', 'uppercut'], 바디: ['body'] };
 
 const ROUNDS = 3;
 const ROUND_SEC = 180;
@@ -66,12 +89,6 @@ function simulateFight(A, B) {
   };
   const gasF = (f) => 0.6 + 0.4 * (f.gas / 100);
   const drain = (f, base) => { f.gas = clamp(f.gas - base * (1.45 - f.st.stamina / 100), 5, 100); };
-  // 디펜스 동작 종류 (기술 이름으로 추정, 띄어쓰기 무시)
-  const dodgeKind = (name) => {
-    const n = String(name).replace(/\s/g, '');
-    return /위빙|보빙|웨이브/.test(n) ? 'weave' : /더킹|덕/.test(n) ? 'duck' : /숄더|롤/.test(n) ? 'roll'
-      : /블로킹|블록|가드|커버/.test(n) ? 'block' : /패리|파링/.test(n) ? 'parry' : /백스텝|스텝|풋워크/.test(n) ? 'back' : 'slip';
-  };
   // 들어오는 펀치에 잘 맞는 디펜스일수록 그 기술을 고른다 (훅은 숙여 빠지고, 잽은 흘리고, 어퍼는 막거나 물러난다)
   const FIT = {
     jab:      { slip: 3, parry: 3, back: 2, roll: 2, block: 1.5, weave: 1, duck: 1 },
@@ -80,8 +97,8 @@ function simulateFight(A, B) {
     body:     { block: 3, back: 2.5, roll: 2, parry: 1, slip: 0.7, weave: 0.6, duck: 0.4 },
   };
   const useDefense = (f, cat, only) => {
-    const list = only ? f.defs.filter((s) => only.includes(dodgeKind(s.name))) : f.defs;
-    return list.length ? weighted(list, (s) => (s.mastery + 5) * (FIT[cat]?.[dodgeKind(s.name)] ?? 1)) : null;
+    const list = only ? f.defs.filter((s) => only.includes(moveOf(s))) : f.defs;
+    return list.length ? weighted(list, (s) => (s.mastery + 5) * (FIT[cat]?.[moveOf(s)] ?? 1)) : null;
   };
 
   function chooseSkill(f) {
@@ -127,7 +144,7 @@ function simulateFight(A, B) {
     const att = Math.random() < w(a) / (w(a) + w(b)) ? a : b;
     const def = other(att.id);
     const s = chooseSkill(att);
-    act = s ? { att: att.id, cat: s.category, name: s.name } : null;
+    act = s ? { att: att.id, cat: s.category, name: s.name, move: moveOf(s) } : null;
 
     // 2) 쓸 수 있는 공격 기술이 없을 때
     if (!s) {
@@ -144,7 +161,7 @@ function simulateFight(A, B) {
       const guard = Math.random() < def.defM / 250 ? useDefense(def, s.category, ['block', 'roll']) : null;
       if (guard) {
         (def.landed[guard.id] = (def.landed[guard.id] || 0) + 1);
-        act = { ...act, guard: dodgeKind(guard.name) };
+        act = { ...act, guard: moveOf(guard) };
         hit(att, def, s, 0.5, false);
         if (def.hp <= 0) {
           ev('finish', `${name} ${s.name}! 가드 위로 쏟아지는 연타에 심판이 경기를 멈춘다!`, att.id);
@@ -184,10 +201,10 @@ function simulateFight(A, B) {
 
     // 3) 빗나감 — 디펜스 기술로 피했다면 숙련 성장 대상, 카운터 기회
     const dSkill = useDefense(def, s.category);
-    const from = dSkill ? dodgeKind(dSkill.name) : null; // 카운터가 이 회피 동작에서 이어진다
+    const from = dSkill ? moveOf(dSkill) : null; // 카운터가 이 회피 동작에서 이어진다
     if (dSkill) {
       (def.landed[dSkill.id] = (def.landed[dSkill.id] || 0) + 1);
-      act = { ...act, dodge: dodgeKind(dSkill.name) };
+      act = { ...act, dodge: moveOf(dSkill) };
       def.score += 0.3;
       ev('miss', `${name} ${s.name}, ${josa(def.name, '이가')} ${josa(dSkill.name, '으로')} 흘려낸다.`, def.id);
     } else if (Math.random() < 0.35) ev('miss', `${name} ${s.name}, ${josa(def.name, '이가')} 피해낸다.`, def.id);
@@ -195,7 +212,7 @@ function simulateFight(A, B) {
     const counterChance = (def.strat.style === '카운터' ? 0.12 : 0.04) + (def.strat.guard === '숄더롤' ? 0.04 : 0) + def.defM / 700;
     if (def.attacks.length && Math.random() < counterChance) {
       const cs = weighted(def.attacks, (x) => x.mastery + 5);
-      act = { att: def.id, cat: cs.category, name: cs.name, counter: true, from };
+      act = { att: def.id, cat: cs.category, name: cs.name, move: moveOf(cs), counter: true, from };
       const { big } = hit(def, att, cs, 0.8);
       if (att.hp <= 0) {
         ev('finish', `카운터!!! ${def.name}의 ${josa(cs.name, '이가')} 정확히 걸렸다! ${josa(att.name, '이가')} 쓰러진다!`, def.id);
@@ -258,4 +275,4 @@ function simulateFight(A, B) {
   return { events, result, landed, maxHp: MAX_HP, roundSec: ROUND_SEC };
 }
 
-module.exports = { simulateFight, combatPower, CATEGORIES, ROUND_SEC };
+module.exports = { simulateFight, combatPower, CATEGORIES, MOVES, guessMove, validMove, ROUND_SEC };
