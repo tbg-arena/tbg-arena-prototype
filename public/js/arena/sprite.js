@@ -187,6 +187,8 @@ export function drawSprite(g, look, st, pose) {
   if (pose.kneel) { uy += 3; }
   ux = Math.round(ux); uy = Math.round(uy);
 
+  // 0. 신 등급 후광: 머리 뒤에서 퍼지는 둥근 그라데이션 빛 — 정지 이미지(spriteURL)에서만, 경기 화면엔 안 나옴
+  if (look.gear?.halo && pose.halo) aura(g, ux + hdx, -26 + uy + hdy);
   // 1. 뒷다리
   const legs = [];
   if (pose.kneel) {
@@ -214,12 +216,7 @@ export function drawSprite(g, look, st, pose) {
   g.fillStyle = gear.shirtS || CLOTH.s; g.fillRect(-4 + ux, -20 + uy, 2, 8);
   if (gear.sleeveless) { g.fillStyle = C.skin; g.fillRect(-4 + ux, -20 + uy, 2, 1); g.fillRect(2 + ux, -20 + uy, 2, 1); } // 탱크탑 어깨선
   if (gear.shirtMark) { g.fillStyle = gear.shirtMark; g.fillRect(ux - 1, -18 + uy, 4, 1); g.fillRect(ux, -16 + uy, 3, 1); } // 가슴 프린트 (글자 두 줄 느낌)
-  // 3. 머리 (신 등급은 머리 위에 떠 있는 금색 후광 고리 — 정지 이미지(spriteURL)에서만, 경기 화면엔 안 나옴)
-  if (gear.halo && pose.halo) {
-    const hx = -6 + ux + hdx, hy = -31 + uy + hdy;
-    const R = (x, y, w, c) => { g.fillStyle = c; g.fillRect(hx + x, hy + y, w, 1); };
-    R(3, -7, 7, '#ffd23f'); R(1, -6, 2, '#f5b800'); R(10, -6, 2, '#f5b800'); R(3, -5, 7, '#c98a00');
-  }
+  // 3. 머리
   drawHead(g, -6 + ux + hdx, -31 + uy + hdy, look, st, face);
   // 4. 뒷팔 → 5. 앞팔
   const sh = [ux, -17 + uy];
@@ -232,6 +229,16 @@ export function drawSprite(g, look, st, pose) {
     else group(g, [lb(x0, y0, gx + 2, gy + 2, 2, C.skin), sleeve, ...glove(gx, gy, st, gear)]);
   }
   g.restore();
+}
+
+// 후광 (cx, cy = 머리 가운데): 가운데는 밝은 금빛, 바깥으로 갈수록 투명해지는 둥근 빛
+function aura(g, cx, cy, r = 15) {
+  const grad = g.createRadialGradient(cx, cy, 0, cx, cy, r);
+  grad.addColorStop(0, 'rgba(255, 244, 180, 1)');
+  grad.addColorStop(0.45, 'rgba(255, 210, 60, 0.85)');
+  grad.addColorStop(1, 'rgba(255, 190, 0, 0)');
+  g.fillStyle = grad;
+  g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
 }
 
 // 회원 아바타 / 포즈 이미지 (UI용)
@@ -248,7 +255,7 @@ export function spriteURL(p, opts = {}) {
   drawSprite(sp.getContext('2d'), look, st, pose);
   const sc = opts.scale || 4;
   let sx = 0, sy = 0, w = SW, h = SH;
-  if (!opts.pose || opts.pose === 'bust') { sx = OX - 9; sy = OY - (look.gear.halo ? 38 : 35); w = 20; h = 20; } // 후광이 잘리지 않게 구도를 위로
+  if (!opts.pose || opts.pose === 'bust') { sx = OX - 9; sy = OY - 35; w = 20; h = 20; }
   else { const wide = ['punch', 'kick', 'shoot', 'jab', 'cross', 'hook', 'upper', 'body'].includes(opts.pose); sx = OX - 15; sy = OY - 41; w = wide ? 46 : 32; h = 43; }
   const out = mkCanvas(w * sc, h * sc);
   const o = out.getContext('2d'); o.imageSmoothingEnabled = false;
