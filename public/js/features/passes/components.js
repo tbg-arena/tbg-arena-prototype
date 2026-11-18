@@ -5,8 +5,8 @@ export const STATUS_LABEL = { active: '사용 중', scheduled: '예정', expired
 export const dday = (n) => (n === 0 ? 'D-DAY' : `D-${n}`);
 export const shortDate = (s) => String(s).replace(/-/g, '.'); // 2026-11-18 → 2026.11.18
 
-// 한 줄 요약: 주3회 3개월 · 이번 주 1/3회 · 전체 28회 남음 · D-41
-export const passLine = (p) => `${esc(p.name)} · 이번 주 ${p.weekLeft}/${p.perWeek}회 · 전체 ${p.left}회 남음 · ${dday(p.daysLeft)}`;
+// 한 줄 요약: 주3회 3개월 · D-41 (이번 주 출석은 출석 기록에서, 남은 횟수는 내역에서)
+export const passLine = (p) => `${esc(p.name)} · ${dday(p.daysLeft)}`;
 
 // 이번 주 남은 횟수 칸 (흰 칸 = 남은 횟수)
 export const weekDots = (p) => `<span class="wdots">${Array.from({ length: p.perWeek }, (_, i) => `<i class="${i < p.weekLeft ? 'on' : ''}"></i>`).join('')}</span>`;

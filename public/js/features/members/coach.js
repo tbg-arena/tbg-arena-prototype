@@ -5,7 +5,7 @@ import { coachTab, renderCoach } from '../../core/tabs.js';
 import { STAT_LABEL } from '../fighter/components.js';
 import { skillGroups } from '../skills/components.js';
 import { addSkillButton, bindSkillAdmin } from '../skills/admin.js';
-import { attendButton, bindAttend } from '../attendance/admin.js';
+import { attendButton, bindAttend, attendLogButton, bindAttendLog } from '../attendance/admin.js';
 import { passBadge, passBlock, bindPassAdmin } from '../passes/coach.js';
 
 coachTab({
@@ -17,6 +17,7 @@ coachTab({
   bind: ({ members }) => {
     bindMemberActions(members);
     bindAttend(refreshMembers, members);
+    bindAttendLog(members, refreshMembers);
     bindPassAdmin(members, refreshMembers);
     bindSkillAdmin(members, refreshMembers);
   },
@@ -33,7 +34,7 @@ function membersView(members) {
                 <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div>${passBadge(m)}</div>
               ${attendButton(m)}</summary>
             <div style="margin-top:12px">
-              ${passBlock(m)}
+              ${passBlock(m, attendLogButton(m))}
               ${statSliders(m)}
               <div class="muted small" style="margin:8px 0">${record(m)} · 누적 출석 ${m.attendCount}</div>
               <div class="row" style="margin:12px 0 8px">
