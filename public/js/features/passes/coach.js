@@ -4,20 +4,19 @@ import { esc, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { STATUS_LABEL, dday, shortDate, passLine, todayKST, endOf } from './components.js';
 
-// 회원 목록 줄에 붙는 표시: 확인이 필요하면 빨갛게 (수강권 없음 · 이번 주 끝 · 2회 이하 · 7일 이하)
+// 회원 목록 줄에 붙는 표시: 주3회 3개월 · D-91 (수강권 없음 · 7일 이하는 빨갛게)
 export function passBadge(m) {
   const p = m.pass;
   if (!p) return `<span class="pbadge warn">${m.nextPass ? `수강권 ${shortDate(m.nextPass.start)} 시작` : '수강권 없음'}</span>`;
-  const warn = p.weekLeft === 0 || p.left <= 2 || p.daysLeft <= 7;
-  return `<span class="pbadge ${warn ? 'warn' : ''}">주${p.perWeek}회 · 이번 주 ${p.weekLeft}/${p.perWeek} · ${p.left}회 · ${dday(p.daysLeft)}</span>`;
+  return `<span class="pbadge ${p.daysLeft <= 7 ? 'warn' : ''}">${passLine(p)}</span>`;
 }
 
-// 회원 카드를 펼쳤을 때 수강권 칸
-export function passBlock(m) {
+// 회원 카드를 펼쳤을 때 수강권 칸: 요약 + 등록 · 내역 (+ extra: 다른 기능 버튼, 예: 출석 기록)
+export function passBlock(m, extra = '') {
   const now = m.pass ? passLine(m.pass) : m.nextPass ? `${esc(m.nextPass.name)} · ${shortDate(m.nextPass.start)} 시작 예정` : '<span class="warn-text">사용 중인 수강권 없음</span>';
-  return `<div class="pass-admin row">
-      <div class="grow" style="min-width:0"><div class="small muted">수강권</div><div class="small">${now}</div></div>
-      <button class="btn sm primary" data-addpass="${m.id}">＋ 등록</button><button class="btn sm" data-passes="${m.id}">내역</button>
+  return `<div class="pass-admin">
+      <div class="small muted">수강권</div><div style="font-weight:800">${now}</div>
+      <div class="row pass-actions"><button class="btn sm primary" data-addpass="${m.id}">＋ 등록</button><button class="btn sm" data-passes="${m.id}">내역</button>${extra}</div>
     </div>`;
 }
 
