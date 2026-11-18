@@ -16,3 +16,4 @@
 .pbadge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; padding: 2px 6px; border: 1px solid var(--line2); color: var(--muted); }
 .pbadge.warn { border-color: var(--red); background: var(--red); color: #fff; }
 .pass-admin { border: 1px dashed var(--line2); padding: 10px 12px; margin-bottom: 4px; }
+.pass-actions { margin-top: 8px; flex-wrap: wrap; }
