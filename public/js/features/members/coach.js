@@ -2,7 +2,7 @@
 import { esc, svg, avatar, fmtPhone, record, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { coachTab, renderCoach } from '../../core/tabs.js';
-import { statBars } from '../fighter/components.js';
+import { STAT_LABEL } from '../fighter/components.js';
 import { skillGroups } from '../skills/components.js';
 import { addSkillButton, bindSkillAdmin } from '../skills/admin.js';
 import { attendButton, bindAttend } from '../attendance/admin.js';
@@ -34,7 +34,7 @@ function membersView(members) {
               ${attendButton(m)}</summary>
             <div style="margin-top:12px">
               ${passBlock(m)}
-              ${statBars(m.stats)}
+              ${statSliders(m)}
               <div class="muted small" style="margin:8px 0">${record(m)} · 누적 출석 ${m.attendCount}</div>
               <div class="row" style="margin:12px 0 8px">
                 ${addSkillButton(m)}
@@ -53,6 +53,12 @@ function memberForm(m = {}) {
       <div><label class="field">전화번호 (로그인용)</label><input id="f-phone" type="tel" inputmode="numeric" maxlength="13" value="${m.phone ? fmtPhone(m.phone) : ''}" placeholder="010-0000-0000" /></div>
       <div><label class="field">성별 (캐릭터)</label><div class="seg two" id="f-gender">${[['M', '남자'], ['F', '여자']].map(([g, t]) => `<button type="button" data-g="${g}" class="${(m.gender || 'M') === g ? 'on' : ''}">${t}</button>`).join('')}</div></div>
     </div>`;
+}
+
+// 코치용 능력치 막대: 끌어서 조절, 손 떼면 저장
+function statSliders(m) {
+  return `<div class="stat-grid">${Object.entries(STAT_LABEL).map(([k, [ic, lb]]) => `
+    <label class="statrow"><span class="sl"><i>${ic}</i>${lb}</span><input type="range" min="0" max="100" value="${m.stats[k]}" data-stat="${k}" data-sid="${m.id}" aria-label="${lb}" /><b>${m.stats[k]}</b></label>`).join('')}</div>`;
 }
 
 // 펼쳐진 회원 유지하며 다시 그리기
@@ -94,6 +100,13 @@ function bindMemberActions(members) {
       });
     });
   }));
+  document.querySelectorAll('[data-stat]').forEach((r) => {
+    r.oninput = () => (r.nextElementSibling.textContent = r.value);
+    r.onchange = () => act(async () => {
+      await api('PUT', `/api/coach/members/${r.dataset.sid}`, { stats: { [r.dataset.stat]: r.value } });
+      refreshMembers(); // 전투력 표시 갱신
+    });
+  });
   document.querySelectorAll('[data-delmember]').forEach((b) => (b.onclick = () => act(async () => {
     if (!confirm(`${b.dataset.name} 회원을 삭제할까요? 기술과 기록도 함께 사라집니다.`)) return;
     await api('DELETE', `/api/coach/members/${b.dataset.delmember}`); toast('삭제되었습니다.'); refreshMembers();
