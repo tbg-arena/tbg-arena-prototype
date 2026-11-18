@@ -7,6 +7,12 @@ import { monthGrid, shiftMonth, ym, countIn } from './calendar.js';
 
 export const attendButton = (m) => `<button class="btn sm ${m.attended ? '' : 'primary'}" data-attend="${m.id}" ${m.attended ? 'disabled' : ''}>${m.attended ? '출석✓' : '출석'}</button>`;
 
+// 출석으로 오른 능력치 안내 (예: ' 파워 +1 · 체력 +1')
+const gainText = (gains) => {
+  const up = Object.entries(gains || {}).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_LABEL[k]?.[1] || k} +${v}`);
+  return up.length ? ' ' + up.join(' · ') : ' 능력치가 조금씩 쌓이고 있어요';
+};
+
 // 오늘 출석 체크 (출석 버튼 · 출석 기록 달력의 오늘 칸에서 같이 씀). 성공하면 응답, 막히면 null
 // 출석은 수강권이 있어야 가능: 수강권이 없으면 등록 창으로, 이번 주 횟수를 다 썼으면 안내만
 // m: 코치 회원 목록의 회원 (수강권 등록 창을 열 때 씀, 없을 수 있음)
@@ -22,8 +28,7 @@ async function attendToday(id, m, onChange) {
     }
     throw err; // 이번 주 횟수 다 씀 등은 토스트로 안내
   }
-  const up = Object.entries(r.gains || {}).filter(([, v]) => v > 0).map(([k, v]) => `${STAT_LABEL[k][1]} +${v}`);
-  toast(`${r.name} 출석 체크!${up.length ? ' ' + up.join(' · ') : ' 능력치가 조금씩 쌓이고 있어요'}`); onChange?.();
+  toast(`${r.name} 출석 체크!${gainText(r.gains)}`); onChange?.();
   return r;
 }
 
@@ -35,9 +40,9 @@ export function bindAttend(onChange, members = []) {
   }));
 }
 
-// ── 출석 기록 달력 (기능 도입 전 출석 · 수강권 없이 했던 출석 맞추기 · 오늘 출석 체크/취소)
-// 지난 날짜: 누르면 출석 기록 추가 / 이미 출석이면 지우기. 그 날짜 수강권에서 차감·복구, 능력치·코인은 그대로
-// 오늘: 출석 버튼과 같은 출석 체크 / 이미 출석이면 취소 (수강권 · 능력치 · 코인까지 되돌림)
+// ── 출석 기록 달력 (전날 출석 · 기능 도입 전 출석 맞추기 · 오늘 출석 체크/취소)
+// 지난 날짜 누르기 = 그날 출석 체크 (누적 · 능력치 · 코인 · 수강권 차감)
+// 오늘 칸 = 출석 버튼과 같음. 출석한 날 다시 누르기 = 그 출석 삭제 (누적 · 코인 · 그날 오른 능력치 · 수강권 모두 되돌림)
 export const attendLogButton = (m) => `<button class="btn sm" data-attendlog="${m.id}">출석 기록</button>`; // 수강권 칸 안에 들어감
 
 async function openAttendLog(m, onChange) {
@@ -63,14 +68,13 @@ async function openAttendLog(m, onChange) {
         if (isToday && !had) { // 오늘 출석 체크 = 출석 버튼과 똑같음 (능력치 · 코인 · 수강권 차감, 수강권 없으면 등록 안내)
           if (!confirm('오늘 출석 체크할까요? 출석 버튼과 같아요 (능력치 상승 · 출석 코인 · 수강권 1회 차감).')) return;
           if (!(await attendToday(m.id, m, onChange))) return; // 수강권 없음 → 등록 창으로 넘어감
-          days = (await api('GET', `/api/coach/members/${m.id}/attendance`)).days;
+          ({ days } = await api('GET', `/api/coach/members/${m.id}/attendance`));
           return draw();
         }
-        const ask = isToday ? '오늘 출석을 취소할까요? 수강권 1회, 오늘 오른 능력치, 출석 코인이 되돌아가요.' : `${date} 출석 기록을 지울까요? 수강권 1회가 돌아와요.`;
-        if (had && !confirm(ask)) return;
+        if (had && !confirm(`${isToday ? '오늘' : date} 출석을 지울까요? 누적 출석 · 출석 코인 · 수강권 1회 · 그날 오른 능력치가 되돌아가요.`)) return;
         const r = had ? await api('DELETE', `/api/coach/members/${m.id}/attendance/${date}`) : await api('POST', `/api/coach/members/${m.id}/attendance`, { date });
-        days = r.days;
-        toast(isToday ? '오늘 출석을 취소했어요.' : had ? `${date} 출석 기록을 지웠어요.` : `${date} 출석 기록 추가 · 수강권 1회 차감`);
+        ({ days } = r);
+        toast(had ? (isToday ? '오늘 출석을 취소했어요.' : `${date} 출석을 지웠어요.`) : `${date} 출석 체크!${gainText(r.gains)}`);
         draw(); onChange?.();
       })));
     };
