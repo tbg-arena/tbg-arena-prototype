@@ -1,5 +1,5 @@
 // 테스트용 샘플 데이터 — 서버가 켜진 상태에서 실행: npm run seed
-// 회원 8명 + 배운 기술 + 출석 + 경기 몇 판 + 대기 중 콜아웃
+// 회원 8명 + 배운 기술 + 수강권(주3회 3개월) + 출석 + 경기 몇 판 + 대기 중 콜아웃
 const BASE = process.env.BASE_URL || `http://localhost:${process.env.PORT || 3000}`;
 const PIN = process.env.COACH_PIN || '1234';
 
@@ -60,7 +60,8 @@ const FIGHTS = [[0, 1], [2, 3], [4, 0], [1, 2], [3, 6], [4, 2], [7, 5], [0, 3]];
       for (const [sn, category, mastery, desc] of skills) {
         await api('POST', `/api/coach/members/${m.id}/skills`, { name: sn, category, mastery, desc }, coach);
       }
-      console.log(`✓ ${name} (${phone}) 기술 ${skills.length}개`);
+      await api('POST', `/api/coach/members/${m.id}/passes`, { perWeek: 3, months: 3 }, coach); // 수강권이 있어야 출석 가능
+      console.log(`✓ ${name} (${phone}) 기술 ${skills.length}개 · 수강권 주3회 3개월`);
     }
     ids.push(m.id);
     const t = (await api('POST', '/api/login', { phone })).token;
