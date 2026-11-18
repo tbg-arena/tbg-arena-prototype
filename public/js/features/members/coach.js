@@ -1,4 +1,4 @@
-// 코치 회원 관리 탭: 회원 등록·수정·삭제 + (출석 버튼, 기술 관리는 각 기능 파일에서)
+// 코치 회원 관리 탭: 회원 등록·수정·삭제 + (출석 버튼, 수강권, 기술 관리는 각 기능 파일에서)
 import { esc, svg, avatar, fmtPhone, record, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { coachTab, renderCoach } from '../../core/tabs.js';
@@ -6,6 +6,7 @@ import { statBars } from '../fighter/components.js';
 import { skillGroups } from '../skills/components.js';
 import { addSkillButton, bindSkillAdmin } from '../skills/admin.js';
 import { attendButton, bindAttend } from '../attendance/admin.js';
+import { passBadge, passBlock, bindPassAdmin } from '../passes/coach.js';
 
 coachTab({
   id: 'members', order: 20, label: '회원·기술',
@@ -15,7 +16,8 @@ coachTab({
   view: ({ members }) => membersView(members),
   bind: ({ members }) => {
     bindMemberActions(members);
-    bindAttend(refreshMembers);
+    bindAttend(refreshMembers, members);
+    bindPassAdmin(members, refreshMembers);
     bindSkillAdmin(members, refreshMembers);
   },
 });
@@ -28,9 +30,10 @@ function membersView(members) {
           <details class="card member" data-mid="${m.id}">
             <summary class="row">${avatar(m)}
               <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(m.name)}</div>
-                <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div></div>
+                <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div>${passBadge(m)}</div>
               ${attendButton(m)}</summary>
             <div style="margin-top:12px">
+              ${passBlock(m)}
               ${statBars(m.stats)}
               <div class="muted small" style="margin:8px 0">${record(m)} · 누적 출석 ${m.attendCount}</div>
               <div class="row" style="margin:12px 0 8px">
