@@ -1,0 +1,18 @@
+/* ── 수강권 (js/features/passes) */
+.warn-text { color: var(--red); font-weight: 800; }
+/* 회원: 내 수강권 */
+.pass-card .pass-name { font-size: 18px; font-weight: 900; letter-spacing: -0.4px; }
+.pass-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); margin-top: 12px; }
+.pass-stats > div { background: #000; padding: 12px 6px 10px; text-align: center; }
+.pass-stats span { display: block; font-size: 11px; color: var(--muted); font-weight: 700; }
+.pass-stats b { display: block; font-size: 24px; font-weight: 700; margin: 4px 0 6px; line-height: 1.1; }
+.pass-stats b small { font-size: 12px; color: var(--muted); margin-left: 2px; }
+.pass-stats .mbar { margin: 0 10px; }
+.pass-stats > div > small { font-size: 11px; }
+.pass-stats .wdots, .wdots { display: flex; justify-content: center; gap: 3px; } /* .pass-stats span 보다 우선 */
+.wdots i { display: block; width: 12px; height: 6px; background: var(--surface2); }
+.wdots i.on { background: #fff; }
+/* 코치: 회원 목록 표시 · 카드 안 수강권 칸 */
+.pbadge { display: inline-block; margin-top: 4px; font-size: 11px; font-weight: 800; padding: 2px 6px; border: 1px solid var(--line2); color: var(--muted); }
+.pbadge.warn { border-color: var(--red); background: var(--red); color: #fff; }
+.pass-admin { border: 1px dashed var(--line2); padding: 10px 12px; margin-bottom: 4px; }

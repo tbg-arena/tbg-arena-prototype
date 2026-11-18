@@ -1,4 +1,4 @@
-// 회원 홈 탭: 내 선수 카드 · 출석 · 기본 전략 · 필살기 콤보 · 옷장·상점 가기 · 내 기술
+// 회원 홈 탭: 내 선수 카드 · 출석·수강권 · 기본 전략 · 필살기 콤보 · 옷장·상점 가기 · 내 기술
 import { state } from '../../core/state.js';
 import { esc, svg, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
@@ -29,7 +29,7 @@ function homeView(me, callouts) {
     ${fighterCard(m)}
     ${pending.map((c) => `<div class="banner blue" data-go="#/callout"><div class="grow" style="min-width:0"><b>${esc(c.challenger)}</b> 님의 도전장!${c.message ? `<div class="ellipsis">“${esc(c.message)}”</div>` : ''}<div class="small" style="opacity:.75">코치가 승인하면 바로 경기</div></div><span>→</span></div>`).join('')}
     <div class="section-title">내 준비</div>
-    <div class="card row"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div></div>
+    <div class="card row" data-go="#/passes" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div><span class="link" style="padding:0">수강권 →</span></div>
     <div class="card row" id="editStrategy" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">STR</div><div class="grow"><b>내 기본 전략</b><div class="muted small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div></div><span class="link" style="padding:0">바꾸기 →</span></div>
     <div class="card row" id="editFinisher" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">FIN</div><div class="grow"><b>필살기 콤보</b><div class="muted small ellipsis">${finisherOf(me) ? finisherOf(me).map((s) => esc(s.name)).join('-') : '배운 기술을 엮어 막판 한 방을 만들어 보세요'}</div></div><span class="link" style="padding:0">${finisherOf(me) ? '바꾸기' : '만들기'} →</span></div>
     <div class="card row" data-go="#/shop" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GEAR</div><div class="grow"><b>옷장 · 상점</b><div class="muted small">COIN ${m.coins ?? 0} · 모은 코인으로 브랜드 장비를 사고 갈아입어요</div></div><span class="link" style="padding:0">열기 →</span></div>

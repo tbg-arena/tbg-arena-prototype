@@ -46,7 +46,7 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 ## 게임 루프
 
 ```
-코치: 회원 등록 → 배운 기술 등록(분류·숙련도) → 출석 체크
+코치: 회원 등록 → 수강권 등록 → 배운 기술 등록(분류·숙련도) → 출석 체크 (수강권 1회 차감)
 회원: 전화번호로 입장 → 전략 설정
       → 콜아웃 → [코치 승인] → 자동 경기 → 중계 관전
 ```
@@ -90,6 +90,16 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 
 ![가능한 캐릭터](docs/characters.png)
 
+### 수강권
+- **주 N회 + 기간**: 예) 주3회 3개월. 전체 횟수 기본값 = 주 횟수 × 4주 × 개월 (주3회 3개월 = 36회), 코치가 등록할 때 바꿀 수 있음
+- 자주 쓰는 종류: 주3회 · 주5회 × 1 · 3 · 6개월 (`lib/passes/model.js` 의 `PRESETS`)
+- 기간: 시작일부터 N개월 (11/18 시작 1개월 = 12/17 까지, 1/31 시작 1개월 = 2/28 까지)
+- **출석하면 1회 차감**. 이번 주(월~일) 횟수를 다 쓰면 그 주엔 출석 불가, 못 쓴 횟수는 다음 주로 안 넘어감
+- **수강권이 없으면 출석 불가**: 코치가 출석을 누르면 "수강권을 먼저 등록해 주세요" → 바로 등록 창
+- 수강권이 여러 개면 사용 중인 것 중 종료일이 빠른 것부터 차감
+- 회원: 홈 출석 카드를 누르면 **내 수강권**(이번 주 남은 횟수 · 전체 남은 횟수 · 남은 기간, 시작 예정 · 지난 수강권)
+- 코치: 회원·기술 탭 회원 줄에 요약 (수강권 없음 · 이번 주 다 씀 · 2회 이하 · 7일 이하는 빨간색), 카드를 펼쳐 등록 · 내역 · 잘못 넣은 수강권 삭제
+
 ### 상점 · 옷장 (꾸미기 전용)
 - 홈의 **옷장 · 상점** 카드로 들어갑니다 (탭바에는 없음). 글러브 · 상의 · 트렁크 · 헤어로 나눠 봐요 (처음엔 글러브)
 - **코인**으로 장비를 삽니다: 경기 승 30 · 무 15 · 패 10 (KO/TKO 승 +10), 출석 체크 +20. 상점 도입 전 경기·출석만큼은 한 번 소급 지급
@@ -118,6 +128,7 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 | fighter | 게임 속 선수: 내 정보·전략·랭킹·선수 분석 | `fighter/` | `fighter/` (홈·랭킹 탭, 선수 분석) |
 | callouts | 콜아웃 → 코치 승인 | `callouts/routes.js` | `callouts/` (회원 콜아웃 탭, 코치 승인 탭) |
 | fights | 경기 실행·전적·중계 | `fights/` (`engine.js` = 경기 엔진) | `fights/` (커리어·코치 경기 탭, 중계 화면) |
+| passes | 수강권 (주 N회 + 기간): 출석하면 차감 | `passes/` | `passes/member.js` (내 수강권 `#/passes`), `passes/coach.js` (회원·기술 탭 안 수강권 칸) |
 | shop | 코인·상점·옷장 (장비 꾸미기) | `shop/` (`items.js` = 판매 목록) | `shop/member.js` (옷장·상점 화면 `#/shop`, 홈에서 들어감) |
 
 ```
@@ -153,6 +164,6 @@ public/
   2. 화면: `public/js/features/shop/tab.js` 에서 `memberTab({ id: 'shop', order: 50, label: '상점', icon, load, view, bind })` 로 탭 등록 → `public/js/main.js` 에 `import` 한 줄 추가 (탭 순서는 `order`)
   3. 스타일: `public/css/shop.css` 를 만들고 `index.html` 에 `<link>` 한 줄 추가
   4. 캐릭터 옷처럼 생김새가 바뀌는 건 `public/js/arena/sprite.js` (`lookOf`, `drawSprite`)
-- **다른 기능에 끼어들 때는 연결 지점 사용** (그 기능 파일을 직접 고치지 않도록): 경기 끝난 뒤 `onFightResult` (fights/model), 출석 체크 뒤 `onAttend` (attendance/model), 캐릭터 장비 색 `addLook` · 본인 정보에 필드 추가 `addPrivateFields` (fighter/model). 예시는 `lib/shop/model.js` 아래쪽
+- **다른 기능에 끼어들 때는 연결 지점 사용** (그 기능 파일을 직접 고치지 않도록): 경기 끝난 뒤 `onFightResult` (fights/model), 출석 체크 전에 막기 `checkAttend` · 뒤 `onAttend` (attendance/model), 캐릭터 장비 색 `addLook` · 본인 정보에 필드 추가 `addPrivateFields` (fighter/model). 예시는 `lib/shop/model.js` 아래쪽
 - **코치 탭**은 `coachTab({...})`, `#/이름/<id>` 로 여는 단독 화면은 `addPage('이름', render)`, id 없이 여는 화면(`#/shop`)은 `addPage('이름', render, { needsId: false })` 로 등록합니다.
 - **파일 이름 주의**: 새 파일에 `app.js`, `index.js`, `server.js` 는 쓰지 마세요 (Vercel이 서버 진입점으로 착각할 수 있음). 서버 코드는 `api/` 가 아니라 `lib/` 에 (`api/` 안 파일은 각각 서버리스 함수가 됨).

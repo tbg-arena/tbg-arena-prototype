@@ -20,7 +20,7 @@ export async function api(method, url, body) {
     else if (ver !== state.ver && !document.body.classList.contains('fight-mode')) { location.reload(); return new Promise(() => {}); }
   }
   if (res.status === 401 && state.token) { onAuthLost(); throw new Error(data.error || '다시 로그인해주세요.'); }
-  if (!res.ok) throw new Error(data.error || '요청 실패');
+  if (!res.ok) { const err = new Error(data.error || '요청 실패'); err.data = data; throw err; } // err.data.code 로 이유 구분 (예: NO_PASS)
   return data;
 }
 // 버튼 동작용: 실패하면 토스트로 알려준다

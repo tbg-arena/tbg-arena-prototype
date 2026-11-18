@@ -21,5 +21,7 @@ import './features/fights/coach.js';
 import './features/fights/broadcast.js';
 // 상점: 회원 옷장·상점 화면 (#/shop, 홈에서 들어감)
 import './features/shop/member.js';
+// 수강권: 회원 '내 수강권' 화면 (#/passes, 홈 출석 카드에서 들어감). 코치 수강권 관리는 회원·기술 탭 안
+import './features/passes/member.js';
 
 route();
