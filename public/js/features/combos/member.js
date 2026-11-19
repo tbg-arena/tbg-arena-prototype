@@ -1,9 +1,10 @@
 // 회원 '내 콤비' 화면 (#/combos, 홈의 '내 콤비' 카드로 들어옴)
-// 배운 기술로만 된 콤비가 열리고, 열린 콤비는 탭 한 번으로 필살기 장착 (직접 만들기는 홈의 필살기 카드 그대로)
+// 홈의 '필살기' 카드로 들어오는 필살기 화면: 배운 기술로만 된 콤비가 열리고, 탭 한 번으로 장착. 직접 만들기도 여기서
 import { state } from '../../core/state.js';
 import { $app, esc, toast } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { go, addPage } from '../../core/router.js';
+import { finisherOf, finisherModal } from '../fighter/finisher.js';
 
 addPage('combos', renderCombos, { needsId: false });
 
@@ -12,19 +13,23 @@ let tab = 'open'; // 열림 / 잠김
 async function renderCombos() {
   state.tab = 'combos';
   const seq = state.seq;
-  let list;
-  try { list = await api('GET', '/api/me/combos'); } catch (e) { toast(e.message, true); return go('#/home'); }
+  let list, me;
+  try { [list, me] = await Promise.all([api('GET', '/api/me/combos'), api('GET', '/api/me')]); } catch (e) { toast(e.message, true); return go('#/home'); }
   if (seq !== state.seq) return; // 그 사이 다른 화면으로 이동함
   const open = list.filter((c) => c.open), locked = list.filter((c) => !c.open);
   const eq = list.find((c) => c.equipped);
+  const own = !eq && finisherOf(me); // 콤비가 아니라 직접 만든 필살기
   const shown = tab === 'open' ? open : locked;
   $app.innerHTML = `
-    <div class="topbar"><button class="link" id="back">← 돌아가기</button><div class="muted small">내 콤비</div><span style="width:60px"></span></div>
+    <div class="topbar"><button class="link" id="back">← 돌아가기</button><div class="muted small">필살기</div><span style="width:60px"></span></div>
     <div class="page no-tabs">
       <div class="section-title">장착 중인 필살기</div>
       ${eq ? `<div class="card cmb-eq"><div class="row"><div class="grow cmb-parts">${parts(eq)}</div><div class="cmb-hits"><b class="px">${eq.hits}</b><span>HIT</span></div></div>
         <div class="muted small" style="margin-top:10px">경기 막판에 한 번 터져요. 방어 동작 다음 펀치는 더 세게 들어가요.</div></div>`
-        : '<div class="card empty">아직 콤비로 장착한 필살기가 없어요.<br/>아래 열린 콤비에서 골라 보세요.</div>'}
+        : own ? `<div class="card cmb-eq"><div class="row"><div class="grow cmb-parts">${own.map((s) => `<span class="cmb-p">${esc(s.name)}</span>`).join('')}</div><div class="cmb-hits"><b class="px">${own.length}</b><span>HIT</span></div></div>
+        <div class="muted small" style="margin-top:10px">직접 만든 필살기예요.</div></div>`
+        : '<div class="card empty">아직 필살기가 없어요.<br/>아래 열린 콤비에서 고르거나 직접 만들어 보세요.</div>'}
+      <button class="btn block" id="makeFin" style="margin-top:10px">직접 만들기</button>
       <div class="section-title">콤비 <span class="muted">· 배운 기술로만 된 콤비가 열려요</span></div>
       <div class="seg two" style="margin-bottom:10px">
         <button data-tab="open" class="${tab === 'open' ? 'on' : ''}">열림 ${open.length}</button>
@@ -34,6 +39,7 @@ async function renderCombos() {
       <div class="muted small" style="margin:12px 2px">흰 칸 = 펀치, 점선 = 디펜스, 점 테두리 = 스텝. 펀치 없이 디펜스·스텝만 있는 콤비도 필살기가 돼요 (화려한 움직임으로 흐름을 가져와요).</div>
     </div>`;
   document.getElementById('back').onclick = () => (history.length > 1 ? history.back() : go('#/home'));
+  document.getElementById('makeFin').onclick = () => finisherModal(me);
   document.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => { tab = b.dataset.tab; renderCombos(); }));
   document.querySelectorAll('[data-equip]').forEach((b) => (b.onclick = () => act(async () => {
     await api('POST', `/api/me/combos/${b.dataset.equip}/equip`);
