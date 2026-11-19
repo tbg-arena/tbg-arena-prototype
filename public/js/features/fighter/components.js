@@ -21,7 +21,7 @@ export function fighterCard(m, opts = {}) {
         <div class="cp"><span>POWER</span><b>${m.power}</b></div>
       </div>
       <div class="p-body">
-      ${m.titles?.length ? `<div class="titles">${m.titles.map((t) => `<span class="badge solid">${esc(t)} 마스터</span>`).join('')}</div>` : ''}
+      ${m.titles?.length || m.laps ? `<div class="titles">${m.laps ? `<span class="badge red">31주 완주${m.laps > 1 ? ` ×${m.laps}` : ''}</span>` : ''}${(m.titles || []).map((t) => `<span class="badge solid">${esc(t)} 마스터</span>`).join('')}</div>` : ''}
       ${statBars(m.stats)}
       <div class="row small muted" style="margin-top:12px"><span class="grow">랭킹 포인트 <b class="px" style="color:var(--text)">${m.points}</b></span><span>팬 <b class="px" style="color:var(--text)">${m.fans}</b></span></div>
       </div>
