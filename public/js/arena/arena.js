@@ -5,7 +5,7 @@
 import { SFX } from './sfx.js';
 import { clamp01, bump, easeOut, lerp, hash, mkCanvas } from './util.js';
 import { SW, SH, OX, OY, SIDE, lookOf, drawSprite } from './sprite.js';
-import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR } from './moves.js';
+import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR, DODGE_MOVE } from './moves.js';
 
 const LW = 160, LH = 100;          // 월드(도트) 해상도
 const FLOOR = 76, CX = LW / 2;     // 발 위치, 링 중앙
@@ -97,7 +97,7 @@ export class Arena {
     const a = e.act;
     const att = a ? this.f[a.att] : null;
     const def = att ? this.other(att.id) : null;
-    const strike = a && STRIKES.includes(a.cat);
+    const strike = a && (STRIKES.includes(a.cat) || a.showcase); // showcase: 펀치 없는 필살기 (디펜스·스텝만)
     const landed = ['strike', 'big', 'down', 'finish'].includes(e.type);
     const dmgOf = (id) => Math.max(0, Math.round((prevHp?.[id] ?? e.hp?.[id] ?? 0) - (e.hp?.[id] ?? 0)));
 
@@ -115,12 +115,14 @@ export class Arena {
 
     if (strike && att) {
       att.hand ^= 1;
-      const mv = a.combo?.length > 1 ? comboMove(a.combo) : boxingMove(a);
+      const mv = a.combo?.length > 1 || a.showcase ? comboMove(a.combo) : boxingMove(a);
+      // 피하는 동작 연출: 라벨 + 몸 이동 (스텝은 앞뒤로 움직이고 점프는 뜀)
+      const evade = (f, k) => { const m = DODGE_MOVE[k]; if (m?.kx) f.kx = f.d * m.kx; if (m?.vy) f.vy = m.vy; this.text(DODGE_LABEL[k], f, '#cfcfcf', 0.8, -12); };
       const kind = mv ? mv.seq[0][0] : this.isMount(att) ? 'gnp' : a.cat;
       let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
       const swing = () => {
         att.anim = { kind, t0: this.gt, dur, hand: att.hand };
-        if (DODGE_LABEL[kind]) return this.text(DODGE_LABEL[kind], att, '#cfcfcf', 0.8, -12); // 콤보가 방어 동작으로 시작
+        if (DODGE_LABEL[kind]) return evade(att, kind); // 콤보가 방어·스텝 동작으로 시작
         this.whoosh(att, mv ? mv.trail : kind);
         this.sfx(a.cat === 'kick' ? 'kick' : 'whoosh', 0);
       };
@@ -133,7 +135,7 @@ export class Arena {
         lead += dur * 0.85; dur = d2;
         this.later(lead * 1000, () => {
           att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand };
-          if (DODGE_LABEL[k2]) return this.text(DODGE_LABEL[k2], att, '#cfcfcf', 0.8, -12); // 콤보 속 방어 동작
+          if (DODGE_LABEL[k2]) return evade(att, k2); // 콤보 속 방어·스텝 동작
           this.whoosh(att, mv.trail); this.sfx('whoosh', 0);
         });
       }
@@ -160,6 +162,8 @@ export class Arena {
         this.cam.punch = 0.45; this.cam.fx = ax; this.cam.fy = ay + 8;
         this.sfx('counter', 2);
       }
+      // 펀치 없는 필살기: 움직임이 끝나면 라벨 (스포트라이트는 저절로 걷힘)
+      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#ff4b45', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
       if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
@@ -216,8 +220,9 @@ export class Arena {
         this.later((lead + dur * 0.3) * 1000, () => {
           const dk = a.dodge;
           def.anim = { kind: DODGE_LABEL[dk] ? dk : 'dodge', t0: this.gt, dur: DODGE_DUR[dk] || 0.4 };
-          if (dk === 'back') def.kx = -def.d * 70;
-          if (dk === 'weave') def.kx = def.d * 20; // 펀치 밑으로 파고든다
+          const dm = DODGE_MOVE[dk]; // 백스텝·스텝은 빠지고, 위빙은 파고든다
+          if (dm?.kx) def.kx = def.d * dm.kx;
+          if (dm?.vy) def.vy = dm.vy;
           if (dk === 'block') { const [hx, hy] = this.headPos(def); this.burst(hx - def.d * 6, hy + 2, false); }
           this.text(dk ? DODGE_LABEL[dk] : 'MISS', def, dk ? '#ffffff' : '#8a8a8a', dk ? 0.9 : 0.8, -12);
           // 필살기 실패: 열기가 식고 공격자 위로 허탈한 MISS…

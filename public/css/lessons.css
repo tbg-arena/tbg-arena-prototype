@@ -20,6 +20,18 @@
 .lpick { height: 52px; border: 1px solid #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
 .lpick.off { opacity: .35; border-color: var(--line2); }
 .lnone.on { background: #fff; color: #000; border-color: #fff; }
+/* 커리큘럼 (주차 카드, 펼침 모양은 skills.css 의 details.group) */
+.lcur summary { list-style: none; cursor: pointer; }
+.lcur summary::-webkit-details-marker { display: none; }
+.lcur + .lcur { margin-top: 8px; }
+.lcur-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
+.lcur-body p { margin: 0 0 10px; color: #d0d0d0; }
+.lcur-body ul { margin: 0 0 10px; padding-left: 18px; color: #d0d0d0; }
+.lcur-k { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+/* 주차 추가 · 수정 창의 능력치 칸 */
+.lstats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.lstats label { display: flex; flex-direction: column; gap: 4px; font-size: 11px; color: var(--muted); text-align: center; }
+.lstats input { padding: 10px 4px; text-align: center; }
 /* 출석 직후 시트의 운동 선택 */
 .seg.ltrain button { padding: 8px 2px; min-height: 56px; }
 .seg.ltrain b { display: block; font-size: 14px; }

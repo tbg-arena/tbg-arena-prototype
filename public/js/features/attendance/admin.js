@@ -40,7 +40,7 @@ export function bindAttend(onChange, members = []) {
     e.preventDefault();
     act(async () => {
       const r = await attendToday(b.dataset.attend, members.find((x) => x.id === b.dataset.attend), onChange);
-      if (r) openTodaySheet(r, gainText(r.gains), onChange);
+      if (r) await openTodaySheet(r, gainText(r.gains), onChange);
     });
   }));
 }

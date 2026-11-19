@@ -14,7 +14,7 @@ export function bindSkillAdmin(members, onChange) {
     let category = 'jab', move = MV.jab?.[0]?.[0];
     openModal(`<h3>${esc(b.dataset.name)} · 배운 기술 등록</h3>
       <div class="stack">
-        <div><label class="field">분류</label><div class="seg five" id="s-cat">${Object.entries(C).map(([k, v]) => `<button data-c="${k}" class="${k === category ? 'on' : ''}">${v.icon}<br/>${v.label}</button>`).join('')}</div></div>
+        <div><label class="field">분류</label><div class="seg" id="s-cat">${Object.entries(C).map(([k, v]) => `<button data-c="${k}" class="${k === category ? 'on' : ''}">${v.icon}<br/>${v.label}</button>`).join('')}</div></div>
         <div><label class="field">세부 기술</label><div class="seg four moves" id="s-move"></div></div>
         <div><label class="field">기술 이름</label><input id="s-name" maxlength="24" placeholder="예: 원투, 레프트 훅, 리버샷, 슬립" /></div>
         <div><label class="field">시작 숙련도 <b id="s-mv" class="px">10</b> / 100</label><input id="s-m" type="range" min="1" max="100" value="10" /></div>

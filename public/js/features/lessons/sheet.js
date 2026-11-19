@@ -3,9 +3,12 @@
 import { state } from '../../core/state.js';
 import { esc, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
+import { STAT_LABEL } from '../fighter/components.js';
 
 // r: 출석 응답 (privateMember + lessonLast/lessonNext), gainLine: 출석으로 오른 능력치 안내
-export function openTodaySheet(r, gainLine, onChange) {
+export async function openTodaySheet(r, gainLine, onChange) {
+  // 커리큘럼은 코치가 고칠 수 있어서 열 때마다 새로 받는다 (실패하면 갖고 있던 것으로)
+  state.meta.weeks = await api('GET', '/api/curriculum').catch(() => state.meta.weeks);
   const W = state.meta.weeks || [], T = state.meta.trainings || [];
   if (!W.length) return onChange?.();
   let week = r.lessonToday || r.lessonNext || 1, none = false;
@@ -30,7 +33,7 @@ export function openTodaySheet(r, gainLine, onChange) {
       el.querySelector('#box').classList.toggle('off', none);
       el.querySelector('#none').classList.toggle('on', none);
       const skill = W[week - 1]?.skill;
-      el.querySelector('#sk').textContent = none ? '오늘은 주차를 넣지 않아요 (운동만 기록)' : skill ? `기술 · ${skill}` : '경기 기술 없는 주차 (받은 기록만)';
+      el.querySelector('#sk').textContent = none ? '오늘은 주차를 넣지 않아요 (운동만 기록)' : `${skill ? `기술 · ${skill}` : '기술 없음'} · ${statsText(W[week - 1]?.stats)}`;
       el.querySelectorAll('[data-t]').forEach((b) => b.classList.toggle('on', picked.has(b.dataset.t)));
       el.querySelector('#ok').textContent = `저장${none ? '' : ` · ${week}주`}${picked.size ? ` · 운동 ${picked.size}` : ''}`;
     };
@@ -49,5 +52,8 @@ export function openTodaySheet(r, gainLine, onChange) {
   });
 }
 
-const STAT_KO = { power: '파워', speed: '스피드', stamina: '체력', iq: 'IQ', chin: '맷집' };
-const statText = (stats) => Object.keys(stats).map((k) => STAT_KO[k] || k).join(' · ') + ' +';
+const statName = (k) => STAT_LABEL[k]?.[1] || k;
+// 운동 버튼: '체력 · 스피드 +' (양은 작아서 이름만)
+const statText = (stats) => Object.keys(stats).map(statName).join(' · ') + ' +';
+// 주차 능력치: '파워 +1.5 · 스피드 +0.5' (코치 커리큘럼 화면에서도 씀)
+export const statsText = (stats) => Object.entries(stats || {}).map(([k, v]) => `${statName(k)} +${v}`).join(' · ') || '없음';

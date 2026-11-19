@@ -177,6 +177,14 @@ export function drawSprite(g, look, st, pose) {
     case 'back': ux = -4 * k; hdx = -Math.round(2 * k); bL = [-8 - k * 2, 0]; fL = [2 - k * 2, 0]; fG = [8, -25]; bG = [6, -26]; break;
     case 'block': ux = -k; fG = [9, -28]; bG = [8, -26]; if (k > 0.3) face = 'effort'; break;
     case 'parry': ux = -k; fG = [11 - k * 2, -24 + k * 7]; bG = [6, -25]; break;
+    case 'sway': ux = -4 * k; uy -= Math.round(k); hdx = -Math.round(3 * k); hdy = -Math.round(k); fG = [7, -26]; bG = [5, -27]; break; // 상체만 뒤로 젖힘
+    case 'pin': ux = k * 2; fG = [9 + k * 9, -27 + k * 2]; bG = [6, -25]; break; // 리드손을 뻗어 상대 가드를 누름
+    // ── 복싱: 스텝 (발놀림, 몸 이동은 arena.js 의 DODGE_MOVE)
+    case 'walk': ux = k; bL = [-6 + Math.round(k * 2), 0]; fL = [4 + Math.round(k * 3), 0]; fG = [8, -24]; bG = [6, -25]; break;
+    case 'jump': uy -= Math.round(Math.sin(Math.PI * k) * 3); bL = [-6, -Math.round(Math.sin(Math.PI * k) * 3)]; fL = [4, -Math.round(Math.sin(Math.PI * k) * 3)]; fG = [8, -24]; bG = [6, -25]; break;
+    case 'side': ux = -k; bL = [-8 - Math.round(k * 2), 0]; fL = [6 - Math.round(k * 3), 0]; fG = [8, -24]; bG = [6, -25]; break;
+    case 'pivot': ux = 2 * k; hdx = Math.round(k); bL = [-8 - Math.round(k * 4), 0]; fL = [4, 0]; fG = [9, -25]; bG = [6, -25]; break; // 앞발 축, 뒷발이 돈다
+    case 'lstep': ux = -3 * k; bL = [-9 - Math.round(k * 2), 0]; fL = [1 - Math.round(k * 2), 0]; fG = [8, -25]; bG = [6, -26]; break;
     // ── 복싱: 맞는 반응
     case 'hitUp': ux = -2 * k; uy -= Math.round(k); hdx = -Math.round(k); hdy = -Math.round(2 * k); fG = [6, -24]; bG = [4, -23]; face = 'hit'; break;
     case 'hitSide': ux = -2 * k; hdx = -Math.round(2 * k); hdy = Math.round(k); fG = [7, -20]; bG = [3, -19]; face = 'hit'; break;

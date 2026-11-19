@@ -17,6 +17,8 @@ import './features/callouts/coach.js';
 import './features/members/coach.js';
 // 배운 것 넣기: 코치 '배운 것' 탭 (오늘 출석한 회원에게 각자 주차의 기술을 넣음)
 import './features/lessons/coach.js';
+// 콤비네이션: 회원 '내 콤비' 화면 (#/combos, 홈에서 들어감) — 배운 기술로 된 콤비가 열리고 필살기로 장착
+import './features/combos/member.js';
 // 경기: 커리어 탭 · 코치 경기 탭 · 경기 중계 화면
 import './features/fights/career.js';
 import './features/fights/coach.js';

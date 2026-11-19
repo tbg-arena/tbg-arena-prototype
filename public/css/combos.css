@@ -1,0 +1,17 @@
+/* ── 내 콤비 (js/features/combos) — 목록은 내 기술 목록(.skillrow)과 같은 줄 구성 */
+.cmb-eq { border-color: #fff; box-shadow: 4px 4px 0 var(--red); }
+.cmb-hits { text-align: center; flex-shrink: 0; min-width: 44px; }
+.cmb-hits b { display: block; font-size: 24px; line-height: 1; }
+.cmb-hits span { font-family: var(--pixel); font-size: 10px; color: var(--muted); letter-spacing: 1px; }
+.cmb-list { padding-top: 4px; padding-bottom: 4px; }
+.cmb-row { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.cmb-row:last-child { border-bottom: 0; }
+.cmb-row .grow { flex: 1; min-width: 0; }
+.cmb-row.locked .cmb-parts { opacity: .45; }
+.cmb-parts { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 4px; }
+.cmb-p { font-size: 12px; font-weight: 700; padding: 2px 6px; border: 1px solid var(--line2); color: #fff; }
+.cmb-p.defense { border-style: dashed; color: var(--muted); font-weight: 500; }
+.cmb-p.step { border-style: dotted; color: var(--muted); font-weight: 500; }
+/* 코치 콤비 관리 */
+.cmb-add input { flex: 1; min-width: 0; }
+.cmb-no { width: 22px; flex-shrink: 0; color: var(--muted); font-size: 12px; align-self: flex-start; padding-top: 3px; }
