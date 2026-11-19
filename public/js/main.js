@@ -15,6 +15,8 @@ import './features/callouts/member.js';
 import './features/callouts/coach.js';
 // 회원 관리: 코치 회원·기술 탭 (출석 버튼, 기술 관리 포함)
 import './features/members/coach.js';
+// 배운 것 넣기: 코치 '배운 것' 탭 (오늘 출석한 회원에게 각자 주차의 기술을 넣음)
+import './features/lessons/coach.js';
 // 경기: 커리어 탭 · 코치 경기 탭 · 경기 중계 화면
 import './features/fights/career.js';
 import './features/fights/coach.js';

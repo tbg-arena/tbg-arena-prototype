@@ -3,6 +3,7 @@ import { esc, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { STAT_LABEL } from '../fighter/components.js';
 import { openPassRegister } from '../passes/coach.js';
+import { openTodaySheet } from '../lessons/sheet.js';
 import { monthGrid, shiftMonth, ym, countIn } from './calendar.js';
 
 export const attendButton = (m) => `<button class="btn sm ${m.attended ? '' : 'primary'}" data-attend="${m.id}" ${m.attended ? 'disabled' : ''}>${m.attended ? '출석✓' : '출석'}</button>`;
@@ -33,10 +34,14 @@ async function attendToday(id, m, onChange) {
 }
 
 // onChange: 출석 처리 후 다시 그리기, members: 코치 회원 목록
+// 출석 버튼은 출석 뒤 바로 '오늘 배운 것 · 운동' 시트를 연다 (다시 그리기는 시트를 닫을 때)
 export function bindAttend(onChange, members = []) {
   document.querySelectorAll('[data-attend]').forEach((b) => (b.onclick = (e) => {
     e.preventDefault();
-    act(() => attendToday(b.dataset.attend, members.find((x) => x.id === b.dataset.attend), onChange));
+    act(async () => {
+      const r = await attendToday(b.dataset.attend, members.find((x) => x.id === b.dataset.attend), onChange);
+      if (r) openTodaySheet(r, gainText(r.gains), onChange);
+    });
   }));
 }
 
