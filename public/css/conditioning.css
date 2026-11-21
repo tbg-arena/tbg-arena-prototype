@@ -20,17 +20,28 @@
 .cd-name { font-weight: 800; }
 .cd-set { flex-shrink: 0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
 
-/* 코치: 회원 고르기 · 입력 */
+/* 코치: 누가 했나요 (여러 명) · 한 줄에 종목 × 양(회 · 초 · m) × 세트 */
 .cd-pick { display: flex; flex-wrap: wrap; gap: 6px; }
-.cd-pick button { min-height: 40px; padding: 0 14px; background: var(--surface); font-weight: 800; color: var(--ink); }
+.cd-pick button { min-height: 42px; padding: 0 14px; background: var(--surface); font-weight: 800; color: var(--ink); }
 .cd-pick button.on { background: var(--ink); color: var(--on-ink); box-shadow: 2px 2px 0 var(--red); }
-.cd-cols, .cd-line { display: grid; grid-template-columns: minmax(0, 1fr) 62px 56px 50px 36px; gap: 6px; align-items: center; }
-.cd-cols { font-size: 11px; font-weight: 700; margin: 14px 0 4px; }
-.cd-line { padding: 8px 0; border-top: 1px solid var(--line); }
-.cd-line input { padding: 10px 8px; font-size: 16px; text-align: center; }
-.cd-line input[data-f="exercise"] { text-align: left; }
-.cd-line .cd-memo { grid-column: 1 / -1; text-align: left; padding: 8px 10px; } /* 16px 유지: iOS 확대 방지 */
-.cd-line .btn.sm { min-height: 40px; padding: 0; }
+.section-title input[type=date] { width: auto; margin-left: 4px; padding: 6px 8px; font-size: 13px; font-weight: 600; order: 3; }
+.cd-lines { display: grid; gap: 8px; }
+.cd-line { display: grid; gap: 6px; padding: 10px; background: var(--surface); clip-path: var(--notch); }
+.cd-line input { padding: 10px; font-size: 16px; } /* 16px 유지: iOS 확대 방지 */
+.cd-l1 { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 6px; }
+.cd-kg { position: relative; display: block; }
+.cd-kg input { width: 100%; padding-right: 30px; text-align: right; }
+.cd-kg span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 13px; font-weight: 700; color: var(--muted); pointer-events: none; }
+.cd-l2 { display: grid; grid-template-columns: minmax(0, 1fr) auto auto 52px auto 36px; gap: 6px; align-items: center; }
+.cd-l2 input { text-align: center; }
+.cd-units { display: flex; gap: 2px; }
+.cd-units button { min-width: 36px; min-height: 42px; padding: 0 6px; background: var(--well); color: var(--muted); font-size: 13px; font-weight: 800; }
+.cd-units button.on { background: var(--ink); color: var(--on-ink); }
+.cd-x { color: var(--muted); font-weight: 700; }
+.cd-sets { font-size: 12px; color: var(--muted); font-weight: 700; }
+.cd-line .btn.sm { min-height: 42px; padding: 0; }
+/* 저장: 탭바 바로 위에 붙어 있게 */
+.cd-save { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 8px); z-index: 4; margin-top: 16px; padding: 10px 3px 0 0; background: linear-gradient(to bottom, transparent, var(--bg) 30%); }
 
 /* ── 장식: 컨디셔닝 */
 /* 날짜 머리: 영수증처럼 점선 절취선 */

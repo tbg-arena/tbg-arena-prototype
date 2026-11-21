@@ -3,7 +3,7 @@
 import { esc, svg } from '../../core/ui.js';
 import { api } from '../../core/api.js';
 import { memberTab, renderMember } from '../../core/tabs.js';
-import { historyList, kgText } from './components.js';
+import { historyList, kgText, amountText } from './components.js';
 
 let filter = null; // 최고 기록 칩을 누르면 그 종목 기록만
 
@@ -20,6 +20,9 @@ memberTab({
   },
 });
 
+// 이번 주 유산소 합계: 2,000m · 12:30 · 40kcal (있는 것만)
+const cardio = (w) => [w.meters ? amountText(w.meters, 'm') : null, w.seconds ? amountText(w.seconds, 'sec') : null, w.kcal ? amountText(w.kcal, 'kcal') : null].filter(Boolean).join(' · ');
+
 function conditioningView(cd) {
   if (filter && !cd.entries.some((e) => e.exercise === filter)) filter = null;
   const w = cd.week;
@@ -34,14 +37,14 @@ function conditioningView(cd) {
         <div class="stat"><b>${w.sets}</b><span>총 세트</span></div>
         <div class="stat"><b>${w.volume.toLocaleString()}</b><span>들어 올린 kg</span></div>
       </div>
-      <div class="muted small cd-foot">지금까지 ${cd.total.days}일 · ${cd.total.count}종목</div>
+      <div class="muted small cd-foot">${cardio(w) ? `유산소 ${cardio(w)} · ` : ''}지금까지 ${cd.total.days}일 · ${cd.total.count}종목</div>
     </div>
 
     ${cd.prs.length ? `
     <div class="section-title">최고 기록</div>
     <div class="cd-prs">${cd.prs.map((p) => `
       <button class="cd-pr ${filter === p.exercise ? 'on' : ''}" data-cdpr="${esc(p.exercise)}" aria-pressed="${filter === p.exercise}">
-        <span class="small">${esc(p.exercise)}</span><b class="px">${kgText(p.kg)}</b>
+        <span class="small">${esc(p.exercise)}</span><b class="px">${p.by === 'kg' ? kgText(p.value) : amountText(p.value, p.by)}</b>
       </button>`).join('')}</div>` : ''}
 
     <div class="section-title">운동 기록 ${filter ? `<span class="muted">· ${esc(filter)}만</span> <button class="link" data-cdpr="${esc(filter)}" style="padding:4px">전체 보기</button>` : ''}</div>

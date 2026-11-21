@@ -4,8 +4,19 @@ import { esc } from '../../core/ui.js';
 const WD = '일월화수목금토';
 export const dayLabel = (d) => { const t = new Date(d + 'T00:00:00Z'); return `${t.getUTCMonth() + 1}.${t.getUTCDate()} ${WD[t.getUTCDay()]}`; };
 export const kgText = (kg) => (kg ? `${String(kg).replace(/\.0$/, '')}kg` : '맨몸');
-// "12kg × 10회 × 3세트" (횟수 없으면 빼고, 맨몸이면 '맨몸')
-export const setText = (e) => [kgText(e.kg), e.reps ? `${e.reps}회` : null, `${e.sets}세트`].filter(Boolean).join(' × ');
+// 양 표기: 12회 · 2,000m · 1:30 · 20kcal
+export function amountText(n, unit) {
+  if (n == null) return null;
+  if (unit === 'm') return `${n.toLocaleString()}m`;
+  if (unit === 'sec') return n >= 60 ? `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}` : `${n}초`;
+  if (unit === 'kcal') return `${n.toLocaleString()}kcal`;
+  return `${n}회`;
+}
+// 한 줄 표기: [무게 ×] 양 × 세트 → "10kg × 12회 × 3세트" · "15회 × 3세트" · "1:30 × 2세트" · "500m × 2세트"
+export function setText(e) {
+  const unit = e.unit || 'rep', amount = e.amount ?? e.reps;
+  return [e.kg ? kgText(e.kg) : null, amountText(amount, unit), `${e.sets}세트`].filter(Boolean).join(' × ');
+}
 
 // entries: 최신순 기록. opts.coach: 줄마다 삭제 버튼 / opts.filter: 이 종목만
 export function historyList(entries, opts = {}) {

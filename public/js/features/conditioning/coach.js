@@ -1,18 +1,19 @@
-// 코치 '컨디셔닝' 탭: 회원을 고르고 그날 한 체력운동(종목 · 덤벨 무게 · 횟수 · 세트)을 넣는다
-// - 오늘 출석한 회원이 맨 앞에 나온다
-// - '지난번 그대로'로 직전 운동을 불러와 무게만 고쳐 넣을 수 있다
-// - 아래에 그 회원의 기록이 보이고, 잘못 넣은 줄은 ✕ 로 지운다
-import { state } from '../../core/state.js';
+// 코치 '컨디셔닝' 탭: 같이 운동한 회원을 고르고, 한 줄에 종목(+무게 선택) × 양(횟수 · 시간 · 거리) × 세트 를 적어 저장
+// - 회원 여러 명 선택 가능 (오늘 출석한 회원이 맨 앞) → 같은 운동을 한 번에
+// - 한 명만 고르면 그 회원 기록이 아래에 보이고 ✕ 로 지울 수 있음 · '지난번 그대로' 사용 가능
 import { esc, svg, toast } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { coachTab, renderCoach } from '../../core/tabs.js';
 import { historyList, dayLabel } from './components.js';
 
 const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-const blank = () => ({ exercise: '', kg: '', reps: '', sets: '3', memo: '' });
+const UNITS = [['rep', '회'], ['sec', '초'], ['m', 'm']];             // 횟수 · 시간 · 거리
+const HINT = { rep: '횟수', sec: '시간 1:30', m: '거리' };
+const secText = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+const blank = () => ({ exercise: '', kg: '', amount: '', unit: 'rep', sets: '3' });
 
 // 다시 그려도 유지되는 입력 상태
-const draft = { memberId: null, day: null, rows: [blank()] };
+const draft = { day: null, members: [], rows: [blank()] };
 
 coachTab({
   id: 'conditioning', order: 17, label: '컨디셔닝',
@@ -20,98 +21,111 @@ coachTab({
   poll: false, // 입력하는 중에 다시 그려지지 않게
   load: async () => {
     const members = await api('GET', '/api/coach/conditioning');
-    if (draft.memberId && !members.some((m) => m.id === draft.memberId)) draft.memberId = null;
-    const cd = draft.memberId ? await api('GET', `/api/coach/members/${draft.memberId}/conditioning`) : null;
+    draft.members = draft.members.filter((id) => members.some((m) => m.id === id));
+    const one = draft.members.length === 1 ? draft.members[0] : null;
+    const cd = one ? await api('GET', `/api/coach/members/${one}/conditioning`) : null;
     return { members, cd };
   },
   view: ({ members, cd }) => coachView(members, cd),
   bind: ({ members, cd }) => bindCoach(members, cd),
 });
 
+const redraw = () => renderCoach('conditioning');
+
 function coachView(members, cd) {
   const today = kstToday();
   if (!draft.day || draft.day > today) draft.day = today;
+  const picked = new Set(draft.members);
   const here = members.filter((m) => m.attended);
-  const sel = members.find((m) => m.id === draft.memberId);
-  const EX = state.meta.conditioningExercises || [];
+  const extra = members.filter((m) => !m.attended && picked.has(m.id));
+  const others = members.filter((m) => !m.attended && !picked.has(m.id));
+  const n = draft.members.length;
+  const filled = draft.rows.filter((r) => r.exercise.trim()).length;
   return `
-    <div class="section-title">회원 고르기 <span class="muted">${here.length ? `오늘 출석 ${here.length}명` : '오늘 출석한 회원이 아직 없어요'}</span></div>
-    ${here.length ? `<div class="cd-pick">${here.map((m) => `<button class="${m.id === draft.memberId ? 'on' : ''}" data-cdpick="${m.id}">${esc(m.name)}</button>`).join('')}</div>` : ''}
-    <select id="cd-member" aria-label="회원 고르기" style="margin-top:8px">
-      <option value="">${here.length ? '다른 회원 찾기' : '회원을 골라 주세요'}</option>
-      ${members.map((m) => `<option value="${m.id}" ${m.id === draft.memberId ? 'selected' : ''}>${esc(m.name)}${m.attended ? ' · 오늘 출석' : ''}${m.lastDay ? ` · 마지막 ${dayLabel(m.lastDay)}` : ''}</option>`).join('')}
-    </select>
+    <div class="section-title">누가 했나요 <span class="muted">${n ? `${n}명` : '여러 명 골라도 돼요'}</span></div>
+    <div class="cd-pick">
+      ${[...here, ...extra].map((m) => `<button class="${picked.has(m.id) ? 'on' : ''}" data-cdpick="${m.id}" aria-pressed="${picked.has(m.id)}">${esc(m.name)}</button>`).join('')}
+    </div>
+    ${others.length ? `<select id="cd-member" aria-label="다른 회원 추가" style="margin-top:8px"><option value="">＋ 다른 회원 추가</option>
+      ${others.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
 
-    ${sel ? `
-    <div class="card cd-form" style="margin-top:14px">
-      <div class="row"><b class="grow" style="font-size:17px">${esc(sel.name)} <span class="muted small">운동 넣기</span></b>
-        <input type="date" id="cd-day" value="${draft.day}" max="${today}" aria-label="운동한 날" style="width:auto;padding:8px 10px;font-size:14px" /></div>
-      <div class="cd-cols muted"><span>종목</span><span>kg</span><span>횟수</span><span>세트</span><span></span></div>
+    <div class="section-title">운동 <input type="date" id="cd-day" value="${draft.day}" max="${today}" aria-label="운동한 날" /></div>
+    <div class="cd-lines">
       ${draft.rows.map((r, i) => `
       <div class="cd-line" data-i="${i}">
-        <input list="cd-ex" data-f="exercise" value="${esc(r.exercise)}" placeholder="예: 덤벨 컬" aria-label="종목" />
-        <input data-f="kg" value="${esc(r.kg)}" inputmode="decimal" placeholder="맨몸" aria-label="덤벨 무게 kg" />
-        <input data-f="reps" value="${esc(r.reps)}" inputmode="numeric" placeholder="–" aria-label="횟수" />
-        <input data-f="sets" value="${esc(r.sets)}" inputmode="numeric" aria-label="세트" />
-        <button class="btn sm ghost" data-cdrm="${i}" aria-label="이 줄 지우기" ${draft.rows.length < 2 ? 'disabled' : ''}>✕</button>
-        <input class="cd-memo" data-f="memo" value="${esc(r.memo)}" placeholder="메모 (선택) · 예: 마지막 세트 힘듦, 플랭크 60초" aria-label="메모" />
+        <div class="cd-l1">
+          <input data-f="exercise" value="${esc(r.exercise)}" placeholder="종목" aria-label="종목" />
+          <label class="cd-kg"><input data-f="kg" value="${esc(r.kg)}" inputmode="decimal" placeholder="무게" aria-label="무게 kg (선택)" /><span>kg</span></label>
+        </div>
+        <div class="cd-l2">
+          <input data-f="amount" value="${esc(r.amount)}" inputmode="${r.unit === 'sec' ? 'text' : 'numeric'}" placeholder="${HINT[r.unit]}" aria-label="${HINT[r.unit]}" />
+          <div class="cd-units">${UNITS.map(([k, lb]) => `<button data-cdu="${i}|${k}" class="${r.unit === k ? 'on' : ''}" aria-pressed="${r.unit === k}">${lb}</button>`).join('')}</div>
+          <span class="cd-x">×</span>
+          <input data-f="sets" value="${esc(r.sets)}" inputmode="numeric" aria-label="세트" />
+          <span class="cd-sets">세트</span>
+          <button class="btn sm ghost" data-cdrm="${i}" aria-label="이 줄 지우기" ${draft.rows.length < 2 ? 'disabled' : ''}>✕</button>
+        </div>
       </div>`).join('')}
-      <datalist id="cd-ex">${EX.map((x) => `<option value="${esc(x)}">`).join('')}</datalist>
-      <div class="row" style="margin-top:10px;gap:8px">
-        <button class="btn sm grow" id="cd-add">＋ 종목 추가</button>
-        <button class="btn sm grow" id="cd-last" ${cd?.entries.length ? '' : 'disabled'}>지난번 그대로</button>
-      </div>
-      <button class="btn primary block" id="cd-save" style="margin-top:12px">${esc(sel.name)} 님 운동 저장</button>
-      <div class="muted small" style="margin-top:8px">무게는 덤벨 한 개 기준 · 맨몸 운동은 kg 비워 두기 · 시간 운동은 횟수 비우고 메모에 시간</div>
+    </div>
+    <div class="row" style="margin-top:8px;gap:8px">
+      <button class="btn sm grow" id="cd-add">＋ 종목 추가</button>
+      ${cd?.entries.length ? `<button class="btn sm grow" id="cd-last">${dayLabel(cd.entries[0].day)} 그대로</button>` : ''}
     </div>
 
-    <div class="section-title">${esc(sel.name)} 님 기록 <span class="muted">${cd ? `${cd.total.days}일 · ${cd.total.count}종목` : ''}</span></div>
-    ${cd ? historyList(cd.entries, { coach: true, empty: '아직 기록이 없어요. 위에서 첫 운동을 넣어 주세요.' }) : ''}` : `
-    <div class="card empty" style="margin-top:14px">운동을 넣을 회원을 골라 주세요.</div>`}`;
+    <div class="cd-save">
+      <button class="btn primary block" id="cd-save" ${n && filled ? '' : 'disabled'}>${!n ? '회원을 골라 주세요' : !filled ? '종목을 적어 주세요' : `${n}명 · ${filled}종목 저장`}</button>
+    </div>
+
+    ${n === 1 && cd ? `<div class="section-title">${esc(members.find((m) => m.id === draft.members[0])?.name || '')} 님 기록 <span class="muted">${cd.total.days}일 · ${cd.total.count}종목</span></div>
+      ${historyList(cd.entries, { coach: true, empty: '아직 기록이 없어요.' })}` : ''}`;
 }
 
 function bindCoach(members, cd) {
-  const pick = (id) => {
-    if (id === draft.memberId) return;
-    Object.assign(draft, { memberId: id || null, rows: [blank()] });
-    renderCoach('conditioning');
-  };
-  document.querySelectorAll('[data-cdpick]').forEach((b) => (b.onclick = () => pick(b.dataset.cdpick)));
-  const selEl = document.getElementById('cd-member');
-  if (selEl) selEl.onchange = () => pick(selEl.value);
-  if (!draft.memberId) return;
-
-  // 입력할 때마다 draft 에 저장 (다시 그려도 유지)
+  const $ = (id) => document.getElementById(id);
+  const on = (sel, fn) => document.querySelectorAll(sel).forEach((el) => (el.onclick = () => fn(el)));
+  // 회원
+  on('[data-cdpick]', (b) => {
+    const id = b.dataset.cdpick;
+    draft.members = draft.members.includes(id) ? draft.members.filter((x) => x !== id) : [...draft.members, id];
+    redraw();
+  });
+  if ($('cd-member')) $('cd-member').onchange = (e) => { if (e.target.value) { draft.members.push(e.target.value); redraw(); } };
+  $('cd-day').onchange = (e) => { draft.day = e.target.value || kstToday(); };
+  // 운동 줄
   document.querySelectorAll('.cd-line input').forEach((inp) => (inp.oninput = () => {
     draft.rows[+inp.closest('.cd-line').dataset.i][inp.dataset.f] = inp.value;
+    // 저장 버튼 글자만 바로 갱신 (다시 그리면 입력 중인 칸 포커스가 빠지므로)
+    const n = draft.members.length, filled = draft.rows.filter((r) => r.exercise.trim()).length, btn = $('cd-save');
+    btn.disabled = !(n && filled);
+    btn.textContent = !n ? '회원을 골라 주세요' : !filled ? '종목을 적어 주세요' : `${n}명 · ${filled}종목 저장`;
   }));
-  const dayEl = document.getElementById('cd-day');
-  dayEl.onchange = () => { draft.day = dayEl.value || kstToday(); };
-  document.querySelectorAll('[data-cdrm]').forEach((b) => (b.onclick = () => { draft.rows.splice(+b.dataset.cdrm, 1); renderCoach('conditioning'); }));
-  document.getElementById('cd-add').onclick = () => {
-    if (draft.rows.length >= 20) return toast('한 번에 20개까지 넣을 수 있어요.', true);
-    draft.rows.push(blank()); renderCoach('conditioning');
+  on('[data-cdu]', (b) => { const [i, u] = b.dataset.cdu.split('|'); draft.rows[+i].unit = u; redraw(); });
+  on('[data-cdrm]', (b) => { draft.rows.splice(+b.dataset.cdrm, 1); redraw(); });
+  $('cd-add').onclick = () => {
+    if (draft.rows.length >= 20) return toast('한 번에 20종목까지 넣을 수 있어요.', true);
+    draft.rows.push(blank()); redraw();
+    document.querySelector(`.cd-line[data-i="${draft.rows.length - 1}"] input[data-f="exercise"]`)?.focus();
   };
-  // 지난번 그대로: 가장 최근 날의 종목을 그대로 불러온다 (무게만 고치면 됨)
-  document.getElementById('cd-last').onclick = () => {
-    const last = cd.entries[0]?.day;
-    const items = cd.entries.filter((e) => e.day === last).reverse();
-    draft.rows = items.map((e) => ({ exercise: e.exercise, kg: e.kg ?? '', reps: e.reps ?? '', sets: String(e.sets), memo: '' }));
-    toast(`${dayLabel(last)} 운동 ${items.length}개를 불러왔어요. 고칠 것만 고쳐서 저장하세요.`);
-    renderCoach('conditioning');
+  // 지난번 그대로 (한 명만 골랐을 때)
+  if ($('cd-last')) $('cd-last').onclick = () => {
+    const last = cd.entries[0].day;
+    draft.rows = cd.entries.filter((e) => e.day === last).reverse().map((e) => ({
+      exercise: e.exercise, kg: e.kg == null ? '' : String(e.kg), unit: ['rep', 'sec', 'm'].includes(e.unit) ? e.unit : 'rep',
+      amount: e.amount == null ? '' : e.unit === 'sec' ? secText(e.amount) : String(e.amount), sets: String(e.sets),
+    }));
+    redraw();
   };
-  document.getElementById('cd-save').onclick = () => act(async () => {
-    const items = draft.rows.filter((r) => String(r.exercise).trim() || r.kg || r.reps);
-    if (!items.length) return toast('종목을 하나 이상 적어 주세요.', true);
-    await api('POST', `/api/coach/members/${draft.memberId}/conditioning`, { day: draft.day, items });
-    const name = members.find((m) => m.id === draft.memberId)?.name || '';
-    draft.rows = [blank()];
-    toast(`${name} 님 운동 ${items.length}개를 넣었어요.`);
-    renderCoach('conditioning');
+  // 저장: 한 명이면 그 회원 API, 여러 명이면 한 번에
+  $('cd-save').onclick = () => act(async () => {
+    const items = draft.rows.filter((r) => r.exercise.trim()).map((r) => ({ exercise: r.exercise, kg: r.kg, unit: r.unit, amount: r.amount, sets: r.sets }));
+    const ids = draft.members;
+    if (ids.length === 1) await api('POST', `/api/coach/members/${ids[0]}/conditioning`, { day: draft.day, items });
+    else await api('POST', '/api/coach/conditioning', { memberIds: ids, day: draft.day, items });
+    const names = ids.map((id) => members.find((m) => m.id === id)?.name).filter(Boolean);
+    toast(`${names.length > 2 ? `${names.slice(0, 2).join(', ')} 외 ${names.length - 2}명` : names.join(', ')}에게 ${items.length}종목을 넣었어요.`);
+    // 여러 명이면 같은 운동을 다음 조에 바로 넣을 수 있게 종목은 남기고 회원만 비움 / 한 명이면 종목을 비우고 기록을 보여 줌
+    if (ids.length > 1) draft.members = [];
+    else draft.rows = [blank()];
+    redraw();
   });
-  document.querySelectorAll('[data-cddel]').forEach((b) => (b.onclick = () => act(async () => {
-    await api('DELETE', `/api/coach/conditioning/${b.dataset.cddel}`);
-    toast('기록을 지웠어요.');
-    renderCoach('conditioning');
-  })));
 }
