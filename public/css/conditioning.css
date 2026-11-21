@@ -1,0 +1,45 @@
+/* ── 컨디셔닝 (js/features/conditioning) */
+/* 회원: 이번 주 요약 (커리어 '이번 주 훈련'과 같은 머리 모양 .tr-top) */
+.cd-sum { padding: 0; }
+.cd-sum .stats3 { padding: 16px 6px; }
+.cd-sum .cd-foot { padding: 12px 16px 16px; border-top: 1px solid var(--line); }
+/* 최고 기록: 종목 · 무게. 누르면 그 종목만 */
+.cd-prs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
+.cd-pr { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; background: var(--surface); text-align: left; color: var(--muted); font-weight: 700; }
+.cd-pr b { font-size: 18px; color: var(--ink); }
+.cd-pr.on { background: var(--ink); color: #555; box-shadow: 3px 3px 0 var(--red); position: relative; z-index: 1; }
+.cd-pr.on b { color: var(--on-ink); }
+/* 기록 목록: 날짜별 묶음 */
+.cd-day { background: var(--surface); padding: 0 16px; }
+.cd-day + .cd-day { margin-top: 12px; }
+.cd-day-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 14px 0 10px; border-bottom: 1px solid var(--line); }
+.cd-day-head b { font-size: 13px; }
+.cd-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.cd-row:last-child { border-bottom: 0; }
+.cd-row > .grow { flex: 1; min-width: 0; }
+.cd-name { font-weight: 800; }
+.cd-set { flex-shrink: 0; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* 코치: 회원 고르기 · 입력 */
+.cd-pick { display: flex; flex-wrap: wrap; gap: 6px; }
+.cd-pick button { min-height: 40px; padding: 0 14px; background: var(--surface); font-weight: 800; color: var(--ink); }
+.cd-pick button.on { background: var(--ink); color: var(--on-ink); box-shadow: 2px 2px 0 var(--red); }
+.cd-cols, .cd-line { display: grid; grid-template-columns: minmax(0, 1fr) 62px 56px 50px 36px; gap: 6px; align-items: center; }
+.cd-cols { font-size: 11px; font-weight: 700; margin: 14px 0 4px; }
+.cd-line { padding: 8px 0; border-top: 1px solid var(--line); }
+.cd-line input { padding: 10px 8px; font-size: 16px; text-align: center; }
+.cd-line input[data-f="exercise"] { text-align: left; }
+.cd-line .cd-memo { grid-column: 1 / -1; text-align: left; padding: 8px 10px; } /* 16px 유지: iOS 확대 방지 */
+.cd-line .btn.sm { min-height: 40px; padding: 0; }
+
+/* ── 장식: 컨디셔닝 */
+/* 날짜 머리: 영수증처럼 점선 절취선 */
+.cd-day-head { border-bottom: 1px dashed var(--line2); }
+.cd-day-head b { background: var(--ink); color: var(--on-ink); padding: 2px 6px 1px; clip-path: var(--notch); }
+/* 최고 기록 칩: 오른쪽 위 PR 표 */
+.cd-pr { position: relative; }
+.cd-pr::after { content: "PR"; position: absolute; right: 6px; top: 6px; font-family: var(--pixel); font-size: 9px; font-weight: 700; color: var(--on-neon); background: var(--yellow); padding: 1px 3px; }
+.cd-pr b { text-shadow: 2px 2px 0 rgba(0,0,0,.35); }
+/* 세트 표기: 작은 전광판 */
+.cd-set { background: var(--well); padding: 4px 7px 3px; clip-path: var(--notch); }
+.cd-sum .tr-top::after { width: 44px; }
