@@ -1,3 +1,5 @@
 /* ── 콜아웃 (js/features/callouts) */
-.steps { display: flex; justify-content: space-between; gap: 4px; font-size: 12px; font-weight: 800; color: var(--muted); background: #000; border: 1px solid var(--line2); padding: 11px 14px; }
-.steps span:last-child { color: #fff; }
+/* 진행 순서: 상자 없이 한 줄 */
+.steps { display: flex; align-items: center; gap: 8px; margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--muted); }
+.steps i { font-style: normal; color: var(--dim); }
+.steps b { color: var(--ink); }

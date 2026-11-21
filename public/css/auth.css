@@ -1,12 +1,30 @@
-/* ── 로그인 (js/features/auth) */
-.login { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 22px 20px calc(24px + var(--safe-b)); gap: 14px; }
-.login .hero { position: relative; padding: 4px 0 6px; }
-.login .hero-logo { width: 74%; max-width: 300px; display: block; margin: 0 auto; }
-.login .arena-word { font-family: var(--pixel); font-weight: 700; text-align: center; font-size: 13px; letter-spacing: 10px; margin: 14px 0 0 10px; color: #fff; }
-.login .stage { margin-top: 18px; border: 1px solid var(--line2); background: #000; position: relative; }
+/* ── 로그인 (js/features/auth) — 앱과 같은 체육관 포스터 톤 */
+.login { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px 24px calc(28px + var(--safe-b)); gap: 0; position: relative; }
+/* 위에서 비추는 링 조명 + 포스터 망점 */
+.login::before { content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(ellipse 80% 45% at 50% 0%, rgba(255,255,255,.07), transparent 70%), var(--halftone);
+  background-size: auto, 6px 6px; -webkit-mask: linear-gradient(to bottom, #000 30%, transparent 85%); mask: linear-gradient(to bottom, #000 30%, transparent 85%); }
+.login .hero { position: relative; }
+.login .hero-logo { width: 70%; max-width: 280px; display: block; margin: 0 auto; }
+.login .arena-word { display: table; margin: 14px auto 0; font-family: var(--pixel); font-weight: 700; font-size: 13px; letter-spacing: 10px; padding: 4px 4px 3px 14px; color: var(--on-ink); background: var(--ink); clip-path: var(--notch); }
+
+/* 데모 스파링 = 링 위 장면 (선수 사진 칸과 같은 흰 테두리 + 계단 모서리) */
+.login .stage { margin-top: 24px; background: var(--well); position: relative; box-shadow: inset 0 0 0 2px var(--ink); padding: 2px; clip-path: var(--notch); }
 .login .stage canvas { display: block; width: 100%; image-rendering: pixelated; }
-.login .stage::after { content: "LIVE"; position: absolute; top: 8px; left: 8px; font-family: var(--pixel); font-size: 10px; font-weight: 700; color: #fff; background: var(--red); padding: 2px 5px 1px; animation: blink 1.2s steps(1) infinite; }
-.login .tag { font-size: 22px; font-weight: 900; line-height: 1.35; letter-spacing: -0.8px; margin-top: 22px; text-align: center; }
-.login .tag em { font-style: normal; background: #fff; color: #000; padding: 0 4px; }
-.phone-input { font-family: var(--pixel); font-size: 22px; text-align: center; letter-spacing: 2px; padding: 16px; font-weight: 700; }
-.foot { text-align: center; font-family: var(--pixel); font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-top: 10px; }
+.login .stage::after { content: "LIVE"; position: absolute; top: 10px; left: 10px; font-family: var(--pixel); font-size: 10px; font-weight: 700; color: var(--on-neon); background: var(--red); padding: 2px 8px 1px; clip-path: var(--ticket); animation: blink 1.2s steps(1) infinite; }
+/* 문구: 강조는 이름표처럼 빨간 띠 */
+.login .tag { font-size: 23px; font-weight: 900; line-height: 1.4; letter-spacing: -0.9px; margin: 28px 0 26px; text-align: center; }
+.login .tag em { font-style: normal; padding: 0 3px; box-shadow: inset 0 -9px 0 var(--red-soft), 0 3px 0 var(--red); }
+
+/* 입력: 전광판 칸 */
+.phone-input { font-family: var(--pixel); font-size: 22px; text-align: center; letter-spacing: 2px; height: 58px; padding: 0 16px; font-weight: 700; border: 0; box-shadow: inset 0 0 0 1px var(--line2); background-color: var(--well); background-image: var(--halftone); background-size: 4px 4px; clip-path: var(--notch); }
+.phone-input:focus { box-shadow: inset 0 0 0 2px var(--ink); }
+/* 입력칸 · 버튼: 같은 폭 (버튼 빨간 그림자 3px 만큼 오른쪽을 비워 두 칸의 오른쪽 끝을 맞춤) */
+.login .phone-input, .login #go { width: calc(100% - 3px); }
+.login #go { margin-top: 14px; min-height: 58px; font-size: 17px; }
+.login #switch { align-self: center; margin-top: 18px; padding: 8px 12px; }
+.login #switch + .muted { margin-top: 2px; line-height: 1.5; }
+
+/* 바닥 글씨: 짧은 빨간 선 사이 */
+.foot { display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--pixel); font-size: 10px; color: var(--dim); letter-spacing: 2px; margin-top: 30px; }
+.foot::before, .foot::after { content: ""; width: 18px; height: 3px; background: var(--red); }

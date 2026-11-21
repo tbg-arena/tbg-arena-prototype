@@ -25,11 +25,14 @@ function shell(tabs, active, inner, opts = {}) {
   return `
     <div class="topbar">
       <div class="logo"><img src="/logo.png" alt="TBG" /><span class="arena-tag">${opts.coach ? 'COACH' : 'ARENA'}</span></div>
-      <button class="link" id="logout">로그아웃</button>
+      <div class="top-right">
+        ${opts.coins != null ? `<button class="coin" data-go="#/shop" aria-label="코인 ${opts.coins} · 상점 열기">COIN <b>${opts.coins}</b></button>` : ''}
+        <button class="link" id="logout">로그아웃</button>
+      </div>
     </div>
     <div class="page">${inner}</div>
     <nav class="tabbar"><div class="inner">
-      ${tabs.map((t) => `<button data-tab="${t.id}" class="${t.id === active ? 'on' : ''}">${t.icon || ''}${t.label}${t.dot ? `<span class="dot">${t.dot}</span>` : ''}</button>`).join('')}
+      ${tabs.map((t) => `<button data-tab="${t.id}" class="${t.id === active ? 'on' : ''}" ${t.id === active ? 'aria-current="page"' : ''}>${t.icon || ''}${t.label}${t.dot ? `<span class="dot">${t.dot}</span>` : ''}</button>`).join('')}
     </div></nav>`;
 }
 function bindShell() {
@@ -67,11 +70,11 @@ export async function renderMember(tab) {
   function draw(d) {
     const { me } = d;
     state.me = me;
-    // 아직 안 본 경기가 있으면 모든 탭 위에 중계 보기 배너
-    let inner = me.unseenFights.length
+    // 아직 안 본 경기가 있으면 홈 탭 위에만 중계 보기 배너 (다른 탭은 커리어 탭 숫자 점으로)
+    let inner = tab === 'home' && me.unseenFights.length
       ? `<div class="banner" data-go="#/fight/${me.unseenFights[0].id}">${esc(me.unseenFights[0].name)}님과 경기 성사! 중계 보기 <span style="margin-left:auto">→</span></div>` : '';
     if (def) inner += def.view(d);
-    $app.innerHTML = shell(tabButtons('member', d), tab, inner);
+    $app.innerHTML = shell(tabButtons('member', d), tab, inner, { coins: me.member.coins ?? 0 }); // 코인은 어느 탭에서나 위에 보임
     bindShell();
     bindGo();
     def?.bind?.(d);

@@ -1,25 +1,25 @@
 /* ── 배운 것 넣기 (js/features/lessons) */
-.lsearch { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line2); padding: 0 12px; background: #000; }
+.lsearch { display: flex; align-items: center; gap: 8px; border: 1px solid var(--line2); padding: 0 12px; background: var(--well); }
 .lsearch svg { width: 18px; height: 18px; stroke: var(--muted); fill: none; stroke-width: 2; flex-shrink: 0; }
 .lsearch input { border: 0; padding: 12px 0; background: transparent; }
 .lsearch input:focus { box-shadow: none; }
-.lsearch:focus-within { border-color: #fff; box-shadow: 3px 3px 0 #fff; }
+.lsearch:focus-within { border-color: var(--ink); }
 .lres { margin-top: 8px; padding: 4px 12px; }
 .lres button { width: 100%; background: none; padding: 12px 0; border-bottom: 1px solid var(--line); text-align: left; }
 .lres button:last-child { border-bottom: 0; }
-.lweek { font-family: var(--pixel); font-size: 11px; background: #fff; color: #000; padding: 1px 6px; flex-shrink: 0; }
+.lweek { font-family: var(--pixel); font-size: 11px; background: var(--ink); color: var(--on-ink); padding: 1px 6px; flex-shrink: 0; }
 .lgroup .row { margin-bottom: 10px; }
 .lchips { display: flex; flex-wrap: wrap; gap: 6px; }
-.lchip { min-height: 40px; padding: 0 12px; font-size: 14px; font-weight: 700; background: #fff; color: #000; border: 1px solid #fff; border-radius: var(--radius); }
-.lchip.moved { background: #000; color: #fff; border: 2px solid #fff; }
+.lchip { min-height: 40px; padding: 0 12px; font-size: 14px; font-weight: 700; background: var(--ink); color: var(--on-ink); border: 1px solid var(--ink); border-radius: var(--radius); }
+.lchip.moved { background: var(--well); color: var(--ink); border: 2px solid var(--ink); }
 .lchip.off { background: transparent; color: var(--dim); border: 1px dashed var(--line2); text-decoration: line-through; }
 .lchip.done { background: transparent; color: var(--muted); border: 1px solid var(--line2); }
-.lcta { position: sticky; bottom: calc(72px + var(--safe-b)); margin-top: 18px; padding: 10px 0 6px; background: rgba(0,0,0,.94); }
+.lcta { position: sticky; bottom: calc(72px + var(--safe-b)); margin-top: 18px; padding: 10px 0 6px; background: rgba(33,33,33,.96); }
 .lcta .small { margin-top: 6px; }
 .lstep .btn { width: 52px; height: 52px; font-size: 20px; padding: 0; }
-.lpick { height: 52px; border: 1px solid #fff; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.lpick { height: 52px; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: center; gap: 8px; }
 .lpick.off { opacity: .35; border-color: var(--line2); }
-.lnone.on { background: #fff; color: #000; border-color: #fff; }
+.lnone.on { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
 /* 커리큘럼 (주차 카드, 펼침 모양은 skills.css 의 details.group) */
 .lcur summary { list-style: none; cursor: pointer; }
 .lcur summary::-webkit-details-marker { display: none; }

@@ -1,2 +1,2 @@
 /* ── 코치 회원 관리 (js/features/members) */
-details.member[open] { border-color: #fff; }
+details.member[open] { border-color: var(--ink); }

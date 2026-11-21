@@ -1,0 +1,181 @@
+<style>
+  :root { --bg: var(--figma-color-bg, #fff); --fg: var(--figma-color-text, #111); --mut: var(--figma-color-text-secondary, #777);
+    --line: var(--figma-color-border, #e5e5e5); --acc: #9a9a9a; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 12px/1.45 Inter, "Pretendard", "Noto Sans KR", system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+  main { padding: 14px 14px 76px; }
+  h1 { font-size: 14px; margin: 0 0 2px; letter-spacing: -.2px; display: flex; align-items: center; gap: 6px; }
+  h1 i { font-style: normal; font-size: 10px; background: var(--fg); color: var(--bg); padding: 2px 5px; letter-spacing: 1.5px; }
+  .sub { color: var(--mut); margin: 0 0 12px; }
+  h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .8px; color: var(--mut); margin: 16px 0 6px; display: flex; justify-content: space-between; }
+  h2 button { text-transform: none; letter-spacing: 0; }
+  textarea { width: 100%; height: 96px; font: 11px/1.5 ui-monospace, Menlo, Consolas, monospace; padding: 8px; border: 1px solid var(--line); border-radius: 2px; background: transparent; color: var(--fg); resize: vertical; }
+  textarea:focus { outline: none; border-color: var(--fg); box-shadow: 2px 2px 0 var(--acc); }
+  .theme { border: 1px solid var(--line); border-radius: 2px; padding: 10px; margin-top: 8px; }
+  .theme .top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .theme .top b { font-size: 10px; background: var(--fg); color: var(--bg); padding: 1px 5px; }
+  .theme input { flex: 1; border: 0; border-bottom: 1px dashed var(--line); background: transparent; color: var(--fg); font: 600 12px inherit; padding: 2px 0; }
+  .theme input:focus { outline: none; border-color: var(--fg); }
+  .sw { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  .sw div { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .sw span { height: 30px; border: 1px solid var(--line); }
+  .sw select { font-size: 10px; width: 100%; padding: 2px; border: 1px solid var(--line); background: transparent; color: var(--fg); border-radius: 2px; }
+  .sw code { font-size: 9px; color: var(--mut); }
+  .warn { color: #c0392b; font-size: 11px; margin-top: 6px; }
+  .opts label { display: flex; align-items: center; gap: 8px; padding: 4px 0; cursor: pointer; }
+  .opts small { color: var(--mut); }
+  .pages { display: grid; grid-template-columns: 1fr 1fr; }
+  footer { position: fixed; left: 0; right: 0; bottom: 0; padding: 10px 14px; background: var(--bg); border-top: 1px solid var(--line); display: flex; flex-direction: column; gap: 6px; }
+  #go { width: 100%; padding: 11px; font: 800 13px inherit; color: #fff; background: #111; border: 0; border-radius: 2px; cursor: pointer; box-shadow: 3px 3px 0 var(--acc); }
+  #go:active { transform: translate(2px, 2px); box-shadow: none; }
+  #go:disabled { opacity: .4; cursor: default; }
+  #status { color: var(--mut); font-size: 11px; min-height: 15px; }
+  #status.err { color: #c0392b; }
+  .link { background: none; border: 0; color: var(--mut); cursor: pointer; font-size: 11px; text-decoration: underline; padding: 0; }
+</style>
+<main>
+  <h1>TBG <i>ARENA</i> 시안 생성기</h1>
+  <p class="sub">HEX 한 줄 = 시안 하나. 색 역할은 자동으로 나누고, 아래에서 바꿀 수 있어요.</p>
+
+  <h2>팔레트 <button class="link" id="reset">기본값</button></h2>
+  <textarea id="hex" spellcheck="false"></textarea>
+  <div id="themes"></div>
+
+  <h2>화면</h2>
+  <div class="opts pages" id="pages">
+    <label><input type="checkbox" value="home" checked> 01 홈</label>
+    <label><input type="checkbox" value="finisher" checked> 02 필살기</label>
+    <label><input type="checkbox" value="callout" checked> 03 콜아웃</label>
+    <label><input type="checkbox" value="rank" checked> 04 랭킹</label>
+    <label><input type="checkbox" value="career" checked> 05 커리어</label>
+  </div>
+
+  <h2>버튼 · 안내 스타일</h2>
+  <div class="opts">
+    <label><input type="radio" name="btnstyle" value="calm" checked> 차분하게 <small>버튼 · 안내에 빨강 안 씀</small></label>
+    <label><input type="radio" name="btnstyle" value="loud"> 강조 <small>이전 시안 · 버튼이 메인 빨강</small></label>
+  </div>
+
+  <h2>함께 만들기</h2>
+  <div class="opts">
+    <label><input type="checkbox" id="sheet" checked> 컬러 시스템 시트 <small>역할 · 대비 · 규칙</small></label>
+    <label><input type="checkbox" id="notes" checked> “왜 좋은가” 설명 카드 <small>화면 아래</small></label>
+    <label><input type="checkbox" id="vars" checked> Figma 변수로 연결 <small>모드 = 시안</small></label>
+  </div>
+</main>
+<footer>
+  <button id="go">시안 만들기</button>
+  <div id="status"></div>
+</footer>
+<script>
+const DEFAULT = [
+  '챔피언 벨트 | HEX: #b11226 #0b1f4b #f2f2f2 #c9a227 #1a1a1a',
+  '올드 짐 | HEX: #1c1c1c #5c5c5c #b71c1c #e0a800 #f5f5f5',
+  '아케이드 네온 | HEX: #ff1744 #2979ff #00e676 #ffea00 #212121',
+].join('\n');
+const ROLE_LABEL = { bg: '배경', ink: '글자', main: '메인', point: '포인트', done: '완료', corner: '상대 코너', sub: '보조 선', none: '안 씀' };
+
+// ── 색 계산
+const rgb = (h) => { h = h.replace('#', ''); if (h.length === 3) h = h.split('').map((c) => c + c).join(''); const n = parseInt(h, 16); return [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => v / 255); };
+const lum = (h) => { const [r, g, b] = rgb(h).map((v) => (v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4))); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const contrast = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+function hsl(h) {
+  const [r, g, b] = rgb(h); const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+  if (!d) return { h: 0, s: 0, l };
+  const s = d / (1 - Math.abs(2 * l - 1));
+  let hu = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  hu *= 60; if (hu < 0) hu += 360;
+  return { h: hu, s, l };
+}
+const hueDist = (a, b) => { const d = Math.abs(a - b) % 360; return Math.min(d, 360 - d); };
+
+// ── 역할 자동 배정: 가장 어두운 색 = 배경, 밝은 무채색 = 글자, 회색 = 보조 선,
+//    빨강에 가까운 색 = 메인, 노랑·금색 = 포인트, 초록 = 완료, 파랑 계열 = 상대 코너
+function autoRoles(hexes) {
+  const items = hexes.map((h) => Object.assign({ hex: h, L: lum(h) }, hsl(h)));
+  const left = items.slice();
+  const take = (pred, sort) => { const c = left.filter(pred).sort(sort)[0]; if (!c) return null; left.splice(left.indexOf(c), 1); return c.hex; };
+  const r = {};
+  r.bg = take(() => true, (a, b) => a.L - b.L);
+  r.ink = take((x) => x.L > 0.6 && x.s < 0.3, (a, b) => b.L - a.L);
+  r.sub = take((x) => x.s < 0.12, (a, b) => b.L - a.L);
+  r.main = take((x) => x.s >= 0.35, (a, b) => hueDist(a.h, 355) - hueDist(b.h, 355));
+  r.point = take((x) => x.s >= 0.35 && x.h >= 30 && x.h <= 75, (a, b) => b.L - a.L);
+  r.done = take((x) => x.s >= 0.3 && x.h >= 80 && x.h <= 175, (a, b) => b.s - a.s);
+  r.corner = take((x) => x.h >= 180 && x.h <= 280, (a, b) => b.s - a.s);
+  for (const k of ['point', 'done', 'corner', 'sub']) if (!r[k] && left.length) r[k] = left.shift().hex;
+  return r;
+}
+
+function parse(text) {
+  return text.split('\n').map((line, i) => {
+    const hexes = (line.match(/#[0-9a-fA-F]{6}\b|#[0-9a-fA-F]{3}\b/g) || []).map((h) => h.toUpperCase());
+    if (hexes.length < 2) return null;
+    let name = line.split(/hex\s*:?/i)[0].replace(/[|:]/g, '').trim();
+    if (!name || name.startsWith('#')) name = '시안 ' + String.fromCharCode(65 + i);
+    return { name, hexes };
+  }).filter(Boolean);
+}
+
+let themes = [];
+const $ = (s) => document.querySelector(s);
+const hexBox = $('#hex');
+
+function rebuild() {
+  const prev = new Map(themes.map((t) => [t.hexes.join(), t]));
+  themes = parse(hexBox.value).map((t) => {
+    const old = prev.get(t.hexes.join());
+    return old ? Object.assign(old, { name: old.edited ? old.name : t.name }) : Object.assign(t, { roles: autoRoles(t.hexes) });
+  });
+  draw();
+}
+function roleOf(t, hex) { for (const k in t.roles) if (t.roles[k] === hex) return k; return 'none'; }
+function draw() {
+  $('#themes').innerHTML = themes.map((t, i) => {
+    const warn = [];
+    if (!t.roles.bg) warn.push('배경을 골라 주세요');
+    if (!t.roles.main) warn.push('메인을 골라 주세요');
+    if (t.roles.bg && t.roles.ink && contrast(t.roles.bg, t.roles.ink) < 7) warn.push('배경·글자 대비가 ' + contrast(t.roles.bg, t.roles.ink).toFixed(1) + ':1 이에요');
+    if (!t.roles.ink) warn.push('밝은 무채색이 없어 글자는 #EDEDED 로 만들어요');
+    return `<div class="theme" data-i="${i}">
+      <div class="top"><b>${String.fromCharCode(65 + i)}</b><input value="${t.name.replace(/"/g, '&quot;')}" data-name="${i}"></div>
+      <div class="sw">${t.hexes.map((h) => `<div><span style="background:${h}"></span><code>${h}</code>
+        <select data-t="${i}" data-hex="${h}">${Object.keys(ROLE_LABEL).map((k) => `<option value="${k}" ${roleOf(t, h) === k ? 'selected' : ''}>${ROLE_LABEL[k]}</option>`).join('')}</select></div>`).join('')}</div>
+      ${warn.length ? `<div class="warn">${warn.join(' · ')}</div>` : ''}
+    </div>`;
+  }).join('');
+  document.querySelectorAll('select[data-t]').forEach((s) => (s.onchange = () => {
+    const t = themes[+s.dataset.t];
+    for (const k in t.roles) if (t.roles[k] === s.dataset.hex) t.roles[k] = null;
+    if (s.value !== 'none') t.roles[s.value] = s.dataset.hex;
+    draw();
+  }));
+  document.querySelectorAll('input[data-name]').forEach((inp) => (inp.oninput = () => { const t = themes[+inp.dataset.name]; t.name = inp.value || t.name; t.edited = true; }));
+  $('#go').disabled = !themes.length || themes.some((t) => !t.roles.bg || !t.roles.main);
+}
+
+hexBox.value = DEFAULT;
+hexBox.oninput = rebuild;
+$('#reset').onclick = () => { hexBox.value = DEFAULT; themes = []; rebuild(); };
+rebuild();
+
+$('#go').onclick = () => {
+  const pages = [...document.querySelectorAll('#pages input:checked')].map((x) => x.value);
+  if (!pages.length) return status('화면을 하나 이상 골라 주세요', true);
+  $('#go').disabled = true;
+  status('만드는 중…');
+  parent.postMessage({ pluginMessage: {
+    type: 'generate', pages,
+    themes: themes.map((t) => ({ name: t.name, hexes: t.hexes, roles: t.roles })),
+    calm: document.querySelector('input[name=btnstyle]:checked').value === 'calm',
+    sheet: $('#sheet').checked, notes: $('#notes').checked, vars: $('#vars').checked,
+  } }, '*');
+};
+function status(t, err) { const s = $('#status'); s.textContent = t; s.className = err ? 'err' : ''; }
+onmessage = (e) => {
+  const m = e.data.pluginMessage; if (!m) return;
+  if (m.type === 'status') status(m.text);
+  if (m.type === 'done') { $('#go').disabled = false; }
+  if (m.type === 'error') { status('오류: ' + m.text, true); $('#go').disabled = false; }
+};
+</script>

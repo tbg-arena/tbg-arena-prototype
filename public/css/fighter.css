@@ -1,29 +1,82 @@
 /* ── 선수 카드 · 능력치 · 랭킹 (js/features/fighter) */
 .profile { padding: 0; overflow: hidden; }
-.profile .p-head { display: flex; gap: 14px; align-items: flex-end; padding: 16px 16px 14px; background: #000; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
-.profile .p-head::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(255,255,255,.035) 0 2px, transparent 2px 9px); pointer-events: none; }
-.profile .p-body { padding: 14px 16px 16px; }
-.profile .name { font-size: 24px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.2; }
-.sprite-box { width: 82px; height: 86px; flex-shrink: 0; position: relative; background: #fff; border: 1px solid #fff; display: grid; place-items: end center; overflow: hidden; }
-.sprite-box::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #d8d8d8; border-top: 1px solid #bcbcbc; }
+.profile .p-head { display: flex; gap: 14px; align-items: flex-end; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.profile .p-body { padding: 16px 16px 18px; }
+.profile .name { font-size: 24px; font-weight: 900; letter-spacing: -1px; line-height: 1.2; }
+.sprite-box { width: 82px; height: 86px; flex-shrink: 0; position: relative; background: var(--ink); display: grid; place-items: end center; overflow: hidden; }
+.sprite-box::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 10px; background: #d6d6d6; }
 .sprite-box img { height: 84px; width: auto; image-rendering: pixelated; position: relative; z-index: 1; margin-bottom: -2px; animation: idle .5s steps(1) infinite; }
 @keyframes idle { 50% { transform: translateY(2px); } }
 .cp { text-align: right; flex-shrink: 0; }
 .cp span { display: block; font-family: var(--pixel); font-size: 10px; color: var(--muted); letter-spacing: 1px; }
-.cp b { font-family: var(--pixel); font-size: 30px; font-weight: 700; color: #fff; line-height: 1.05; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
-.titles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.cp b { font-family: var(--pixel); font-size: 32px; font-weight: 700; color: var(--ink); line-height: 1.05; letter-spacing: -1px; font-variant-numeric: tabular-nums; }
+.titles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
 /* 체력바처럼 칸이 나뉜 도트 게이지 */
-.sbar { height: 8px; background: #111; overflow: hidden; }
-.sbar > i { display: block; height: 100%; background: #fff; -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); }
-.stat-grid { margin-top: 14px; display: grid; gap: 9px; padding-top: 14px; border-top: 1px dashed var(--line2); }
-.statrow { display: grid; grid-template-columns: 70px 1fr 30px; align-items: center; gap: 10px; font-size: 13px; }
+.sbar { height: 8px; background: var(--well); overflow: hidden; }
+.sbar > i { display: block; height: 100%; background: var(--ink); -webkit-mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); mask: repeating-linear-gradient(90deg, #000 0 6px, transparent 6px 8px); }
+.stat-grid { display: grid; gap: 12px; }
+.statrow { display: grid; grid-template-columns: 74px 1fr 28px; align-items: center; gap: 10px; font-size: 13px; }
 .statrow b { text-align: right; font-family: var(--pixel); font-weight: 700; font-variant-numeric: tabular-nums; }
 .statrow .sl { color: var(--muted); font-weight: 700; }
-.statrow .sl i { font-style: normal; font-family: var(--pixel); color: #fff; font-size: 11px; margin-right: 4px; }
+.statrow .sl i { font-style: normal; font-family: var(--pixel); color: var(--ink); font-size: 11px; margin-right: 5px; }
 
-/* 랭킹 */
+/* 랭킹: 1위 노랑, 2·3위 흰 숫자, 나머지 흐리게 */
 .rank { width: 30px; text-align: center; font-family: var(--pixel); font-weight: 700; font-size: 18px; color: var(--dim); flex-shrink: 0; }
-.rank.r1 { color: #000; background: #fff; } .rank.r2, .rank.r3 { color: #fff; }
-.rank.r1, .rank.r2, .rank.r3 { padding: 4px 0; }
-.rank.r2 { border: 1px solid #fff; } .rank.r3 { border: 1px dashed #777; }
+.rank.r1 { color: var(--on-neon); background: var(--yellow); padding: 4px 0; }
+.rank.r2, .rank.r3 { color: var(--ink); }
 .pts { font-family: var(--pixel); font-weight: 700; font-size: 16px; }
+/* 내 순위 고정 줄 (탭바 바로 위) */
+.mybar { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 10px); z-index: 4; margin: 16px 3px 0 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--ink); color: var(--on-ink); box-shadow: 3px 3px 0 var(--red); }
+.mybar .muted { color: #555; }
+.mybar-no { width: 36px; flex-shrink: 0; text-align: center; font-size: 22px; font-weight: 700; }
+.mybar .btn.sm.primary { background: var(--on-ink); border-color: var(--on-ink); color: var(--ink); box-shadow: none; }
+
+/* 홈 · 내 준비 (2열 칸, 마지막 줄은 꽉 차게). 상자 테두리 없이 면만 */
+.prep { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.prep-tile { display: flex; flex-direction: column; gap: 4px; min-height: 108px; padding: 14px 16px; background: var(--surface); cursor: pointer; }
+.prep-tile.wide { grid-column: 1 / -1; min-height: 0; flex-direction: row; align-items: center; flex-wrap: wrap; }
+.prep-tile.wide > .row { order: 2; margin-left: auto; }
+.prep-tile.wide .prep-code { display: none; }
+.prep-tile:hover, .prep-tile:active { background: var(--surface2); }
+.prep-tile > b { font-size: 15px; margin-top: 6px; }
+.prep-tile.wide > b { margin: 0; }
+.prep-code { font-size: 10px; font-weight: 700; color: var(--dim); letter-spacing: 1px; }
+.prep-sub { line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.prep-tile.wide .prep-sub { flex-basis: 100%; order: 3; }
+
+/* ── 장식: 선수 카드 = 경기 포스터 */
+.profile .p-head { position: relative; background-color: var(--surface); background-image: var(--halftone); background-size: 6px 6px; }
+/* 이름 밑 빨간 띠 */
+.profile .name { display: inline-block; max-width: 100%; box-shadow: inset 0 -6px 0 var(--red-soft), 0 3px 0 var(--red); padding-bottom: 1px; margin-bottom: 6px; }
+/* POWER: 전광판 칸 */
+.cp { background: var(--well); background-image: var(--halftone); background-size: 4px 4px; padding: 6px 8px 4px; clip-path: var(--notch); }
+.cp span { color: var(--red-text); }
+/* 사진 칸 = 링 위 장면: 위에서 비추는 조명 · 뒤로 지나가는 로프 3줄 · 매트 바닥 · 흰 테두리 */
+.sprite-box {
+  background-color: #2c2c2c;
+  background-image:
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,255,255,.42), rgba(255,255,255,.08) 60%, transparent 75%),
+    linear-gradient(to bottom, transparent 34%, var(--red) 34%, var(--red) calc(34% + 2px), transparent calc(34% + 2px),
+      transparent 50%, rgba(239,239,239,.7) 50%, rgba(239,239,239,.7) calc(50% + 2px), transparent calc(50% + 2px),
+      transparent 66%, var(--red) 66%, var(--red) calc(66% + 2px), transparent calc(66% + 2px));
+  box-shadow: inset 0 0 0 2px var(--ink);
+  clip-path: var(--notch);
+}
+.sprite-box::after { height: 14px; background: #cfcfcf; box-shadow: inset 0 3px 0 #a9a9a9; } /* 매트 + 가장자리 */
+.sprite-box img { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+/* 능력치 막대: 경기 체력바처럼 틀 안에 */
+.sbar { height: 12px; padding: 2px; background: var(--well); box-shadow: inset 0 0 0 1px var(--line2); }
+.statrow .sl i { display: inline-block; min-width: 30px; }
+
+/* 홈 · 내 준비: 칸 오른쪽 아래에 약어를 크게 흐리게 (포스터 배경 글씨) */
+.prep-tile { position: relative; overflow: hidden; }
+.prep-tile::after { content: attr(data-code); position: absolute; right: -4px; bottom: -10px; font-family: var(--pixel); font-size: 44px; font-weight: 700; line-height: 1; color: rgba(255,255,255,.045); pointer-events: none; }
+.prep-tile > * { position: relative; z-index: 1; }
+.prep-tile.wide::after { font-size: 34px; bottom: -6px; }
+/* 위쪽 짧은 빨간 선: 칸마다 같은 자리 */
+.prep-tile::before { content: ""; position: absolute; left: 14px; top: 0; width: 18px; height: 3px; background: var(--red); }
+
+/* 랭킹 1위 칸: 챔피언 벨트처럼 */
+.rank.r1 { clip-path: var(--notch); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
+.list-item .rank.r2 { color: var(--ink); text-decoration: underline 2px var(--line2); text-underline-offset: 4px; }
+.mybar-no { font-family: var(--pixel); }

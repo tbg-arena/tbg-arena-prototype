@@ -3,9 +3,12 @@ import { esc, sprite, record } from '../../core/ui.js';
 
 export const STAT_LABEL = { power: ['PWR', '파워'], speed: ['SPD', '스피드'], stamina: ['STA', '체력'], iq: ['IQ', 'IQ'], chin: ['DEF', '맷집'] };
 
+// 막대 기준: 100 고정이면 초반(10 안팎)엔 막대가 거의 비어 보여서, 가장 높은 능력치보다 한 단계 위(10 단위, 최소 20)로 잡는다
 export function statBars(stats) {
+  const top = Math.max(...Object.keys(STAT_LABEL).map((k) => stats[k] || 0));
+  const cap = Math.min(100, Math.max(20, Math.ceil((top + 1) / 10) * 10));
   return `<div class="stat-grid">${Object.entries(STAT_LABEL).map(([k, [ic, lb]]) => `
-    <div class="statrow"><span class="sl"><i>${ic}</i>${lb}</span><div class="sbar"><i style="width:${Math.min(100, stats[k])}%"></i></div><b>${stats[k]}</b></div>`).join('')}</div>`;
+    <div class="statrow"><span class="sl"><i>${ic}</i>${lb}</span><div class="sbar"><i style="width:${Math.min(100, (stats[k] / cap) * 100)}%"></i></div><b>${stats[k]}</b></div>`).join('')}</div>`;
 }
 
 export function fighterCard(m, opts = {}) {

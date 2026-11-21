@@ -12,8 +12,8 @@ export function fightRow(f, myId) {
     const opp = f.a === myId ? f.bName : f.aName;
     if (f.hidden) return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
       <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">vs ${esc(opp)}</div><div class="muted small">결과는 중계를 보면 공개 · ${ago(f.createdAt)}</div></div>
-      <span class="badge red">경기 중</span></div>`;
-    badge = !r.winnerId ? '<span class="badge">DRAW</span>' : r.winnerId === myId ? '<span class="badge solid">WIN</span>' : '<span class="badge red">LOSE</span>';
+      <span class="badge gold">중계 보기</span></div>`;
+    badge = !r.winnerId ? '<span class="badge">DRAW</span>' : r.winnerId === myId ? '<span class="badge solid">WIN</span>' : '<span class="badge">LOSE</span>';
     const d = f.delta?.[myId];
     return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
       <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">vs ${esc(opp)}</div><div class="muted small">${methodText(r)} · ${ago(f.createdAt)}</div></div>
@@ -21,7 +21,7 @@ export function fightRow(f, myId) {
   }
   if (f.hidden) return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
     <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(f.aName)} vs ${esc(f.bName)}</div><div class="muted small">결과는 중계를 보면 공개 · ${ago(f.createdAt)}</div></div>
-    <span class="badge red">경기 중</span></div>`;
+    <span class="badge gold">중계 보기</span></div>`;
   const w = r.winnerId ? (r.winnerId === f.a ? f.aName : f.bName) : null;
   return `<div class="list-item" data-go="#/fight/${f.id}" style="cursor:pointer">
     <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(f.aName)} vs ${esc(f.bName)}</div><div class="muted small">${methodText(r)} · ${ago(f.createdAt)}</div></div>

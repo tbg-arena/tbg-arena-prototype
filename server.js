@@ -21,6 +21,7 @@ require('./lib/shop/routes');
 require('./lib/passes/routes');
 require('./lib/lessons/routes');
 require('./lib/combos/routes');
+require('./lib/conditioning/routes');
 
 // 요청 하나를 처리하는 함수 (API + 정적 파일)
 // Vercel이 server.js 를 서버 앱으로 자동 인식해 직접 호출해도 동작하도록 이것을 내보낸다.

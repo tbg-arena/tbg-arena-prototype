@@ -27,5 +27,8 @@ import './features/fights/broadcast.js';
 import './features/shop/member.js';
 // 수강권: 회원 '내 수강권' 화면 (#/passes, 홈 출석 카드에서 들어감). 코치 수강권 관리는 회원·기술 탭 안
 import './features/passes/member.js';
+// 컨디셔닝: 회원 '컨디셔닝' 탭 (내가 한 체력운동 · 최고 기록) · 코치 '컨디셔닝' 탭 (회원 운동 넣기)
+import './features/conditioning/member.js';
+import './features/conditioning/coach.js';
 
 route();
