@@ -39,6 +39,7 @@ body {
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif;
   font-size: 15px; line-height: 1.5; min-height: 100dvh; letter-spacing: -0.3px;
   overscroll-behavior-y: none;
+  word-break: keep-all; overflow-wrap: anywhere; /* 한글이 단어 중간에서 줄바꿈되지 않게 (긴 영문 · 숫자만 필요할 때 끊음) */
 }
 ::selection { background: var(--red); color: #fff; }
 button { font: inherit; color: inherit; border: 0; cursor: pointer; }
