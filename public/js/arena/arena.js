@@ -32,6 +32,7 @@ export class Arena {
     this.pos = 'stand'; this.top = null;
     this.rt = 0; this.gt = 0; this.stop = 0; this.slow = 1; this.slowT = 0;
     this.fx = []; this.parts = []; this.q = []; this.speed = 1;
+    this.ex = 0; this.exEnd = 0; // 지금 공방 번호 · 그 공방 연출이 끝나는 게임 시각 (겹침 방지)
     this.shake = 0; this.flash = 0; this.invert = 0; this.bars = 0; this.tbars = 0; this.hype = 0; this.lockOn = 0; this.dim = 0; this.spot = null;
     this.cam = { x: CX, y: 52, z: 1.15, punch: 0, fx: CX, fy: 52, fz: 0 };
     this.crowd = Array.from({ length: 2 }, (_, row) => Array.from({ length: 26 }, (_, i) => ({ x: i * 7 - 4 + row * 3 + (hash(i + 'c' + row) % 3), p: (hash(i + 'p' + row) % 100) / 15, s: hash(i + 's' + row) % 3 })));
@@ -63,6 +64,8 @@ export class Arena {
     window.removeEventListener('resize', this._rs);
   }
   later(ms, fn) { this.q.push({ at: this.gt + ms / 1000, fn }); }
+  // 지금 공방 연출이 끝날 때까지 남은 실제 시간(ms). 다음 공방은 이만큼 기다렸다가 시작
+  busyLeft() { return Math.max(0, ((this.exEnd - this.gt) * 1000) / (this.speed || 1)); }
   sfx(name, lvl = 1) {
     if (this.demo || this.silent) return;
     if ((this.speed >= 3 && lvl < 1) || (this.speed >= 8 && lvl < 2)) return;
@@ -116,6 +119,11 @@ export class Arena {
     }
 
     if (strike && att) {
+      // 공방이 겹칠 때: 앞 공방에서 예약된 동작(맞는 반응 · 이어지는 펀치)이
+      // 지금 공격 중인 선수의 동작을 덮어쓰지 않게 한다 (둘 다 맞기만 하는 것처럼 보이던 문제)
+      const ex = ++this.ex;
+      att.attEx = ex;
+      const live = (f) => ex === this.ex || f.attEx !== this.ex;
       att.hand ^= 1;
       const mv = a.combo?.length > 1 || a.showcase ? comboMove(a.combo) : boxingMove(a);
       // 피하는 동작 연출: 라벨 + 몸 이동 (스텝은 앞뒤로 움직이고 점프는 뜀)
@@ -123,6 +131,7 @@ export class Arena {
       const kind = mv ? mv.seq[0][0] : this.isMount(att) ? 'gnp' : a.cat;
       let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
       const swing = () => {
+        if (!live(att)) return;
         att.anim = { kind, t0: this.gt, dur, hand: att.hand };
         if (DODGE_LABEL[kind]) return evade(att, kind); // 콤보가 방어·스텝 동작으로 시작
         this.whoosh(att, mv ? mv.trail : kind);
@@ -136,11 +145,13 @@ export class Arena {
       if (mv) for (const [k2, d2] of mv.seq.slice(1)) {
         lead += dur * 0.85; dur = d2;
         this.later(lead * 1000, () => {
+          if (!live(att)) return;
           att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand };
           if (DODGE_LABEL[k2]) return evade(att, k2); // 콤보 속 방어·스텝 동작
           this.whoosh(att, mv.trail); this.sfx('whoosh', 0);
         });
       }
+      this.exEnd = this.gt + lead + dur + (e.type === 'big' || e.type === 'down' || e.type === 'finish' ? 0.55 : 0.35);
       // 콤보: 마지막 펀치 전까지 펀치마다 가볍게 맞는 반응
       if (mv?.combo) {
         let t2 = pre, d = mv.seq[0][1], n = 0;
@@ -148,6 +159,7 @@ export class Arena {
           const hitNo = end ? ++n : 0;
           if (i) { t2 += d * 0.85; d = dd; }
           if (end && i < mv.seq.length - 1) this.later((t2 + dd * 0.45) * 1000, () => {
+            if (!live(def)) return;
             const [hx, hy] = this.headPos(def);
             def.anim = { kind: end.hit, t0: this.gt, dur: 0.22 }; def.kx = -def.d * 25; def.flash = 0.05;
             this.burst(hx - def.d * 4, hy + (end.dy || 1), false); this.sfx('hit', 0);
@@ -170,6 +182,7 @@ export class Arena {
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
         this.later((lead + dur * 0.45) * 1000, () => {
+          if (!live(def)) return;
           const [hx, hy] = this.headPos(def);
           def.anim = { kind: a.guard, t0: this.gt, dur: 0.35 };
           def.kx = -def.d * 25;
@@ -185,7 +198,7 @@ export class Arena {
         this.later((lead + dur * 0.45) * 1000, () => {
           const [hx, hy] = this.headPos(def);
           const px = hx - def.d * 4, py = hy + (mv ? mv.dy || 1 : a.cat === 'kick' ? 4 : 1);
-          def.anim = { kind: mv ? mv.hit : 'hit', t0: this.gt, dur: big ? 0.5 : 0.32 };
+          if (live(def)) def.anim = { kind: mv ? mv.hit : 'hit', t0: this.gt, dur: big ? 0.5 : 0.32 }; // 데미지 · 효과는 그대로, 동작만 건너뜀
           // 필살기 마무리: 긴 슬로모션 + 반전 플래시 + 스피드라인 + 크게 밀려남 + 총 데미지
           if (a.finisher) {
             this.slowmo(0.3, 1.3); this.invert = 0.14; this.flash = 0.9; this.shake = 1.4; this.stop = 0.22;
@@ -221,6 +234,7 @@ export class Arena {
       } else if (e.type === 'miss') {
         this.later((lead + dur * 0.3) * 1000, () => {
           const dk = a.dodge;
+          if (!live(def)) return;
           def.anim = { kind: DODGE_LABEL[dk] ? dk : 'dodge', t0: this.gt, dur: DODGE_DUR[dk] || 0.4 };
           const dm = DODGE_MOVE[dk]; // 백스텝·스텝은 빠지고, 위빙은 파고든다
           if (dm?.kx) def.kx = def.d * dm.kx;
@@ -346,7 +360,8 @@ export class Arena {
     const counter = type === 'strike' && !guard && Math.random() < 0.15;
     this.play({ type, act: { att: att.id, cat, name, move, dodge, guard, counter, from: counter ? pickK() : undefined }, pos: 'stand', top: null });
     this.comboBy = type !== 'miss' && Math.random() < 0.4 ? att : null;
-    this.demoTimer = setTimeout(() => this.running && this.demoTick(), this.comboBy ? 380 + Math.random() * 220 : 700 + Math.random() * 900);
+    const want = this.comboBy ? 380 + Math.random() * 220 : 700 + Math.random() * 900;
+    this.demoTimer = setTimeout(() => this.running && this.demoTick(), Math.max(want, this.busyLeft() + (this.comboBy ? 60 : 160)));
   }
 
   // ── 효과 생성

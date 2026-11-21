@@ -119,7 +119,8 @@ async function renderFight(id) {
     const e = f.events[i++];
     show(e);
     const base = ({ finish: 1800, big: 1400, down: 1600, sub: 1500, round: 1300 }[e.type] || 900) + (e.act?.finisher ? 1600 : 0); // 필살기는 연타·마무리 연출 시간만큼 더
-    state.playTimer = setTimeout(step, base / speed);
+    // 긴 콤보는 정해진 간격보다 연출이 길어서, 끝나기 전에 다음 공방이 겹치지 않도록 남은 연출만큼 더 기다린다
+    state.playTimer = setTimeout(step, Math.max(base / speed, (arena?.busyLeft?.() || 0) + 120 / speed));
   }
   if (f.taunt) {
     // 도전장 한마디: 링 위에 잠깐 띄운 뒤 경기 시작 (피드엔 남기지 않음 — 해설 톤과 섞임)
