@@ -1,11 +1,7 @@
 /* ── 경기 (js/features/fights) */
-/* 커리어 */
-.stats3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); }
-.stat { background: #000; padding: 14px 8px; text-align: center; }
-.stat b { display: block; font-family: var(--pixel); font-size: 24px; font-weight: 700; }
-.stat span { font-size: 12px; color: var(--muted); }
-.delta-up { color: #fff; font-family: var(--pixel); }
-.delta-down { color: var(--red); font-family: var(--pixel); }
+/* 커리어 (숫자 줄 .stats3/.stats4 는 base.css) */
+.delta-up { color: var(--green); font-family: var(--pixel); }
+.delta-down { color: var(--red-text); font-family: var(--pixel); }
 
 /* 경기 중계 */
 .dark { min-height: 100dvh; display: flex; flex-direction: column; }
@@ -14,48 +10,95 @@
 .fighter { display: flex; gap: 8px; align-items: center; min-width: 0; }
 .fighter.right { flex-direction: row-reverse; text-align: right; }
 .fighter .avatar { width: 38px; height: 38px; }
+/* 코너 색: 나(왼쪽) = 블루 코너, 상대(오른쪽) = 레드 코너 */
+.fighter:not(.right) .avatar { background: var(--blue); border-color: var(--blue); }
 .fighter.right .avatar { background: var(--red); border-color: var(--red); }
 .fighter .meta { min-width: 0; flex: 1; }
 .fighter .fname { font-weight: 900; font-size: 15px; letter-spacing: -0.4px; }
 .fighter .pw { font-family: var(--pixel); font-size: 10px; color: var(--muted); }
-.hp { height: 12px; background: #000; border: 1px solid #fff; padding: 1px; margin-top: 8px; grid-column: 1 / -1; }
-.hp > i { display: block; height: 100%; background: #fff; transition: width .45s steps(8); -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 6px); mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 6px); }
+.hp { height: 12px; background: var(--well); border: 1px solid var(--blue); padding: 1px; margin-top: 8px; grid-column: 1 / -1; }
+.hp > i { display: block; height: 100%; background: var(--blue); transition: width .45s steps(8); -webkit-mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 6px); mask: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 6px); }
 .fighter-wrap.right .hp { border-color: var(--red); }
 .fighter-wrap.right .hp > i { background: var(--red); margin-left: auto; }
 .hp.low > i { animation: blink .4s steps(1) infinite; }
-.vs { text-align: center; font-family: var(--pixel); font-weight: 700; color: #000; background: #fff; font-size: 12px; padding: 4px 5px 3px; margin-top: 10px; }
-.scoreboard { display: flex; align-items: center; justify-content: center; gap: 14px; background: #000; border: 1px solid var(--line2); padding: 8px; }
+.vs { text-align: center; font-family: var(--pixel); font-weight: 700; color: var(--on-ink); background: var(--ink); font-size: 12px; padding: 4px 5px 3px; margin-top: 10px; }
+.scoreboard { display: flex; align-items: center; justify-content: center; gap: 14px; background: var(--well); border: 1px solid var(--line2); padding: 8px; }
 .scoreboard b { font-family: var(--pixel); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; min-width: 76px; text-align: center; }
-.scoreboard #rnd { font-family: var(--pixel); font-weight: 700; color: #000; background: #fff; padding: 2px 6px 1px; }
+.scoreboard #rnd { font-family: var(--pixel); font-weight: 700; color: var(--on-ink); background: var(--ink); padding: 2px 6px 1px; }
 .feed { flex: 1; overflow: auto; display: flex; flex-direction: column; gap: 4px; }
 .ev { background: var(--surface); padding: 9px 12px; font-size: 14px; animation: up .25s ease; border-left: 3px solid var(--line2); flex-shrink: 0; }
 .ev .t { display: block; font-family: var(--pixel); font-size: 10px; color: var(--dim); font-variant-numeric: tabular-nums; }
-.ev.l { border-left-color: #fff; }
+.ev.l { border-left-color: var(--blue); }
 .ev.r { border-left-color: var(--red); }
-.ev.round { text-align: center; font-family: var(--pixel); font-weight: 700; background: transparent; color: #fff; border: 0; letter-spacing: 1px; }
-.ev.big, .ev.down, .ev.sub { font-weight: 800; background: #1a1a1a; }
-.ev.finish { font-weight: 900; background: #fff; color: #000; font-size: 15px; border-left-color: var(--red); }
+.ev.round { text-align: center; font-family: var(--pixel); font-weight: 700; background: transparent; color: var(--ink); border: 0; letter-spacing: 1px; }
+.ev.big, .ev.down, .ev.sub { font-weight: 800; background: var(--surface2); }
+.ev.finish { font-weight: 900; background: var(--ink); color: var(--on-ink); font-size: 15px; border-left-color: var(--red); }
 .ev.finish .t { color: #555; }
 .ev.miss { color: var(--muted); }
-.result { text-align: center; padding: 22px 18px; border-color: #fff; }
+.result { text-align: center; padding: 22px 18px; border-color: var(--ink); }
 .result .big { font-family: var(--pixel); font-size: 40px; font-weight: 700; letter-spacing: 0; line-height: 1.1; text-shadow: 3px 3px 0 var(--red); animation: slam .5s cubic-bezier(.2,1.6,.4,1); }
-.result .big.win { color: #fff; }
+.result .big.win { color: var(--ink); }
 .result .big.lose { color: var(--muted); text-shadow: none; }
 @keyframes slam { from { transform: scale(2.4); opacity: 0; } }
 .flash { animation: flash .45s; }
 @keyframes flash { 0% { transform: translateX(-6px); } 20% { transform: translateX(6px); } 40% { transform: translateX(-4px); } 60% { transform: translateX(3px); } 100% { transform: none; } }
-.ring { border: 1px solid var(--line2); background: #000; flex-shrink: 0; margin: 0 -12px; border-left: 0; border-right: 0; }
+.ring { border: 1px solid var(--line2); background: var(--well); flex-shrink: 0; margin: 0 -12px; border-left: 0; border-right: 0; }
 .ring canvas { display: block; width: 100%; image-rendering: pixelated; }
 .ring { position: relative; }
 /* 도전장 인트로: 경기 시작 전 링 위에 잠깐 */
 .taunt { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 20px; text-align: center; background: rgba(0,0,0,.72); animation: slam .5s cubic-bezier(.2,1.6,.4,1); }
-.taunt span { font-family: var(--pixel); font-size: 11px; font-weight: 700; color: #000; background: var(--red); padding: 2px 6px 1px; }
-.taunt b { font-size: 16px; color: #fff; }
-.taunt p { margin: 0; font-size: 18px; font-weight: 900; color: #fff; text-shadow: 2px 2px 0 var(--red); max-width: 100%; overflow-wrap: anywhere; }
+.taunt span { font-family: var(--pixel); font-size: 11px; font-weight: 700; color: var(--on-ink); background: var(--red); padding: 2px 6px 1px; }
+.taunt b { font-size: 16px; color: var(--ink); }
+.taunt p { margin: 0; font-size: 18px; font-weight: 900; color: var(--ink); text-shadow: 2px 2px 0 var(--red); max-width: 100%; overflow-wrap: anywhere; }
 .dark .feed { min-height: 20dvh; max-height: 30dvh; }
 @media (min-width: 560px) { .ring { margin: 0; border-left: 1px solid var(--line2); border-right: 1px solid var(--line2); } }
 
 /* 사운드 토글 */
-.sound-btn { font-family: var(--pixel); font-size: 11px; font-weight: 700; padding: 5px 8px 4px; border: 1px solid var(--line2); background: #000; color: var(--muted); min-width: 56px; }
-.sound-btn.on { background: #fff; border-color: #fff; color: #000; box-shadow: 2px 2px 0 var(--red); }
+.sound-btn { font-family: var(--pixel); font-size: 11px; font-weight: 700; padding: 5px 8px 4px; border: 1px solid var(--line2); background: var(--well); color: var(--muted); min-width: 56px; }
+.sound-btn.on { background: var(--ink); border-color: var(--ink); color: var(--on-ink); box-shadow: 2px 2px 0 var(--red); }
 .sound-btn:not(.on) { animation: blink 1.4s steps(1) infinite; }
+
+/* 커리어 요약: 숫자 줄 + 최근 경기 흐름 (승 = 흰 칸, 패 = 빨간 선, 무 = 회색 선) */
+.form-row { margin: 16px 0 8px; gap: 6px; padding-top: 14px; border-top: 1px solid var(--line); }
+.form { font-style: normal; display: grid; place-items: center; width: 26px; height: 26px; font-size: 12px; font-weight: 700; box-shadow: inset 0 0 0 1px var(--line2); color: var(--muted); }
+.form.w { background: var(--ink); box-shadow: none; color: var(--on-ink); }
+.form.l { box-shadow: inset 0 0 0 1px var(--red); color: var(--red-text); }
+
+/* 커리어 맨 위 · 이번 주 훈련 (체육관에서 실제로 한 것) */
+.training { display: flex; flex-direction: column; gap: 0; padding: 0; }
+.tr-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13.5px 16px 18.5px; border-bottom: 1px solid var(--line); }
+.tr-top h2 { margin: 0; font-size: 20px; font-weight: 900; letter-spacing: -0.8px; line-height: 1.25; }
+.tr-top .muted { margin-top: 2px; }
+.tr-big { text-align: right; flex-shrink: 0; }
+.tr-big b { display: block; font-family: var(--pixel); font-size: 34px; line-height: 1; }
+.tr-big span { font-size: 11px; color: var(--muted); font-weight: 700; }
+.tr-block { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.tr-block + .tr-block { border-top: 1px solid var(--line); }
+.tr-block[data-go]:active { background: var(--surface2); }
+.tr-head { gap: 6px; }
+.tr-head b { font-size: 14px; }
+.tr-num { font-size: 16px; font-weight: 700; color: var(--ink); }
+.tr-num small { font-size: 11px; color: var(--muted); margin-left: 2px; font-family: "Pretendard", sans-serif; }
+/* 이번 주 7칸: 나온 날 = 흰 칸, 오늘 = 빨간 밑줄, 앞으로 = 흐리게 */
+.tr-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+.tr-week i { display: block; height: 26px; background: var(--well); }
+.tr-week .today i { box-shadow: inset 0 -3px 0 var(--red); }
+.tr-week .future { opacity: .4; }
+.tr-week span { display: block; margin-top: 4px; font-size: 11px; font-weight: 700; color: var(--dim); }
+.tr-week .today span { color: var(--ink); }
+.tr-skills { display: flex; flex-wrap: wrap; gap: 6px; }
+.tr-skill { display: inline-flex; align-items: baseline; gap: 6px; padding: 7px 10px; background: var(--well); font-size: 13px; font-weight: 800; }
+.tr-skill small { font-size: 11px; font-weight: 600; color: var(--muted); }
+.tr-skill em { font-style: normal; font-size: 9px; font-weight: 700; color: var(--on-neon); background: var(--yellow); padding: 1px 4px; }
+
+/* ── 장식: 이번 주 훈련 */
+.tr-top { background-color: var(--surface); background-image: var(--halftone); background-size: 6px 6px; position: relative; }
+.tr-top::after { content: ""; position: absolute; left: 16px; bottom: -2px; width: 44px; height: 3px; background: var(--red); }
+.tr-big b { color: var(--ink); text-shadow: 3px 3px 0 var(--red); }
+/* 나온 날: 빨간 칸에 흰 도트 글러브 도장 ('출석 찍었다') */
+.tr-week .on i { background: var(--red) url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%209%209%22%20shape-rendering%3D%22crispEdges%22%3E%3Crect%20x%3D%222%22%20y%3D%220%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%220%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%220%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%220%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%221%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%227%22%20y%3D%222%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%227%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%223%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%220%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%227%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%228%22%20y%3D%224%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%221%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%227%22%20y%3D%225%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%226%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffffff%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%227%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%227%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%227%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%227%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%227%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%223%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%224%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%225%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%226%22%20y%3D%228%22%20width%3D%221%22%20height%3D%221%22%20fill%3D%22%23ffd0d8%22%2F%3E%3Crect%20x%3D%222%22%20y%3D%224%22%20width%3D%223%22%20height%3D%221%22%20fill%3D%22%23ff1744%22%2F%3E%3C%2Fsvg%3E") center / 18px 18px no-repeat; image-rendering: pixelated; }
+.tr-week i { clip-path: var(--notch); }
+.tr-week .on.today i { box-shadow: inset 0 -3px 0 var(--ink); } /* 빨간 칸 위 오늘 표시는 흰 밑줄 */
+/* 최근 경기 W/L: 결과지 도장 */
+.form { clip-path: var(--notch); }
+.form.w { box-shadow: inset -2px -2px 0 rgba(0,0,0,.18); }

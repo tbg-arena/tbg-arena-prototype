@@ -18,6 +18,8 @@ memberTab({
     if (strat) strat.onclick = () => strategyModal(me.member.strategy);
     const fin = document.getElementById('editFinisher');
     if (fin) fin.onclick = () => finisherModal(me);
+    // 타일을 키보드로도 열 수 있게 (Enter · Space)
+    document.querySelectorAll('.prep-tile[role=button]').forEach((t) => (t.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); t.click(); } }));
   },
 });
 
@@ -26,17 +28,34 @@ function homeView(me, callouts) {
   const pending = (callouts || []).filter((c) => c.opponentId === m.id && c.status === 'pending_coach');
   const s = m.strategy;
   return `
-    ${fighterCard(m)}
     ${pending.map((c) => `<div class="banner blue" data-go="#/callout"><div class="grow" style="min-width:0"><b>${esc(c.challenger)}</b> 님의 도전장!${c.message ? `<div class="ellipsis">“${esc(c.message)}”</div>` : ''}<div class="small" style="opacity:.75">코치가 승인하면 바로 경기</div></div><span>→</span></div>`).join('')}
+    ${fighterCard(m)}
     <div class="section-title">내 준비</div>
-    <div class="card row" data-go="#/passes" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GYM</div><div class="grow"><b>${m.attended ? '오늘 출석 완료 ✓' : '오늘 아직 미출석'}</b><div class="muted small">체육관에 나와 코치 출석 체크를 받으면 능력치가 올라요 · 누적 ${m.attendCount}회</div></div><span class="link" style="padding:0">수강권 →</span></div>
-    <div class="card row" id="editStrategy" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">STR</div><div class="grow"><b>내 기본 전략</b><div class="muted small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div></div><span class="link" style="padding:0">바꾸기 →</span></div>
-    <div class="card row" id="editFinisher" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">FIN</div><div class="grow"><b>필살기 콤보</b><div class="muted small ellipsis">${finisherOf(me) ? finisherOf(me).map((s) => esc(s.name)).join('-') : '배운 기술을 엮어 막판 한 방을 만들어 보세요'}</div></div><span class="link" style="padding:0">${finisherOf(me) ? '바꾸기' : '만들기'} →</span></div>
-    <div class="card row" data-go="#/combos" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">CMB</div><div class="grow"><b>내 콤비</b><div class="muted small">${m.comboOpen ? `열린 콤비 ${m.comboOpen}개 · 탭 한 번으로 필살기 장착` : '수업에서 기술을 배우면 콤비가 열려요'}</div></div><span class="link" style="padding:0">보기 →</span></div>
-    <div class="card row" data-go="#/shop" style="cursor:pointer"><div class="type-dot px" style="filter:none;font-size:12px;font-weight:700">GEAR</div><div class="grow"><b>옷장 · 상점</b><div class="muted small">COIN ${m.coins ?? 0} · 모은 코인으로 브랜드 장비를 사고 갈아입어요</div></div><span class="link" style="padding:0">열기 →</span></div>
-    <div class="section-title">내 기술 (${me.skills.length}) <span class="muted" style="text-transform:none;font-weight:600">· 배운 기술만 경기에 나와요</span></div>
+    <div class="prep">
+      ${prepTile({ go: '#/passes', code: 'GYM', title: '출석 · 수강권', sub: `누적 ${m.attendCount}회 · 출석하면 능력치가 올라요`,
+        chip: m.attended ? '<span class="badge solid">오늘 완료</span>' : '<span class="badge">미출석</span>' })}
+      ${prepTile({ id: 'editFinisher', code: 'FIN', title: '필살기',
+        sub: finisherOf(me) ? finisherOf(me).map((x) => esc(x.name)).join(' · ') : '배운 기술로 막판 한 방',
+        chip: finisherOf(me) ? `<span class="badge solid">${finisherOf(me).length}타 장착</span>` : '<span class="badge gold">만들기</span>' })}
+      ${prepTile({ go: '#/combos', code: 'CMB', title: '내 콤비', sub: m.comboOpen ? '탭 한 번으로 필살기 장착' : '기술을 배우면 열려요',
+        chip: m.comboOpen ? `<span class="badge">열림 ${m.comboOpen}</span>` : '<span class="badge">잠김</span>' })}
+      ${prepTile({ id: 'editStrategy', code: 'STR', title: '기본 전략', sub: `${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)}`,
+        chip: '<span class="badge">바꾸기</span>' })}
+      ${prepTile({ go: '#/shop', code: 'GEAR', title: '옷장 · 상점', sub: '모은 코인으로 브랜드 장비', wide: true,
+        chip: `<span class="badge gold">COIN ${m.coins ?? 0}</span>` })}
+    </div>
+    <div class="section-title">내 기술 <span class="muted">${me.skills.length}</span></div>
     ${skillGroups(me.skills)}
     <div class="muted small" style="margin:10px 2px">숫자는 숙련도예요. 숙련이 높을수록 경기에서 자주 나오고 잘 들어가요. 코치가 수업에서 본 실력대로 조정하고, 경기에서 성공하면 조금씩 올라요. 같은 기술로 ${state.meta.finishTitleAt}번 피니시하면 칭호가 붙어요.</div>`;
+}
+
+// 내 준비 타일: 약어 칸 + 상태 칩 (오른쪽 위) + 이름 + 한 줄 설명
+function prepTile({ go, id, code, title, sub, chip, wide }) {
+  const attr = go ? `data-go="${go}"` : `id="${id}" role="button" tabindex="0"`;
+  return `<div class="prep-tile${wide ? ' wide' : ''}" data-code="${code}" ${attr}>
+    <div class="row" style="justify-content:space-between"><span class="prep-code px">${code}</span>${chip}</div>
+    <b>${title}</b><div class="muted small prep-sub">${sub}</div>
+  </div>`;
 }
 
 function strategyModal(cur) {

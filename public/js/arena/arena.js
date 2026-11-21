@@ -25,6 +25,7 @@ export class Arena {
   constructor(canvas, L, R, opts = {}) {
     this.c = canvas; this.ctx = canvas.getContext('2d');
     this.demo = !!opts.demo;
+    this.cast = opts.cast || null; this.castI = 0; this.bouts = 0; this.comboBy = null; // 데모: 여러 대진을 번갈아
     this.world = mkCanvas(LW, LH); this.w = this.world.getContext('2d');
     this.order = [L.id, R.id];
     this.f = { [L.id]: this.mk('L', L, 1), [R.id]: this.mk('R', R, -1) };
@@ -58,6 +59,7 @@ export class Arena {
   destroy() {
     this.running = false;
     clearTimeout(this.demoTimer);
+    window.removeEventListener('resize', this._rs);
     window.removeEventListener('resize', this._rs);
   }
   later(ms, fn) { this.q.push({ at: this.gt + ms / 1000, fn }); }
@@ -150,7 +152,7 @@ export class Arena {
             def.anim = { kind: end.hit, t0: this.gt, dur: 0.22 }; def.kx = -def.d * 25; def.flash = 0.05;
             this.burst(hx - def.d * 4, hy + (end.dy || 1), false); this.sfx('hit', 0);
             // 필살기 연타 카운트업: 숫자가 커지고 흔들림·멈춤이 점점 세짐
-            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#ff4b45', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
+            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#ff1744', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
           });
         });
       }
@@ -163,8 +165,8 @@ export class Arena {
         this.sfx('counter', 2);
       }
       // 펀치 없는 필살기: 움직임이 끝나면 라벨 (스포트라이트는 저절로 걷힘)
-      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#ff4b45', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
-      if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff4b45', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
+      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#ff1744', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
+      if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff1744', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
         this.later((lead + dur * 0.45) * 1000, () => {
@@ -188,10 +190,10 @@ export class Arena {
           if (a.finisher) {
             this.slowmo(0.3, 1.3); this.invert = 0.14; this.flash = 0.9; this.shake = 1.4; this.stop = 0.22;
             this.speedLines = { t0: this.rt, dur: 1.3 }; this.hype = 2; this.dim = 0;
-            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#ff4b45', 1.7, -30, att.d * 6);
+            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#ff1744', 1.7, -30, att.d * 6);
             this.later(10, () => { def.kx = -def.d * 150; def.vy = -50; });
             this.sfx('big', 2);
-          } else if (mv?.combo) this.text(mv.label, att, '#ff4b45', 1.1, -22, att.d * 6);
+          } else if (mv?.combo) this.text(mv.label, att, '#ff1744', 1.1, -22, att.d * 6);
           else if (mv && !big) this.text(mv.label, att, a.cat === 'jab' ? '#cfcfcf' : '#ffffff', a.cat === 'jab' ? 0.7 : 0.9, -20, att.d * 6);
           if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#cfefff', '#9fd8ff']);
           if (mv && a.cat === 'uppercut') this.spray(px, py - 2, 0, 6, ['#ffffff']);
@@ -200,11 +202,11 @@ export class Arena {
           this.stop = big ? 0.16 : 0.06;
           this.sfx(e.type === 'down' ? 'down' : big ? 'big' : 'hit', e.type === 'down' ? 2 : big ? 1 : 0);
           this.burst(px, py, big);
-          this.spray(px, py, -def.d, big ? 14 : 6, big ? ['#ffffff', '#cfefff', '#ff4b45'] : ['#ffffff', '#cfefff']);
+          this.spray(px, py, -def.d, big ? 14 : 6, big ? ['#ffffff', '#cfefff', '#ff1744'] : ['#ffffff', '#cfefff']);
           this.shake = big ? 1 : 0.35;
           this.cam.punch = big ? 0.35 : 0.08; this.cam.fx = px; this.cam.fy = py;
           const d = dmgOf(def.id);
-          if (d) a.finisher ? this.text(`-${d}`, def, '#ff4b45', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
+          if (d) a.finisher ? this.text(`-${d}`, def, '#ff1744', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
           if (big) {
             this.flash = 0.5; this.hype = Math.min(1.5, this.hype + 0.8);
             this.text(e.type === 'down' ? 'DOWN!' : ['BIG HIT!', 'BAM!', 'CRACK!'][Math.floor(Math.random() * 3)], def, '#ffffff', e.type === 'down' ? 1.6 : 1.3, -16);
@@ -245,9 +247,9 @@ export class Arena {
         att.anim = { kind: 'shoot', t0: this.gt, dur: 0.3 };
         this.text('CLINCH', att, '#bdbdbd', 0.8, -14);
       } else if (a.cat === 'ground' && e.type === 'td' && this.top && e.top && e.top !== this.top) {
-        this.later(150, () => { this.text('SWEEP!', att, '#ff4b45', 1.2, -14); this.shake = 0.5; this.dust(CX, 10); this.sfx('sweep', 1); });
+        this.later(150, () => { this.text('SWEEP!', att, '#ff1744', 1.2, -14); this.shake = 0.5; this.dust(CX, 10); this.sfx('sweep', 1); });
       } else if (a.cat === 'submission') {
-        if (e.type === 'sub') { this.lock(1.6); this.text('LOCKED!', att, '#ff4b45', 1.2, -18); this.sfx('lock', 1); }
+        if (e.type === 'sub') { this.lock(1.6); this.text('LOCKED!', att, '#ff1744', 1.2, -18); this.sfx('lock', 1); }
         else if (e.type === 'miss') this.text('...', att, '#8a8a8a', 0.9, -12);
         else if (e.type === 'info') { this.text('ESCAPE!', def, '#ffffff', 1, -14); this.sfx('escape', 1); }
       }
@@ -289,7 +291,7 @@ export class Arena {
         const [hx, hy] = this.headPos(loser);
         this.cam.punch = 0.6; this.cam.fx = hx; this.cam.fy = hy + 14;
         this.burst(hx - loser.d * 4, hy, true, true);
-        this.spray(hx, hy, -loser.d, 26, ['#ffffff', '#ff4b45', '#cfefff']);
+        this.spray(hx, hy, -loser.d, 26, ['#ffffff', '#ff1744', '#cfefff']);
         loser.ko = true; loser.tLying = 1; loser.vy = -150; loser.kx = -loser.d * 160;
         loser.anim = { kind: 'hit', t0: this.gt, dur: 0.6 };
         this.speedLines = { t0: this.rt, dur: 1.4 };
@@ -320,9 +322,21 @@ export class Arena {
   }
 
   // ── 데모 (로그인 화면)
+  // 대진이 여러 개면 11번 주고받을 때마다 다음 대진으로 (옷 · 장비 · 머리가 바뀐다)
+  nextBout() {
+    this.bouts = 0; this.comboBy = null;
+    this.castI = (this.castI + 1) % this.cast.length;
+    const [L, R] = this.cast[this.castI], [a, b] = this.fighters;
+    a.look = lookOf({ ...L, id: a.id }); b.look = lookOf({ ...R, id: b.id });
+    this.flash = 0.35; this.hype = 0.6;
+    this.text(`ROUND ${this.castI + 1}`, a, '#ffffff', 1.5, -30, 22);
+    this.demoTimer = setTimeout(() => this.running && this.demoTick(), 1400);
+  }
   demoTick() {
+    if (this.cast?.length > 1 && ++this.bouts > 11) return this.nextBout();
     const [a, b] = this.fighters;
-    const att = Math.random() < 0.5 ? a : b;
+    // 맞힌 쪽이 이어서 치는 연타 (40%) — 한 번씩 주고받기만 하면 단조로워서
+    const att = this.comboBy && Math.random() < 0.7 ? this.comboBy : Math.random() < 0.5 ? a : b;
     const DEMO = [['jab', 'jab'], ['jab', 'onetwo'], ['jab', 'double'], ['jab', 'straight'], ['hook', 'hook'], ['hook', 'shorthook'], ['hook', 'overhand'], ['uppercut', 'uppercut'], ['uppercut', 'shortupper'], ['body', 'bodystraight'], ['body', 'bodyhook'], ['body', 'liver'], ['body', 'bodyupper']];
     const [cat, move] = DEMO[Math.floor(Math.random() * DEMO.length)], name = '';
     const type = Math.random() < 0.3 ? 'miss' : Math.random() < 0.18 ? 'big' : 'strike';
@@ -331,7 +345,8 @@ export class Arena {
     const guard = type === 'strike' && Math.random() < 0.25 ? (Math.random() < 0.5 ? 'block' : 'roll') : undefined;
     const counter = type === 'strike' && !guard && Math.random() < 0.15;
     this.play({ type, act: { att: att.id, cat, name, move, dodge, guard, counter, from: counter ? pickK() : undefined }, pos: 'stand', top: null });
-    this.demoTimer = setTimeout(() => this.running && this.demoTick(), 700 + Math.random() * 900);
+    this.comboBy = type !== 'miss' && Math.random() < 0.4 ? att : null;
+    this.demoTimer = setTimeout(() => this.running && this.demoTick(), this.comboBy ? 380 + Math.random() * 220 : 700 + Math.random() * 900);
   }
 
   // ── 효과 생성
@@ -341,7 +356,7 @@ export class Arena {
     const [hx, hy] = this.headPos(f);
     this.fx.push({ kind: 'text', text, x: hx + dx, y: hy + dy, t0: this.rt, dur: 1, color, size });
   }
-  num(text, x, y, big) { this.fx.push({ kind: 'text', text, x: x + (Math.random() - 0.5) * 6, y, t0: this.rt, dur: 0.8, color: big ? '#ff4b45' : '#ffffff', size: big ? 1.15 : 0.85, num: true }); }
+  num(text, x, y, big) { this.fx.push({ kind: 'text', text, x: x + (Math.random() - 0.5) * 6, y, t0: this.rt, dur: 0.8, color: big ? '#ff1744' : '#ffffff', size: big ? 1.15 : 0.85, num: true }); }
   lock(dur, tap) { this.fx = this.fx.filter((x) => x.kind !== 'lock'); this.fx.push({ kind: 'lock', t0: this.rt, dur, tap }); }
   stars(f, dur) { this.fx = this.fx.filter((x) => !(x.kind === 'stars' && x.f === f)); this.fx.push({ kind: 'stars', f, t0: this.rt, dur }); }
   banner(text, dur = 1.2, o = {}) {
@@ -411,7 +426,7 @@ export class Arena {
     // 카메라: 두 선수 중간을 따라가고, 타격 순간 임팩트 지점으로 펀치 줌
     const [a, b] = this.fighters;
     const lockFx = this.fx.find((x) => x.kind === 'lock');
-    const baseZ = this.demo ? 1.05 : (this.pos === 'stand' ? 1.18 : 1.35) + (lockFx ? 0.25 : 0);
+    const baseZ = this.demo ? 1 : (this.pos === 'stand' ? 1.18 : 1.35) + (lockFx ? 0.25 : 0);
     const mx = (a.x + b.x) / 2;
     const tx = lerp(mx, this.cam.fx, Math.min(1, this.cam.punch * 2));
     const ty = lerp(this.pos === 'stand' ? 54 : 60, this.cam.fy, Math.min(1, this.cam.punch * 2));
@@ -477,18 +492,36 @@ export class Arena {
     if (logoDark) { w.globalAlpha = 0.13; w.drawImage(logoDark, CX - 26, top + 7, 52, 15); w.globalAlpha = 1; }
     // 뒤쪽 로프 & 포스트
     for (const [i, y] of [[0, 32], [1, 39], [2, 46]].map(([i, y]) => [i, y])) {
-      w.fillStyle = i === 1 ? '#ff4b45' : '#f0f0f0'; w.globalAlpha = 0.85; w.fillRect(10, y, LW - 20, 1); w.globalAlpha = 1;
+      w.fillStyle = i === 1 ? '#ff1744' : '#f0f0f0'; w.globalAlpha = 0.85; w.fillRect(18, y, LW - 36, 1); w.globalAlpha = 1;
     }
-    for (const x of [8, LW - 11]) { w.fillStyle = '#fff'; w.fillRect(x, 28, 3, 26); w.fillStyle = '#000'; w.fillRect(x, 28, 3, 2); }
+    for (const x of [16, LW - 19]) { w.fillStyle = '#fff'; w.fillRect(x, 28, 3, 26); w.fillStyle = '#000'; w.fillRect(x, 28, 3, 2); }
+    // 옆 로프: 뒤 기둥에서 앞 기둥으로 비스듬히 내려오는 3줄 (양쪽). 가로 로프만 있으면 링이 벽처럼 보여서
+    const BACK = [32, 39, 46], FRONT = [61, 70, 79];
+    const rope = (x0, y0, x1, y1, c) => {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+      w.fillStyle = c;
+      for (let k = 0; k <= n; k++) w.fillRect(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), 1, 1);
+    };
+    BACK.forEach((yb, i) => {
+      const c = i === 1 ? '#ff1744' : '#f0f0f0';
+      w.globalAlpha = 0.85;
+      rope(17, yb, 2, FRONT[i], c);           // 왼쪽
+      rope(LW - 18, yb, LW - 3, FRONT[i], c); // 오른쪽
+      w.globalAlpha = 1;
+    });
+    // 뒤 기둥 코너 패드 (로프가 묶이는 자리)
+    for (const x of [16, LW - 19]) BACK.forEach((yb, i) => { w.fillStyle = i === 1 ? '#ff1744' : '#9a9a9a'; w.fillRect(x, yb - 1, 3, 3); });
     // 앞 에이프런
     w.fillStyle = '#000'; w.fillRect(0, 84, LW, LH - 84);
     w.fillStyle = '#fff'; w.fillRect(0, 84, LW, 1);
-    w.fillStyle = '#ff4b45'; w.fillRect(0, 86, LW, 1);
+    w.fillStyle = '#ff1744'; w.fillRect(0, 86, LW, 1);
     if (logoImg.complete && logoImg.naturalWidth) w.drawImage(logoImg, CX - 13, 89, 26, 9);
     w.fillStyle = '#3a3a3a';
     for (let x = 6; x < LW; x += 12) if (Math.abs(x - CX) > 20) w.fillRect(x, 93, 6, 1);
     // 앞 포스트
-    for (const x of [0, LW - 4]) { w.fillStyle = '#fff'; w.fillRect(x, 58, 4, 32); w.fillStyle = '#ff4b45'; w.fillRect(x, 58, 4, 3); }
+    for (const x of [0, LW - 4]) { w.fillStyle = '#fff'; w.fillRect(x, 58, 4, 32); w.fillStyle = '#ff1744'; w.fillRect(x, 58, 4, 3); }
+    // 앞 기둥 코너 패드 (옆 로프가 묶이는 자리)
+    for (const x of [0, LW - 4]) [61, 70, 79].forEach((yf, i) => { w.fillStyle = i === 1 ? '#ff1744' : '#9a9a9a'; w.fillRect(x, yf - 1, 4, 3); });
   }
 
   drawFighter(w, f) {
@@ -536,7 +569,7 @@ export class Arena {
         const a = (i / n) * Math.PI * 2 + (x.big ? 0.2 : 0.4);
         const len = i % 2 ? R : R * 0.6;
         for (let r = R * 0.35; r < len; r += 1) {
-          w.fillStyle = r > len - 2 ? '#ff4b45' : '#ffffff';
+          w.fillStyle = r > len - 2 ? '#ff1744' : '#ffffff';
           if (!x.big && r > len - 2) w.fillStyle = '#ffffff';
           w.fillRect(Math.round(x.x + Math.cos(a) * r), Math.round(x.y + Math.sin(a) * r), 1, 1);
         }
@@ -568,7 +601,7 @@ export class Arena {
       for (let i = 0; i < 3; i++) {
         const a = this.rt * 4 + (i * Math.PI * 2) / 3;
         const sx = Math.round(hx + Math.cos(a) * 8), sy = Math.round(hy - 7 + Math.sin(a) * 3);
-        w.fillStyle = i === 1 ? '#ff4b45' : '#fff';
+        w.fillStyle = i === 1 ? '#ff1744' : '#fff';
         w.fillRect(sx, sy - 1, 1, 3); w.fillRect(sx - 1, sy, 3, 1);
       }
     } else if (x.kind === 'lock') {
@@ -576,7 +609,7 @@ export class Arena {
       const mx = Math.round((a.x + b.x) / 2), my = FLOOR - 10;
       const pulse = Math.sin(this.rt * 16) > 0 ? 1 : 0;
       const r = 11 + pulse;
-      w.fillStyle = x.tap ? '#ff4b45' : '#fff';
+      w.fillStyle = x.tap ? '#ff1744' : '#fff';
       for (let i = 0; i < 16; i++) {
         if (i % 2) continue;
         const an = (i / 16) * Math.PI * 2 + this.rt * 2;
@@ -689,14 +722,14 @@ export class Arena {
     c.fillStyle = 'rgba(0,0,0,.72)';
     c.beginPath(); c.moveTo(0, cy - bandH / 2 + 4 * px); c.lineTo(W, cy - bandH / 2 - 4 * px); c.lineTo(W, cy + bandH / 2 - 4 * px); c.lineTo(0, cy + bandH / 2 + 4 * px); c.fill();
     c.fillStyle = '#fff'; c.fillRect(0, cy - bandH / 2 - 6 * px + (1 - tin) * 20 * px, W * tin, Math.max(2, px));
-    c.fillStyle = '#ff4b45'; c.fillRect(W * (1 - tin), cy + bandH / 2 + 4 * px, W * tin, Math.max(2, px));
+    c.fillStyle = '#ff1744'; c.fillRect(W * (1 - tin), cy + bandH / 2 + 4 * px, W * tin, Math.max(2, px));
     // 글자: 왼쪽에서 오버슈트로 날아 들어옴
     const ov = tin < 1 ? (1 - easeOut(tin)) * -W * 0.7 + Math.sin(tin * Math.PI) * 6 * px : 0;
     const shakeT = x.big && p < 0.15 ? (Math.random() - 0.5) * 4 * px : 0;
     const size = Math.round((x.big ? 26 : x.small ? 10 : 17) * px);
     c.font = `700 ${size}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
     const tx = W / 2 + ov + shakeT, ty = cy - (x.sub ? 3 * px : 0) + shakeT;
-    c.fillStyle = '#ff4b45'; c.fillText(x.text, tx + 2 * px, ty + 2 * px);
+    c.fillStyle = '#ff1744'; c.fillText(x.text, tx + 2 * px, ty + 2 * px);
     c.lineWidth = Math.max(3, size * 0.16); c.strokeStyle = '#000'; c.lineJoin = 'round'; c.strokeText(x.text, tx, ty);
     c.fillStyle = '#fff'; c.fillText(x.text, tx, ty);
     if (x.sub && p > 0.45) {
@@ -704,7 +737,7 @@ export class Arena {
       const s2 = Math.round(9 * px * (1.8 - sp * 0.8));
       c.font = `700 ${s2}px ${FONT}`;
       c.lineWidth = Math.max(2, s2 * 0.25); c.strokeText(x.sub, W / 2, cy + 9 * px);
-      c.fillStyle = '#ff4b45'; c.fillText(x.sub, W / 2, cy + 9 * px);
+      c.fillStyle = '#ff1744'; c.fillText(x.sub, W / 2, cy + 9 * px);
     }
     c.restore();
   }

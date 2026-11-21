@@ -23,31 +23,41 @@ function calloutView(me, members, callouts) {
   const incoming = callouts.filter((c) => c.opponentId === myId && open(c));
   const outgoing = callouts.filter((c) => c.challengerId === myId && open(c));
   const past = callouts.filter((c) => !open(c)).slice(0, 10);
-  const others = members.filter((x) => x.id !== myId);
+  // 실력이 비슷한 상대부터 (전투력 차이가 작은 순)
+  const myPower = me.member.power;
+  const others = members.filter((x) => x.id !== myId).sort((a, b) => Math.abs(a.power - myPower) - Math.abs(b.power - myPower));
+  const sentTo = new Set(outgoing.map((c) => c.opponentId));
+  const diffTag = (o) => {
+    const d = o.power - myPower;
+    if (Math.abs(d) <= 40) return '<span class="badge solid">비슷</span>';
+    return d > 0 ? `<span class="badge">+${d} 강적</span>` : `<span class="badge">${d}</span>`;
+  };
   return `
-    <div class="steps"><span>① 콜아웃</span>›<span>② 코치 승인</span>›<span>FIGHT</span></div>
-    <div class="section-title">받은 콜아웃</div>
-    ${incoming.length ? incoming.map((c) => `
+    <div class="steps"><b>콜아웃</b><i>→</i>코치 승인<i>→</i>자동 경기</div>
+    ${incoming.length ? `<div class="section-title">받은 콜아웃 <span class="muted">${incoming.length}건</span></div>` : ''}
+    ${incoming.map((c) => `
       <div class="card">
         <div class="row"><div class="grow"><b>${esc(c.challenger)}</b> <span class="muted">님의 도전!</span></div>${st(c)}</div>
         ${c.message ? `<div style="margin-top:6px">“${esc(c.message)}”</div>` : ''}
         <div class="row" style="margin-top:10px"><span class="muted small grow">코치가 승인하면 바로 경기가 치러져요.</span><button class="btn sm" data-go="#/fighter/${c.challengerId}">분석</button></div>
-      </div>`).join('') : '<div class="card empty">받은 콜아웃이 없어요.</div>'}
+      </div>`).join('')}
 
-    <div class="section-title">보낸 콜아웃</div>
-    ${outgoing.length ? outgoing.map((c) => `
+    ${outgoing.length ? `<div class="section-title">보낸 콜아웃 <span class="muted">승인 대기</span></div>` : ''}
+    ${outgoing.map((c) => `
       <div class="card"><div class="row"><div class="grow">→ <b>${esc(c.opponent)}</b></div>${st(c)}</div>
         ${c.message ? `<div class="muted small" style="margin-top:4px">“${esc(c.message)}”</div>` : ''}
         <div class="row" style="margin-top:8px"><span class="muted small grow">${ago(c.createdAt)}</span><button class="btn sm ghost" data-cancel="${c.id}">취소</button></div>
-      </div>`).join('') : '<div class="card empty">보낸 콜아웃이 없어요.</div>'}
+      </div>`).join('')}
 
     <div class="section-title">상대 지목하기</div>
     ${others.length ? others.map((o) => `
       <div class="list-item">
         <div data-go="#/fighter/${o.id}" style="cursor:pointer">${avatar(o)}</div>
         <div class="grow" style="min-width:0;cursor:pointer" data-go="#/fighter/${o.id}"><div class="ellipsis" style="font-weight:800">${esc(o.name)}</div>
-          <div class="muted small">전투력 <b class="px" style="color:#fff">${o.power}</b> · ${record(o)} · 기술 ${o.skillCount}</div></div>
-        <button class="btn sm primary" data-callout="${o.id}" data-name="${esc(o.name)}" ${o.skillCount ? '' : 'disabled'}>콜아웃</button>
+          <div class="muted small">전투력 <b class="px" style="color:var(--ink)">${o.power}</b> · ${record(o)} · 기술 ${o.skillCount}</div>
+          <div style="margin-top:4px">${diffTag(o)}</div></div>
+        ${sentTo.has(o.id) ? '<span class="badge solid">보냄</span>'
+          : `<button class="btn sm outline" data-callout="${o.id}" data-name="${esc(o.name)}" ${o.skillCount ? '' : 'disabled'}>콜아웃</button>`}
       </div>`).join('') : '<div class="card empty">다른 회원이 아직 없어요.</div>'}
 
     ${past.length ? `<div class="section-title">지난 콜아웃</div>${past.map((c) => `
