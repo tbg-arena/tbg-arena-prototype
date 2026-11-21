@@ -28,6 +28,7 @@
 /* 내 순위 고정 줄 (탭바 바로 위) */
 .mybar { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 10px); z-index: 4; margin: 16px 3px 0 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--ink); color: var(--on-ink); box-shadow: 3px 3px 0 var(--red); }
 .mybar .muted { color: #555; }
+.mybar > .grow { flex: 1; min-width: 0; } /* 가운데 글자가 남는 폭을 차지해 '도전' 버튼이 오른쪽 끝에 붙게 */
 .mybar-no { width: 36px; flex-shrink: 0; text-align: center; font-size: 22px; font-weight: 700; }
 .mybar .btn.sm.primary { background: var(--on-ink); border-color: var(--on-ink); color: var(--ink); box-shadow: none; }
 
