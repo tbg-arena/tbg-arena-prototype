@@ -2,13 +2,14 @@
 import { state } from '../../core/state.js';
 import { esc, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
-import { STATUS_LABEL, dday, shortDate, passLine, todayKST, endOf } from './components.js';
+import { STATUS_LABEL, dday, shortDate, passLine, todayKST, endOf, addDays } from './components.js';
 
 // 회원 목록 줄에 붙는 표시: 주3회 3개월 · D-91 (수강권 없음 · 7일 이하는 빨갛게)
 export function passBadge(m) {
   const p = m.pass;
   if (!p) return `<span class="pbadge warn">${m.nextPass ? `수강권 ${shortDate(m.nextPass.start)} 시작` : '수강권 없음'}</span>`;
-  return `<span class="pbadge ${p.daysLeft <= 7 ? 'warn' : ''}">${passLine(p)}</span>`;
+  const holdLabel = p.status === 'held' ? ' · 홀딩 중' : '';
+  return `<span class="pbadge ${p.daysLeft <= 7 ? 'warn' : ''}">${passLine(p)}${holdLabel}</span>`;
 }
 
 // 회원 카드를 펼쳤을 때 수강권 칸: 요약 + 등록 · 내역 (+ extra: 다른 기능 버튼, 예: 출석 기록)
@@ -59,16 +60,30 @@ export function openPassRegister(m, onDone) {
   });
 }
 
-// 수강권 내역 창: 사용 중 · 예정 · 지난 수강권, 잘못 넣은 수강권 삭제
+// 수강권 내역 창: 사용 중 · 예정 · 지난 수강권, 잘못 넣은 수강권 삭제 · 홀딩 추가
 async function openPassHistory(m, onChange) {
   const d = await api('GET', `/api/coach/members/${m.id}/passes`);
   const all = [...d.current, ...d.scheduled, ...d.past];
+  const today = todayKST();
   openModal(`<h3>${esc(m.name)} · 수강권 내역</h3>
     ${all.length ? all.map((p) => `
-      <div class="list-item">
-        <div class="grow" style="min-width:0"><div style="font-weight:800">${esc(p.name)} <span class="badge">${STATUS_LABEL[p.status]}</span></div>
-          <div class="muted small">${shortDate(p.start)} ~ ${shortDate(p.end)} · ${p.used}/${p.total}회 사용${p.memo ? ` · ${esc(p.memo)}` : ''}</div></div>
-        <button class="btn sm ghost" data-delpass="${p.id}">삭제</button>
+      <div class="list-item" style="flex-direction:column;align-items:stretch;gap:4px">
+        <div class="row">
+          <div class="grow" style="min-width:0">
+            <div style="font-weight:800">${esc(p.name)} <span class="badge">${STATUS_LABEL[p.status]}</span></div>
+            <div class="muted small">${shortDate(p.start)} ~ ${shortDate(p.end)} · ${p.used}/${p.total}회 사용${p.memo ? ` · ${esc(p.memo)}` : ''}</div>
+            ${p.holdsMax > 0 ? `<div class="muted small">홀딩 ${p.holdsUsed}/${p.holdsMax}회 사용${p.holds.length ? ' · ' + p.holds.map((h) => shortDate(h.start) + '~' + shortDate(h.end)).join(', ') : ''}</div>` : ''}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+            ${p.holdsMax > 0 && p.holdsLeft > 0 && p.status === 'active' ? `<button class="btn sm ghost" data-addhold="${p.id}">홀딩</button>` : ''}
+            <button class="btn sm ghost" data-delpass="${p.id}">삭제</button>
+          </div>
+        </div>
+        ${p.holds.filter((h) => h.start > today).map((h) => `
+          <div class="row" style="padding-left:4px">
+            <span class="muted small">예정 홀딩: ${shortDate(h.start)} ~ ${shortDate(h.end)}</span>
+            <button class="btn sm ghost" data-cancelcoachhold="${h.id}" data-coachholdpass="${p.id}" style="margin-left:auto;padding:2px 8px">취소</button>
+          </div>`).join('')}
       </div>`).join('') : '<div class="card empty">등록된 수강권이 없어요.</div>'}
     <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button><button class="btn primary grow" id="add">＋ 수강권 등록</button></div>`, (el) => {
     el.querySelector('#x').onclick = closeModal;
@@ -78,6 +93,37 @@ async function openPassHistory(m, onChange) {
       await api('DELETE', `/api/coach/passes/${b.dataset.delpass}`);
       toast('수강권을 삭제했어요.'); onChange?.(); openPassHistory(m, onChange);
     })));
+    el.querySelectorAll('[data-addhold]').forEach((b) => (b.onclick = () => openCoachHoldModal(b.dataset.addhold, m, onChange)));
+    el.querySelectorAll('[data-cancelcoachhold]').forEach((b) => (b.onclick = () => act(async () => {
+      if (!confirm('이 홀딩을 취소할까요?')) return;
+      await api('DELETE', `/api/coach/passes/${b.dataset.coachholdpass}/hold/${b.dataset.cancelcoachhold}`);
+      toast('홀딩을 취소했어요.'); onChange?.(); openPassHistory(m, onChange);
+    })));
+  });
+}
+
+function openCoachHoldModal(passId, m, onChange) {
+  const today = todayKST();
+  openModal(`<h3>${esc(m.name)} · 홀딩 추가</h3>
+    <div class="stack">
+      <div class="card small muted" style="margin-bottom:0">7일 동안 수강권이 일시 정지되고 종료일이 7일 연장돼요.</div>
+      <div><label class="field">시작일</label><input id="ch-start" type="date" value="${today}" /></div>
+      <div class="card small" id="ch-sum"></div>
+    </div>
+    <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button><button class="btn primary grow" id="ok">추가</button></div>`, (el) => {
+    const $start = el.querySelector('#ch-start');
+    const $sum = el.querySelector('#ch-sum');
+    const update = () => {
+      const s = $start.value || today;
+      $sum.innerHTML = `홀딩 기간: <b>${shortDate(s)} ~ ${shortDate(addDays(s, 6))}</b>`;
+    };
+    $start.onchange = update;
+    update();
+    el.querySelector('#x').onclick = closeModal;
+    el.querySelector('#ok').onclick = () => act(async () => {
+      await api('POST', `/api/coach/passes/${passId}/hold`, { start: $start.value || today });
+      closeModal(); toast('홀딩을 추가했어요.'); onChange?.(); openPassHistory(m, onChange);
+    });
   });
 }
 
