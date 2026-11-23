@@ -136,6 +136,9 @@ details.group > summary::-webkit-details-marker, details.member > summary::-webk
 
 /* ── 탭바 */
 .tabbar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--bg); border-top: 1px solid var(--line); padding-bottom: var(--safe-b); z-index: 10; }
+/* 탭바 없는 하위 화면: 아래에 붙는 돌아가기 바 (sticky라 #app 너비를 따라감) */
+.backbar { position: sticky; bottom: 0; z-index: 5; padding: 0 16px var(--safe-b); background: var(--bg); border-top: 1px solid var(--line); }
+.backbar .btn { display: flex; min-height: 44px; padding: 10px 16px; margin: 8px 0; } /* 8 + 44 + 8 = --tabbar-h(60): 홈 탭바와 같은 높이 */
 .tabbar .inner { max-width: 520px; margin: 0 auto; display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; }
 .tabbar button { background: none; min-height: var(--tabbar-h); padding: 10px 0 9px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: var(--dim); font-size: 11px; font-weight: 700; position: relative; }
 .tabbar svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: square; stroke-linejoin: miter; }

@@ -32,8 +32,8 @@ async function renderCombos() {
       </div>
       ${shown.length ? `<div class="card cmb-list">${shown.map(row).join('')}</div>` : `<div class="card empty">${tab === 'open' ? '아직 열린 콤비가 없어요.<br/>수업에서 기술을 배우면 그 기술로 된 콤비가 열려요.' : '모든 콤비가 열렸어요!'}</div>`}
       <div class="muted small" style="margin:12px 2px">흰 칸 = 펀치, 점선 = 디펜스, 점 테두리 = 스텝. 펀치 없이 디펜스·스텝만 있는 콤비도 필살기가 돼요 (화려한 움직임으로 흐름을 가져와요).</div>
-      <button class="btn block" id="back" style="margin-top:16px">← 돌아가기</button>
-    </div>`;
+    </div>
+    <div class="backbar"><button class="btn block" id="back">← 돌아가기</button></div>`;
   document.getElementById('back').onclick = () => (history.length > 1 ? history.back() : go('#/home'));
   document.querySelectorAll('[data-tab]').forEach((b) => (b.onclick = () => { tab = b.dataset.tab; renderCombos(); }));
   document.querySelectorAll('[data-equip]').forEach((b) => (b.onclick = () => act(async () => {

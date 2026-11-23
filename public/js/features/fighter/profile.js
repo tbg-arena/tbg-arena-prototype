@@ -22,7 +22,7 @@ async function renderFighter(id) {
       <div class="card small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div>
       <div class="section-title">배운 기술 (${d.skills.length})</div>
       ${skillGroups(d.skills, { empty: '배운 기술이 없습니다.' })}
-      <button class="btn block" id="back" style="margin-top:16px">← 돌아가기</button>
-    </div>`;
+    </div>
+    <div class="backbar"><button class="btn block" id="back">← 돌아가기</button></div>`;
   document.getElementById('back').onclick = () => history.back();
 }

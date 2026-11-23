@@ -24,8 +24,8 @@ async function renderPasses() {
       <div class="section-title">지난 수강권</div>
       ${d.past.length ? d.past.map(row).join('') : '<div class="card empty">지난 수강권이 없어요.</div>'}
       <div class="muted small" style="margin:12px 2px">출석 체크를 받으면 1회씩 차감돼요. 이번 주(월~일) 횟수를 다 쓰면 다음 주 월요일까지 출석할 수 없고, 이번 주에 못 쓴 횟수는 다음 주로 넘어가지 않아요.</div>
-      <button class="btn block" id="back" style="margin-top:16px">← 돌아가기</button>
-    </div>`;
+    </div>
+    <div class="backbar"><button class="btn block" id="back">← 돌아가기</button></div>`;
   document.getElementById('back').onclick = () => (history.length > 1 ? history.back() : go('#/home'));
   bindAttendCalendar(att.days);
   document.querySelectorAll('[data-holdpass]').forEach((b) => (b.onclick = () => openHoldModal(b.dataset.holdpass, d, renderPasses)));
