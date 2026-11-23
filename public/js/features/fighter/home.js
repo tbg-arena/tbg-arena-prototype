@@ -15,7 +15,7 @@ memberTab({
   view: ({ me, callouts }) => homeView(me, callouts),
   bind: ({ me }) => {
     const strat = document.getElementById('editStrategy');
-    if (strat) strat.onclick = () => strategyModal(me.member.strategy);
+    if (strat) strat.onclick = () => strategyModal(me.member.strategy, me.recommend);
     const fin = document.getElementById('editFinisher');
     if (fin) fin.onclick = () => finisherModal(me);
     // 타일을 키보드로도 열 수 있게 (Enter · Space)
@@ -58,18 +58,27 @@ function prepTile({ go, id, code, title, sub, chip, wide }) {
   </div>`;
 }
 
-function strategyModal(cur) {
+// rec: 서버가 배운 기술 · 능력치 · 컨디셔닝으로 고른 추천 { style, guard, focus: { v, why } } (배운 게 없으면 null)
+function strategyModal(cur, rec) {
   const S = state.meta.strategy;
   const sel = { ...cur, focus: [...(cur.focus || ['헤드', '바디'])] };
+  const isRec = (k, v) => !!rec?.[k] && (k === 'focus' ? rec.focus.v.includes(v) : rec[k].v === v);
   const HELP = {
     stance: { 오소독스: '왼발 앞. 가장 흔한 자세', 사우스포: '오른발 앞. 오소독스 상대로 타격 정확도 ↑' },
     guard: { 하이가드: '얼굴 펀치 방어 ↑ / 바디에 약간 취약', 숄더롤: '잽·스트레이트 방어 ↑↑ · 카운터 ↑ / 훅에 약함', 밸런스: '모든 펀치 방어 조금 ↑' },
     style: { 인파이팅: '공격권 ↑ · 훅·어퍼컷·바디 비중 ↑', 카운터: '공격권 ↓ · 상대 펀치가 빗나가면 받아치기', 아웃복싱: '잽·스트레이트 비중 ↑ · 어퍼컷 비중 ↓' },
   };
-  const seg = (k) => `<div class="seg" style="grid-template-columns:repeat(${S[k].length},1fr)">${S[k].map((v) => `<button data-k="${k}" data-v="${esc(v)}" class="${(k === 'focus' ? sel.focus.includes(v) : sel[k] === v) ? 'on' : ''}">${esc(v)}</button>`).join('')}</div>`;
+  const seg = (k) => `<div class="seg" style="grid-template-columns:repeat(${S[k].length},1fr)">${S[k].map((v) => `<button data-k="${k}" data-v="${esc(v)}" class="${(k === 'focus' ? sel.focus.includes(v) : sel[k] === v) ? 'on' : ''}">${esc(v)}${isRec(k, v) ? '<span class="rec-dot" aria-label="추천">★</span>' : ''}</button>`).join('')}</div>`;
   const help = (k) => (HELP[k] ? `<div class="muted small" id="h-${k}" style="margin-top:4px">${HELP[k][sel[k]]}</div>` : '');
+  const recCard = rec ? `<div class="card rec-card">
+      <div class="row" style="justify-content:space-between"><b class="small">★ 내 훈련 기록으로 본 추천</b><button class="btn sm" id="useRec">추천대로 맞추기</button></div>
+      <div class="small" style="margin-top:8px"><b>${esc(rec.style.v)}</b> · ${esc(rec.style.why)}</div>
+      <div class="small"><b>${esc(rec.guard.v)}</b> · ${esc(rec.guard.why)}</div>
+      <div class="small"><b>${rec.focus.v.map(esc).join('·')} 공략</b> · ${esc(rec.focus.why)}</div>
+    </div>` : '<div class="muted small" style="margin-bottom:10px">기술을 배우면 내 훈련 기록으로 전략을 추천해 드려요.</div>';
   openModal(`
     <h3>내 기본 전략</h3>
+    ${recCard}
     <div class="stack">
       <div><label class="field">스탠스</label>${seg('stance')}${help('stance')}</div>
       <div><label class="field">가드</label>${seg('guard')}${help('guard')}</div>
@@ -77,18 +86,22 @@ function strategyModal(cur) {
       <div><label class="field">공략 부위 (복수 선택) — 해당 펀치를 더 자주 시도</label>${seg('focus')}</div>
     </div>
     <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button><button class="btn primary grow" id="ok">저장</button></div>`, (el) => {
+    // sel 그대로 버튼 켜짐 · 설명 다시 그리기
+    const paint = () => {
+      el.querySelectorAll('.seg button').forEach((x) => { const { k, v } = x.dataset; x.classList.toggle('on', k === 'focus' ? sel.focus.includes(v) : sel[k] === v); });
+      for (const k of Object.keys(HELP)) { const h = el.querySelector(`#h-${k}`); if (h) h.textContent = HELP[k][sel[k]]; }
+    };
     el.querySelectorAll('.seg button').forEach((b) => (b.onclick = () => {
       const { k, v } = b.dataset;
       if (k === 'focus') {
         if (sel.focus.includes(v)) { if (sel.focus.length > 1) sel.focus = sel.focus.filter((x) => x !== v); }
         else sel.focus.push(v);
-        el.querySelectorAll(`[data-k="focus"]`).forEach((x) => x.classList.toggle('on', sel.focus.includes(x.dataset.v)));
-      } else {
-        sel[k] = v;
-        el.querySelectorAll(`[data-k="${k}"]`).forEach((x) => x.classList.toggle('on', x.dataset.v === v));
-        const h = el.querySelector(`#h-${k}`); if (h) h.textContent = HELP[k][v];
-      }
+      } else sel[k] = v;
+      paint();
     }));
+    // 추천대로: 선택만 바꾸고 저장은 따로 (스탠스는 그대로)
+    const useRec = el.querySelector('#useRec');
+    if (useRec) useRec.onclick = () => { Object.assign(sel, { style: rec.style.v, guard: rec.guard.v, focus: [...rec.focus.v] }); paint(); toast('추천대로 골랐어요. 저장을 눌러 주세요.'); };
     el.querySelector('#x').onclick = closeModal;
     el.querySelector('#ok').onclick = () => act(async () => {
       await api('PUT', '/api/me/strategy', sel); closeModal(); toast('전략을 저장했어요.'); route();

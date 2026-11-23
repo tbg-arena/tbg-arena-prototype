@@ -82,3 +82,8 @@
 .rank.r1 { clip-path: var(--notch); box-shadow: inset 0 -3px 0 rgba(0,0,0,.25); }
 .list-item .rank.r2 { color: var(--ink); text-decoration: underline 2px var(--line2); text-underline-offset: 4px; }
 .mybar-no { font-family: var(--pixel); }
+
+/* 기본 전략 추천: 추천 카드 + 추천 선택지에 ★ */
+.rec-card { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: inset 3px 0 0 var(--yellow); }
+.rec-dot { margin-left: 4px; font-size: 10px; color: var(--yellow); vertical-align: 1px; }
+.seg button.on .rec-dot { color: inherit; }
