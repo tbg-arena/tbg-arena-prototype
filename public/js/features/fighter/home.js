@@ -52,7 +52,7 @@ function homeView(me, callouts) {
 // 내 준비 타일: 약어 칸 + 상태 칩 (오른쪽 위) + 이름 + 한 줄 설명
 function prepTile({ go, id, code, title, sub, chip, wide }) {
   const attr = go ? `data-go="${go}"` : `id="${id}" role="button" tabindex="0"`;
-  return `<div class="prep-tile${wide ? ' wide' : ''}" ${attr}>
+  return `<div class="prep-tile${wide ? ' wide' : ''}" data-code="${code}" ${attr}>
     <div class="row" style="justify-content:space-between"><span class="prep-code px">${code}</span>${chip}</div>
     <b>${title}</b><div class="muted small prep-sub">${sub}</div>
   </div>`;

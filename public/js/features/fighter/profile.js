@@ -15,13 +15,14 @@ async function renderFighter(id) {
   const m = d.member;
   const s = m.strategy;
   $app.innerHTML = `
-    <div class="topbar"><button class="link" id="back">← 돌아가기</button><div class="muted small">상대 분석</div><span style="width:60px"></span></div>
+    <div class="topbar"><span style="width:60px"></span><div class="muted small">상대 분석</div><span style="width:60px"></span></div>
     <div class="page no-tabs">
       ${fighterCard(m)}
       <div class="section-title">기본 전략</div>
       <div class="card small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div>
       <div class="section-title">배운 기술 (${d.skills.length})</div>
       ${skillGroups(d.skills, { empty: '배운 기술이 없습니다.' })}
+      <button class="btn block" id="back" style="margin-top:16px">← 돌아가기</button>
     </div>`;
   document.getElementById('back').onclick = () => history.back();
 }

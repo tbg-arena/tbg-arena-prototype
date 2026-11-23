@@ -21,8 +21,9 @@ async function renderShop() {
   if (seq !== state.seq) return; // 그 사이 다른 화면으로 이동함
   state.me = me;
   $app.innerHTML = `
-    <div class="topbar"><button class="link" id="back">← 돌아가기</button><div class="muted small">옷장 · 상점</div><span style="width:60px"></span></div>
-    <div class="page no-tabs" id="shopPage">${shopView(me, shop)}</div>`;
+    <div class="topbar"><span style="width:60px"></span><div class="muted small">옷장 · 상점</div><span style="width:60px"></span></div>
+    <div class="page no-tabs" id="shopPage">${shopView(me, shop)}</div>
+    <div style="padding:0 16px calc(28px + var(--safe-b))"><button class="btn block" id="back" style="margin-top:16px">← 돌아가기</button></div>`;
   document.getElementById('back').onclick = () => (history.length > 1 ? history.back() : go('#/home'));
   bindShop(me, shop);
   if (fresh) window.scrollTo(0, 0);
