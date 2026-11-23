@@ -4,3 +4,7 @@ data/
 .env*
 .idea/
 .vscode/
+
+# 회원 개인정보 (공개 저장소에 올리지 않음)
+docs/*.xlsx
+tools/reset-new-stats.js
