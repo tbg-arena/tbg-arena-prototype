@@ -53,22 +53,30 @@ function glove(x, y, st, gear = {}) {
 }
 
 // 헤어스타일 (look.gear.hair, 상점 '헤어'): default = 성별 기본 머리 · bald = 빡빡이 · buzz = 스포츠머리 · mohawk = 모히칸
-//   ponytail = 포니테일 · bob = 단발 · bun = 똥머리
+//   blond-buzz = 금발 빡빡이 · ponytail = 포니테일 · bob = 단발 · bun = 똥머리
 const BUZZ = ['#4b4038', '#6a5c52']; // 짧게 깎은 머리 (거뭇한 색, 결)
 const SHINE = '#fff3e3';             // 빡빡이 반짝임
 const TIE = '#e23d6b';               // 머리끈
 function drawHead(g, hx, hy, look, st, face) {
-  const [hc, hl] = HAIR;
   const style = look.gear?.hair || 'default';
+  const [hc, hl] = style === 'bob' ? ['#79513d', '#bb8b64'] : HAIR;
   const girl = look.gender === 'F' && style === 'default'; // 두건은 여자 기본 머리일 때만
   const outer = [rc(hx + 2, hy + 1, 9, 10, C.skin), rc(hx + 1, hy + 2, 11, 8, C.skin)];
   // 머리 밖으로 삐져나오는 헤어: 남자 = 삐죽머리, 여자 = 뒷머리 + 두건 매듭 꼬리, 모히칸 = 가운데 세운 머리
   if (style === 'default') {
     if (girl) outer.push(rc(hx, hy + 4, 3, 6, hc), rc(hx - 2, hy + 2, 3, 2, st.band), rc(hx - 4, hy + 4, 3, 2, st.band));
     else outer.push(rc(hx + 2, hy - 1, 2, 2, hc), rc(hx + 5, hy - 2, 2, 3, hc), rc(hx + 8, hy - 1, 2, 2, hc), rc(hx, hy + 1, 2, 3, hc));
-  } else if (style === 'mohawk') outer.push(rc(hx + 4, hy - 3, 4, 4, hc));
+  } else if (style === 'mohawk') {
+    // 뒤통수에서 이마까지 이어지는 톱니형 능선: 둥근 번과 다른 실루엣
+    outer.push(rc(hx + 2, hy - 1, 9, 2, hc), rc(hx + 3, hy - 3, 1, 3, hc), rc(hx + 6, hy - 5, 1, 5, hc), rc(hx + 9, hy - 4, 1, 4, hc));
+  }
   else if (style === 'ponytail') outer.push(rc(hx - 2, hy + 1, 3, 3, hc), rc(hx - 4, hy + 3, 3, 6, hc)); // 뒤로 높게 묶어 늘어뜨림
-  else if (style === 'bob') outer.push(rc(hx, hy + 1, 3, 8, hc));                                       // 턱선까지 내려오는 뒷머리
+  else if (style === 'bob') {
+    // 볼을 드러내는 밤색 단발: 뒤쪽 볼륨과 귀에 넘긴 짧은 앞쪽 끝
+    outer.push(rc(hx + 3, hy, 7, 2, hc), rc(hx + 1, hy + 1, 11, 2, hc),
+      rc(hx, hy + 3, 3, 5, hc), rc(hx + 1, hy + 8, 3, 2, hc),
+      rc(hx + 12, hy + 3, 1, 2, hc));
+  }
   else if (style === 'bun') outer.push(rc(hx + 2, hy - 3, 5, 4, hc));                                    // 정수리 뒤쪽 번
   group(g, outer);
   const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(hx + x, hy + y, w, h); };
@@ -86,14 +94,25 @@ function drawHead(g, hx, hy, look, st, face) {
     R(4, 1, 1, 1, BUZZ[1]); R(7, 1, 1, 1, BUZZ[1]); R(3, 2, 1, 1, BUZZ[1]); R(6, 2, 1, 1, BUZZ[1]);
   } else if (style === 'bald') {
     R(3, 2, 2, 1, SHINE); R(2, 3, 1, 1, SHINE);
-  } else if (style === 'ponytail' || style === 'bob' || style === 'bun') {
+  } else if (style === 'blond-buzz') {
+    // 바짝 민 옆머리와 짧은 탈색모: 노란 덩어리 대신 밝은 결을 찍는다
+    R(2, 1, 9, 1, '#d9ae49'); R(1, 2, 11, 1, '#e8c568');
+    R(1, 3, 3, 1, '#c7a465'); R(1, 4, 2, 1, '#c7a465'); R(10, 3, 2, 1, '#c7a465');
+    for (const [x, y] of [[3, 1], [6, 1], [9, 1], [2, 2], [5, 2], [8, 2], [11, 2]]) R(x, y, 1, 1, '#fff0ac');
+  } else if (style === 'bob') {
+    R(2, 1, 9, 2, hc);
+    R(1, 3, 4, 1, hc); R(7, 3, 2, 1, hc); R(10, 3, 2, 1, hc); // 이마가 비치는 가벼운 앞머리
+    R(1, 4, 2, 4, hc); R(2, 8, 2, 1, hc); // 볼을 덮지 않는 옆머리
+    R(3, 1, 4, 1, hl); R(2, 2, 3, 1, hl); R(9, 2, 2, 1, hl);
+    R(1, 4, 1, 3, hl); R(2, 7, 1, 1, hl); // 둥근 결을 따라 밝은 밤색 윤기
+  } else if (style === 'ponytail' || style === 'bun') {
     R(2, 1, 9, 1, hc); R(1, 2, 11, 2, hc); R(9, 4, 2, 1, hc); R(1, 4, 3, 2, hc); R(4, 2, 2, 1, hl); // 정수리 + 앞머리 + 옆머리
     if (style === 'ponytail') { R(-1, 2, 1, 2, TIE); R(-3, 4, 1, 4, hl); }
-    if (style === 'bob') { R(0, 4, 4, 4, hc); R(1, 8, 2, 1, hc); R(1, 3, 1, 1, hl); }
     if (style === 'bun') { R(3, -2, 3, 1, hl); R(2, 0, 5, 1, TIE); }
   } else if (style === 'mohawk') {
-    R(4, 1, 4, 2, hc); R(5, -2, 1, 2, hl);
-    R(2, 1, 2, 1, BUZZ[0]); R(1, 2, 3, 1, BUZZ[0]); R(8, 1, 2, 1, BUZZ[0]); R(8, 2, 3, 1, BUZZ[0]);
+    R(2, 0, 9, 1, hc); R(7, 1, 3, 1, hc); // 능선이 앞 이마까지 내려옴
+    R(3, -2, 1, 2, hl); R(6, -4, 1, 3, hl); R(9, -3, 1, 2, hl);
+    R(2, 2, 1, 1, BUZZ[1]); R(4, 2, 1, 1, BUZZ[1]); R(1, 3, 1, 1, BUZZ[1]); // 민 옆머리의 짧은 결
   }
   // 얼굴 (오른쪽을 본다)
   if (face === 'ko') {
@@ -219,11 +238,28 @@ export function drawSprite(g, look, st, pose) {
   body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, gear.trunks || CLOTH.p)); // 반바지 (트렁크)
   body.push(rc(-4 + ux, -20 + uy, 8, 8, gear.shirt || CLOTH.c));                     // 반팔 티 (상의)
   group(g, body);
+  if (gear.trunksPanel) {
+    g.fillStyle = gear.trunksPanel;
+    for (let x = -4; x <= 4; x++) for (let y = -12; y <= -9; y++) {
+      if (y >= -12 + Math.abs(x) * 0.5) g.fillRect(x + Math.round(ux / 3), y + Math.round(uy / 2), 1, 1);
+    }
+  }
+  if (gear.trunksStripe) {
+    g.fillStyle = gear.trunksStripe;
+    for (let y = -12; y <= -9; y++) {
+      g.fillRect(-4 + Math.round(ux / 3), y + Math.round(uy / 2), 1, 1);
+      g.fillRect(3 + Math.round(ux / 3), y + Math.round(uy / 2), 1, 1);
+    }
+  }
   g.fillStyle = gear.trunksS || CLOTH.ps; g.fillRect(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 1); // 허리 밴드
   if (gear.trunksMark) { g.fillStyle = gear.trunksMark; g.fillRect(-1 + Math.round(ux / 3), -13 + Math.round(uy / 2), 2, 1); } // 밴드 로고
   g.fillStyle = gear.shirtS || CLOTH.s; g.fillRect(-4 + ux, -20 + uy, 2, 8);
   if (gear.sleeveless) { g.fillStyle = C.skin; g.fillRect(-4 + ux, -20 + uy, 2, 1); g.fillRect(2 + ux, -20 + uy, 2, 1); } // 탱크탑 어깨선
-  if (gear.shirtMark) { g.fillStyle = gear.shirtMark; g.fillRect(ux - 1, -18 + uy, 4, 1); g.fillRect(ux, -16 + uy, 3, 1); } // 가슴 프린트 (글자 두 줄 느낌)
+  if (gear.shirtGraphic) {
+    g.fillStyle = gear.shirtGraphic;
+    g.fillRect(ux - 3, -18 + uy, 6, 1); g.fillRect(ux - 2, -17 + uy, 4, 1); g.fillRect(ux - 3, -16 + uy, 6, 1);
+    if (gear.shirtMark) { g.fillStyle = gear.shirtMark; g.fillRect(ux - 1, -19 + uy, 2, 1); }
+  } else if (gear.shirtMark) { g.fillStyle = gear.shirtMark; g.fillRect(ux - 1, -18 + uy, 4, 1); g.fillRect(ux, -16 + uy, 3, 1); } // 가슴 프린트
   // 3. 머리
   drawHead(g, -6 + ux + hdx, -31 + uy + hdy, look, st, face);
   // 4. 뒷팔 → 5. 앞팔
