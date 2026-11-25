@@ -24,4 +24,10 @@ export async function api(method, url, body) {
   return data;
 }
 // 버튼 동작용: 실패하면 토스트로 알려준다
-export async function act(fn) { try { return await fn(); } catch (e) { toast(e.message, true); } }
+// 앞 요청이 끝나기 전에 다시 누르면 무시 (두 번 눌러 회원이 두 명 생기는 일 방지)
+let busy = false;
+export async function act(fn) {
+  if (busy) return;
+  busy = true;
+  try { return await fn(); } catch (e) { toast(e.message, true); } finally { busy = false; }
+}
