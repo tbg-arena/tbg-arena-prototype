@@ -13,8 +13,10 @@ import './features/fighter/profile.js';
 // 콜아웃: 회원 콜아웃 탭 · 코치 승인 탭
 import './features/callouts/member.js';
 import './features/callouts/coach.js';
-// 회원 관리: 코치 회원·기술 탭 (출석 버튼, 기술 관리 포함)
+// 회원 관리: 코치 회원·기술 탭 (체육관 위치 · 출석 상태 · 출석 기록, 기술 관리 포함)
 import './features/members/coach.js';
+// 출석: 회원 '출석' 화면 (#/attend, 홈 출석 카드에서 들어감) — 체육관 안에서 위치 확인 후 출석
+import './features/attendance/member.js';
 // 배운 것 넣기: 코치 '배운 것' 탭 (오늘 출석한 회원에게 각자 주차의 기술을 넣음)
 import './features/lessons/coach.js';
 // 콤비네이션: 회원 '내 콤비' 화면 (#/combos, 홈에서 들어감) — 배운 기술로 된 콤비가 열리고 필살기로 장착
@@ -25,8 +27,6 @@ import './features/fights/coach.js';
 import './features/fights/broadcast.js';
 // 상점: 회원 옷장·상점 화면 (#/shop, 홈에서 들어감)
 import './features/shop/member.js';
-// 수강권: 회원 '내 수강권' 화면 (#/passes, 홈 출석 카드에서 들어감). 코치 수강권 관리는 회원·기술 탭 안
-import './features/passes/member.js';
 // 컨디셔닝: 회원 '컨디셔닝' 탭 (내가 한 체력운동 · 최고 기록) · 코치 '컨디셔닝' 탭 (회원 운동 넣기)
 import './features/conditioning/member.js';
 import './features/conditioning/coach.js';

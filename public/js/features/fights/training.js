@@ -34,7 +34,7 @@ export function trainingCard(me, days, weeks) {
         <div class="tr-big"><b>${thisWeek}</b><span>이번 주 출석</span></div>
       </div>
 
-      <div class="tr-block" data-go="#/passes">
+      <div class="tr-block" data-go="#/attend">
         <div class="row tr-head"><b>출석</b><span class="grow"></span>${streak >= 2 ? `<span class="badge solid">${streak}주 연속</span>` : ''}</div>
         <div class="tr-week">${week.map((d, i) => `<div class="${set.has(d) ? 'on' : ''} ${d === today ? 'today' : ''} ${d > today ? 'future' : ''}"><i></i><span>${'월화수목금토일'[i]}</span></div>`).join('')}</div>
       </div>

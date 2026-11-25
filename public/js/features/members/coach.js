@@ -1,42 +1,44 @@
-// 코치 회원 관리 탭: 회원 등록·수정·삭제 + (출석 버튼, 수강권, 기술 관리는 각 기능 파일에서)
+// 코치 회원 관리 탭: 회원 등록·수정·삭제 + (체육관 위치 · 출석 상태 · 출석 기록, 기술 관리는 각 기능 파일에서)
 import { esc, svg, avatar, fmtPhone, record, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { coachTab, renderCoach } from '../../core/tabs.js';
 import { STAT_LABEL } from '../fighter/components.js';
 import { skillGroups } from '../skills/components.js';
 import { addSkillButton, bindSkillAdmin } from '../skills/admin.js';
-import { attendButton, bindAttend, attendLogButton, bindAttendLog } from '../attendance/admin.js';
-import { passBadge, passBlock, bindPassAdmin } from '../passes/coach.js';
+import { gymCard, bindGym, attendBadge, bindTodaySheet, attendLogButton, bindAttendLog } from '../attendance/admin.js';
 
 coachTab({
   id: 'members', order: 20, label: '회원·기술',
   icon: svg('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14a6 6 0 013.5 6"/>'),
   poll: false, // 펼쳐 둔 회원·입력 중인 폼이 4초마다 닫히지 않도록
-  load: async () => ({ members: await api('GET', '/api/coach/members') }),
-  view: ({ members }) => membersView(members),
-  bind: ({ members }) => {
+  load: async () => {
+    const [members, { gym, radius }] = await Promise.all([api('GET', '/api/coach/members'), api('GET', '/api/coach/gym')]);
+    return { members, gym, radius };
+  },
+  view: ({ members, gym }) => membersView(members, gym),
+  bind: ({ members, radius }) => {
     bindMemberActions(members);
-    bindAttend(refreshMembers, members);
-    bindAttendLog(members, refreshMembers);
-    bindPassAdmin(members, refreshMembers);
+    bindGym(radius, refreshMembers);
+    bindTodaySheet(members, refreshMembers);
+    bindAttendLog(members);
     bindSkillAdmin(members, refreshMembers);
   },
 });
 
-function membersView(members) {
+function membersView(members, gym) {
   return `
+        ${gymCard(gym)}
         <button class="btn primary block" id="addMember">＋ 회원 등록</button>
         <div class="section-title">회원 (${members.length}) · 오늘 출석 ${members.filter((m) => m.attended).length}명</div>
         ${members.length ? members.map((m) => `
           <details class="card member" data-mid="${m.id}">
             <summary class="row">${avatar(m)}
               <div class="grow" style="min-width:0"><div style="font-weight:800" class="ellipsis">${esc(m.name)}</div>
-                <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div>${passBadge(m)}</div>
-              ${attendButton(m)}</summary>
+                <div class="muted small">${fmtPhone(m.phone)} · 전투력 ${m.power} · 기술 ${m.skills.length}</div></div>
+              ${attendBadge(m)}</summary>
             <div style="margin-top:12px">
-              ${passBlock(m, attendLogButton(m))}
               ${statSliders(m)}
-              <div class="muted small" style="margin:8px 0">${record(m)} · 누적 출석 ${m.attendCount}</div>
+              <div class="row" style="margin:8px 0"><span class="muted small grow">${record(m)} · 누적 출석 ${m.attendCount}</span>${attendLogButton(m)}</div>
               <div class="row" style="margin:12px 0 8px">
                 ${addSkillButton(m)}
                 <button class="btn" data-edit="${m.id}">수정</button>
