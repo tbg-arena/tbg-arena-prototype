@@ -18,7 +18,6 @@ require('./lib/fighter/routes');
 require('./lib/callouts/routes');
 require('./lib/fights/routes');
 require('./lib/shop/routes');
-require('./lib/passes/routes');
 require('./lib/lessons/routes');
 require('./lib/combos/routes');
 require('./lib/conditioning/routes');

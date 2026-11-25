@@ -1,4 +1,4 @@
-// 회원 홈 탭: 내 선수 카드 · 출석·수강권 · 기본 전략 · 필살기 콤보 · 옷장·상점 가기 · 내 기술
+// 회원 홈 탭: 내 선수 카드 · 출석 · 기본 전략 · 필살기 콤보 · 옷장·상점 가기 · 내 기술
 import { state } from '../../core/state.js';
 import { esc, svg, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
@@ -32,7 +32,7 @@ function homeView(me, callouts) {
     ${fighterCard(m)}
     <div class="section-title">내 준비</div>
     <div class="prep">
-      ${prepTile({ go: '#/passes', code: 'GYM', title: '출석 · 수강권', sub: `누적 ${m.attendCount}회 · 출석하면 능력치가 올라요`,
+      ${prepTile({ go: '#/attend', code: 'GYM', title: '출석', sub: `누적 ${m.attendCount}회 · 체육관에서 출석하면 능력치가 올라요`,
         chip: m.attended ? '<span class="badge solid">오늘 완료</span>' : '<span class="badge">미출석</span>' })}
       ${prepTile({ id: 'editFinisher', code: 'FIN', title: '필살기',
         sub: finisherOf(me) ? finisherOf(me).map((x) => esc(x.name)).join(' · ') : '배운 기술로 막판 한 방',
