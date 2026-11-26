@@ -2,6 +2,8 @@
 // 복싱 육성 시뮬레이션: 체육관 출석·실제 배운 기술 → 성장 → 콜아웃 → 자동 경기 시뮬레이션
 // 기능별 코드는 lib/<기능>/ 에 있다 (README '구조' 참고)
 const http = require('http');
+// 로컬: 이 폴더의 .env 를 환경변수로 읽음 (예: KAKAO_JS_KEY). Vercel은 대시보드 환경변수를 씀
+try { process.loadEnvFile?.(); } catch {}
 const store = require('./lib/core/store');
 const { handle } = require('./lib/core/router');
 const { serveStatic } = require('./lib/core/http');

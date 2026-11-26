@@ -25,6 +25,8 @@ npm start                 # http://localhost:3000
 COACH_PIN=9876 npm start  # 코치 PIN 지정 (기본값 1234 → 운영 시 꼭 변경)
 ```
 
+- 환경변수는 프로젝트 폴더의 `.env` 에 적어 둬도 됨 (gitignore, Node 20.12+ 에서 자동으로 읽음). 예: `KAKAO_JS_KEY=...`
+
 - 외부 패키지 없음 (Node.js 18+)
 - 로컬에서는 데이터가 `data/db.json` 에 저장 (gitignore)
 - 같은 Wi‑Fi 휴대폰에서 `http://<PC IP>:3000` 접속 → 홈 화면에 추가하면 앱처럼 실행
@@ -37,6 +39,7 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 1. Vercel에서 이 GitHub 레포를 Import (Framework: Other, 빌드 설정은 비워 두면 `public/` 이 정적 파일로, `api/` 가 함수로 배포됨)
 2. 프로젝트 → **Storage** → **Upstash for Redis** 생성 후 연결 → `KV_REST_API_URL`, `KV_REST_API_TOKEN` 자동 등록
 3. **Settings → Environment Variables** 에 `COACH_PIN` 추가 (기본값 1234 그대로 두지 말 것)
+   - 체육관 위치를 지도에서 고르려면 `KAKAO_JS_KEY` (카카오 JavaScript 키)도 추가. 없으면 체육관 안에서 '지금 위치로 저장'만 됨
 4. Redeploy
 
 - 정적 파일은 `public/`, `/api/*` 는 서버리스 함수 하나가 처리
@@ -99,7 +102,10 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
   - 브라우저 위치는 **https**(배포 주소)나 `localhost` 에서만 동작. 같은 와이파이의 `http://192.168…` 주소로는 위치를 못 받음
   - 위치는 휴대폰이 보낸 값을 믿는 구조라, 위치를 조작하는 앱까지 막지는 못함
 - 회원 출석 화면(`#/attend`): 오늘 출석 여부 · 누적 · 이번 주 횟수 + **출석 기록 달력** (◀ ▶ 로 달 이동, 보기만)
-- 코치: 회원·기술 탭 맨 위 **체육관 위치** → 체육관 안에서 **지금 위치로 저장** (위치 오차가 출석 반경 20m보다 크면 한 번 더 확인). 저장 전엔 회원이 출석할 수 없음
+- 코치: 회원·기술 탭 맨 위 **체육관 위치** → **카카오 지도**에서 체육관 이름 · 주소로 검색 → 결과를 고르면 핀 → 핀을 끌거나 지도를 눌러 체육관 자리에 맞추고 **이 위치로 저장** (지도에 출석 반경 20m 원 표시). 저장 전엔 회원이 출석할 수 없음
+  - 장소 이름 · 주소도 같이 저장해서 카드에 표시. **내 위치** 는 핀만 내 위치로 옮김 (PC는 오차가 커서 지도에서 확인)
+  - 지도는 이 창에서만 불러옴. 회원 출석은 지도 없이 휴대폰 위치로만 확인
+  - 필요: 환경변수 `KAKAO_JS_KEY` + [카카오 개발자](https://developers.kakao.com) 앱에 사이트 도메인 등록 (`http://localhost:3000`, 배포 주소). 키가 없거나 지도를 못 불러오면 예전처럼 체육관 안에서 **지금 위치로 저장** (위치 오차가 20m보다 크면 한 번 더 확인)
 - 코치: 회원 줄 오른쪽에 출석 상태 (출석한 회원은 **✓ 오늘 기록** → 오늘 배운 주차 · 운동 시트, 안 했으면 `미출석`), 카드를 펼쳐 **출석 기록** → 달력 (보기만). 코치가 출석을 넣거나 지우지는 않음
 - 수강권 기능은 보류 (코드는 git 기록에 남아 있음. 운영 DB의 `passes` 데이터도 지우지 않고 그대로 둠)
 
@@ -138,7 +144,7 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 | --- | --- | --- | --- |
 | auth | 로그인·로그아웃 | `auth/routes.js` | `auth/login.js` |
 | members | 코치 회원 관리 (등록·수정·삭제) | `members/` | `members/coach.js` (회원·기술 탭) |
-| attendance | 체육관 위치 확인 출석 → 능력치 성장 | `attendance/` | `attendance/member.js` (회원 출석 `#/attend`), `attendance/admin.js` (코치 체육관 위치 · 출석 상태 · 출석 기록) |
+| attendance | 체육관 위치 확인 출석 → 능력치 성장 | `attendance/` | `attendance/member.js` (회원 출석 `#/attend`), `attendance/admin.js` (코치 체육관 위치 · 출석 상태 · 출석 기록), `attendance/gym-map.js` (카카오 지도로 체육관 위치 고르기) |
 | skills | 배운 기술 등록·숙련 조정 | `skills/` | `skills/` (기술 목록, 코치 기술 관리) |
 | fighter | 게임 속 선수: 내 정보·전략·랭킹·선수 분석 | `fighter/` | `fighter/` (홈·랭킹 탭, 선수 분석) |
 | callouts | 콜아웃 → 코치 승인 | `callouts/routes.js` | `callouts/` (회원 콜아웃 탭, 코치 승인 탭) |

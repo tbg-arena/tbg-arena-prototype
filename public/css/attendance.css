@@ -15,6 +15,20 @@
 .gym-card { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .gym-card.unset { box-shadow: inset 3px 0 0 var(--red); }
 .gym-card a { color: var(--text); }
+.gym-where { margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 체육관 위치 창 (gym-map.js): 검색 → 결과 → 카카오 지도 → 고른 위치 */
+.gym-search { display: flex; gap: 8px; }
+.gym-search input { flex: 1; min-width: 0; }
+.gym-results:empty { display: none; }
+.gym-results { margin-top: 8px; border: 1px solid var(--line); max-height: 220px; overflow: auto; }
+.gym-results button { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; width: 100%; text-align: left; padding: 10px 12px; background: none; border: 0; color: var(--text); }
+.gym-results button + button { border-top: 1px solid var(--line); }
+.gym-results button:hover, .gym-results button:focus-visible { background: var(--surface2); outline: none; }
+.gym-map { height: 300px; margin-top: 10px; background: var(--surface2); }
+.gym-map.loading { display: flex; align-items: center; justify-content: center; }
+.gym-pick-row { display: flex; align-items: flex-start; gap: 10px; margin-top: 10px; }
+.gym-pick { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.gym-pick b { font-size: 15px; }
 
 /* 출석 달력 (calendar.js): 회원 출석 화면 · 코치 출석 기록 창 */
 .att-cal .cal { margin-top: 0; border-top: 0; padding-top: 0; }

@@ -1,29 +1,38 @@
-// 코치 출석 관리 (회원·기술 탭 안): 체육관 위치 설정 · 회원 출석 상태 · 출석 기록 달력 (보기만)
+// 코치 출석 관리 (회원·기술 탭 안): 체육관 위치 설정 (지도: gym-map.js) · 회원 출석 상태 · 출석 기록 달력 (보기만)
 // 출석은 회원이 체육관에서 직접 한다 (attendance/member.js). 코치는 출석을 넣거나 지우지 않음
 import { esc, toast, openModal, closeModal } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { openTodaySheet } from '../lessons/sheet.js';
 import { attendCalendar, bindAttendCalendar, weekCount } from './calendar.js';
 import { locate, meters } from './geo.js';
+import { openGymMap } from './gym-map.js';
 
 // ── 체육관 위치: 회원은 여기서 반경 안이어야 출석할 수 있다
-// gym: { lat, lng, radius, setAt } | null
+// gym: { lat, lng, name, address, radius, setAt } | null
 export function gymCard(gym) {
+  const where = gym ? [gym.name, gym.address].filter(Boolean).join(' · ') : '';
+  const link = gym && `https://map.kakao.com/link/map/${encodeURIComponent(gym.name || '체육관')},${gym.lat},${gym.lng}`;
   return `<div class="card gym-card ${gym ? '' : 'unset'}">
       <div class="grow" style="min-width:0"><b>체육관 위치</b>
-        <div class="muted small">${gym ? `출석 반경 ${gym.radius}m · <a href="https://maps.google.com/?q=${gym.lat},${gym.lng}" target="_blank" rel="noopener">지도에서 보기</a>` : '아직 없어요 — 저장해야 회원이 출석할 수 있어요'}</div></div>
+        ${where ? `<div class="small gym-where">${esc(where)}</div>` : ''}
+        <div class="muted small">${gym ? `출석 반경 ${gym.radius}m · <a href="${link}" target="_blank" rel="noopener">지도에서 보기</a>` : '아직 없어요 — 정해야 회원이 출석할 수 있어요'}</div></div>
       <button class="btn sm ${gym ? '' : 'primary'}" id="setGym">${gym ? '바꾸기' : '설정'}</button>
     </div>`;
 }
 
-// radius: 출석 반경 (m, 서버에서 고정)
-export function bindGym(radius, onChange) {
+// info: { gym, radius(출석 반경 m, 서버에서 고정), mapKey(카카오 지도 키 | null) }
+// 지도 키가 있으면 지도에서 고르고, 없거나 지도를 못 불러오면 체육관 안에서 '지금 위치로 저장'
+export function bindGym(info, onChange) {
   const b = document.getElementById('setGym');
-  if (b) b.onclick = () => openGymModal(radius, onChange);
+  if (!b) return;
+  const here = (note) => openHereModal(info.radius, onChange, note);
+  b.onclick = () => (info.mapKey ? openGymMap(info, onChange, here) : here());
 }
 
-function openGymModal(radius, onChange) {
+// note: 지도를 못 불러온 이유 (있으면 맨 위에 보여 줌)
+function openHereModal(radius, onChange, note) {
   openModal(`<h3>체육관 위치</h3>
+    ${note ? `<div class="att-msg" style="margin-bottom:10px">${esc(note)}</div>` : ''}
     <div class="muted small">체육관 안에서 저장해 주세요. 지금 이 기기의 위치가 체육관 위치가 되고, 회원은 그 근처에서만 출석할 수 있어요.</div>
     <div class="att-msg" id="gymMsg" role="alert"></div>
     <div class="row" style="margin-top:14px"><button class="btn grow" id="x">닫기</button>
