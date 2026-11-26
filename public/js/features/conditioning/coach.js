@@ -5,6 +5,7 @@ import { esc, svg, toast } from '../../core/ui.js';
 import { api, act } from '../../core/api.js';
 import { coachTab, renderCoach } from '../../core/tabs.js';
 import { historyList, dayLabel } from './components.js';
+import { PRESETS, parsePreset } from './presets.js';
 
 const kstToday = () => new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
 const UNITS = [['rep', '회'], ['sec', '초'], ['m', 'm']];             // 횟수 · 시간 · 거리
@@ -41,6 +42,8 @@ function coachView(members, cd) {
   const others = members.filter((m) => !m.attended && !picked.has(m.id));
   const n = draft.members.length;
   const filled = draft.rows.filter((r) => r.exercise.trim()).length;
+  const rowNames = new Set(draft.rows.map((r) => r.exercise.trim()));
+  const onPresets = new Set(PRESETS.map(([name]) => name).filter((name) => rowNames.has(name)));
   return `
     <div class="section-title">누가 했나요 <span class="muted">${n ? `${n}명` : '여러 명 골라도 돼요'}</span></div>
     <div class="cd-pick">
@@ -50,6 +53,12 @@ function coachView(members, cd) {
       ${others.map((m) => `<option value="${m.id}">${esc(m.name)}</option>`).join('')}</select>` : ''}
 
     <div class="section-title">운동 <input type="date" id="cd-day" value="${draft.day}" max="${today}" aria-label="운동한 날" /></div>
+    <details class="cd-presets" ${draft.presetOpen ? 'open' : ''}>
+      <summary><b>프리셋</b><span class="muted small">${onPresets.size ? `${onPresets.size}개 넣음` : '눌러서 넣고 빼기'}</span></summary>
+      <div class="cd-pre-grid">
+        ${PRESETS.map(([name, text], i) => `<button data-cdpre="${i}" class="${onPresets.has(name) ? 'on' : ''}" aria-pressed="${onPresets.has(name)}"><b>${esc(name)}</b><span>${esc(text)}</span></button>`).join('')}
+      </div>
+    </details>
     <div class="cd-lines">
       ${draft.rows.map((r, i) => `
       <div class="cd-line" data-i="${i}">
@@ -106,6 +115,23 @@ function bindCoach(members, cd) {
     draft.rows.push(blank()); redraw();
     document.querySelector(`.cd-line[data-i="${draft.rows.length - 1}"] input[data-f="exercise"]`)?.focus();
   };
+  // 프리셋 토글: 누르면 줄 추가 (마지막 빈 줄이 있으면 거기에), 다시 누르면 그 줄을 뺌
+  document.querySelector('.cd-presets').ontoggle = (e) => { draft.presetOpen = e.target.open; };
+  on('[data-cdpre]', (b) => {
+    const [name, text] = PRESETS[+b.dataset.cdpre];
+    const at = draft.rows.findIndex((r) => r.exercise.trim() === name);
+    if (at >= 0) {
+      draft.rows.splice(at, 1);
+      if (!draft.rows.length) draft.rows.push(blank());
+    } else {
+      const p = parsePreset(text), last = draft.rows.length - 1;
+      const row = { ...blank(), exercise: name, amount: p.amount, unit: p.unit, sets: p.sets ?? blank().sets };
+      if (!draft.rows[last].exercise.trim()) draft.rows[last] = row;
+      else if (draft.rows.length >= 20) return toast('한 번에 20종목까지 넣을 수 있어요.', true);
+      else draft.rows.push(row);
+    }
+    redraw();
+  });
   // 지난번 그대로 (한 명만 골랐을 때)
   if ($('cd-last')) $('cd-last').onclick = () => {
     const last = cd.entries[0].day;
