@@ -25,6 +25,19 @@
 .cd-pick button { min-height: 42px; padding: 0 14px; background: var(--surface); font-weight: 800; color: var(--ink); }
 .cd-pick button.on { background: var(--ink); color: var(--on-ink); box-shadow: 2px 2px 0 var(--red); }
 .section-title input[type=date] { width: auto; margin-left: 4px; padding: 6px 8px; font-size: 13px; font-weight: 600; order: 3; }
+/* 프리셋: 접었다 펴는 토글 타일 목록 (켜진 타일 = 아래 줄에 들어간 종목) */
+.cd-presets { margin-bottom: 10px; background: var(--surface); clip-path: var(--notch); }
+.cd-presets summary { display: flex; align-items: center; gap: 8px; min-height: 46px; padding: 0 14px; cursor: pointer; list-style: none; }
+.cd-presets summary::-webkit-details-marker { display: none; }
+.cd-presets summary::before { content: "▸"; color: var(--red-text); transition: transform .15s; }
+.cd-presets[open] summary::before { transform: rotate(90deg); }
+.cd-presets summary .muted { margin-left: auto; }
+.cd-pre-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 6px; padding: 4px 10px 12px; border-top: 1px dashed var(--line); }
+.cd-pre-grid button { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 52px; padding: 8px 10px; background: var(--well); color: var(--ink); text-align: left; clip-path: var(--notch); }
+.cd-pre-grid button b { font-size: 14px; font-weight: 800; line-height: 1.25; }
+.cd-pre-grid button span { font-size: 11px; font-weight: 700; color: var(--muted); }
+.cd-pre-grid button.on { background: var(--ink); color: var(--on-ink); box-shadow: inset 3px 0 0 var(--red); }
+.cd-pre-grid button.on span { color: #555; }
 .cd-lines { display: grid; gap: 8px; }
 .cd-line { display: grid; gap: 6px; padding: 10px; background: var(--surface); clip-path: var(--notch); }
 .cd-line input { padding: 10px; font-size: 16px; } /* 16px 유지: iOS 확대 방지 */
