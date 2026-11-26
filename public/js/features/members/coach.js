@@ -12,13 +12,13 @@ coachTab({
   icon: svg('<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0113 0"/><path d="M16 4.5a3.5 3.5 0 010 7M18 14a6 6 0 013.5 6"/>'),
   poll: false, // 펼쳐 둔 회원·입력 중인 폼이 4초마다 닫히지 않도록
   load: async () => {
-    const [members, { gym, radius }] = await Promise.all([api('GET', '/api/coach/members'), api('GET', '/api/coach/gym')]);
-    return { members, gym, radius };
+    const [members, { gym, radius, mapKey }] = await Promise.all([api('GET', '/api/coach/members'), api('GET', '/api/coach/gym')]);
+    return { members, gym, radius, mapKey };
   },
   view: ({ members, gym }) => membersView(members, gym),
-  bind: ({ members, radius }) => {
+  bind: ({ members, gym, radius, mapKey }) => {
     bindMemberActions(members);
-    bindGym(radius, refreshMembers);
+    bindGym({ gym, radius, mapKey }, refreshMembers);
     bindTodaySheet(members, refreshMembers);
     bindAttendLog(members);
     bindSkillAdmin(members, refreshMembers);
