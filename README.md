@@ -51,9 +51,9 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 
 이 레포는 공개라서 Sayleok 히트맨 시트처럼 재배포가 금지된 에셋은 올리지 않습니다(`.gitignore`). 대신 **비공개 에셋 레포**에 두고, 배포 빌드 때 받아서 결과물에만 넣습니다 (`tools/fetch-assets.js`).
 
-1. 개인 계정에 비공개 레포를 만들고 `hitman/sheet.png` 로 시트를 올림 (예: `SH38038038/tbg-assets`)
+1. 개인 계정에 비공개 레포를 만들고 `hitman/sheet.png` 로 시트를 올림 (예: `SH38038038/tbg-asset`)
 2. GitHub → Settings → Developer settings → **Fine-grained token**: 그 레포만, Contents **Read-only**
-3. Vercel 환경변수: `ASSET_REPO` = `SH38038038/tbg-assets`, `ASSET_TOKEN` = 토큰 (Production · Preview)
+3. Vercel 환경변수: `ASSET_REPO` = `SH38038038/tbg-asset`, `ASSET_TOKEN` = 토큰 (Production · Preview)
 4. Redeploy → 빌드 로그에 `[assets] hitman/sheet.png → public/img/hitman/sheet.png`
 
 - 토큰이 없거나 받기에 실패해도 빌드는 계속됨 → 경기 캐릭터만 옛 도트 캐릭터로 나옴

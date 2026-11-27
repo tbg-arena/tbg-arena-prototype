@@ -1,6 +1,6 @@
 // 배포 빌드 때 유료 · 체험판 에셋을 비공개 저장소에서 받아 public/ 에 넣는다 (vercel.json buildCommand → npm run build)
 // 이 저장소는 공개라서 재배포 금지 라이선스 에셋(Sayleok 히트맨 시트)은 올리지 않는다. 배포 결과물에만 들어간다.
-//   ASSET_REPO  = 에셋 저장소 (예: SH38038038/tbg-assets)
+//   ASSET_REPO  = 에셋 저장소 (예: SH38038038/tbg-asset)
 //   ASSET_TOKEN = 그 저장소 읽기 전용 GitHub 토큰 (fine-grained, Contents: Read-only)
 //   ASSET_REF   = 브랜치 (없으면 main)
 // 토큰이 없거나(로컬 · PR 미리보기) 받기에 실패하면 경고만 남기고 넘어간다 — 앱은 시트가 없으면 옛 도트 캐릭터로 그린다.
