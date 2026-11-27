@@ -5,41 +5,65 @@
 import { SFX } from './sfx.js';
 import { clamp01, bump, easeOut, lerp, hash, mkCanvas } from './util.js';
 import { SW, SH, OX, OY, SIDE, lookOf, drawSprite } from './sprite.js';
-import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR, DODGE_MOVE } from './moves.js';
-import { FRAME, STAND, NAMES } from './fight-frames.js';
+import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR, DODGE_MOVE, keyK } from './moves.js';
+import { customize, kitFromLook } from './hitman.js';
 
-// ── 동작 프레임 그림 (img/fight/<M|F>-<이름>.png, BOXING-2 시트에서 잘라 냄)
-// 불러오기 전에는 옛 도트 캐릭터(sprite.js)로 그린다
-const frameImgs = new Map();
-function frameImg(g, name) {
-  const key = g + '-' + name;
-  let img = frameImgs.get(key);
-  if (!img) { img = new Image(); img.src = '/img/fight/' + key + '.png'; frameImgs.set(key, img); }
-  return img.complete && img.naturalWidth ? img : null;
+// ── 체험판 히트맨 스프라이트 (Sayleok 'Hitman Stance Boxer' 무료 체험판, public/img/hitman/sheet.png — 재배포 금지라 git 제외)
+// 시트: 102×67 칸, 줄마다 동작 (서기 6 · 플리커 잽1 4 · 잽2 4 · 대시 3 · 걷기 8 · 블록 2 · 맞기 3 · 다운 7), 오른쪽을 봄, 키 약 40점
+// 월드(160×100)의 옛 캐릭터와 크기가 비슷해서 월드에 도트 그대로 그린다. 시트가 없으면 옛 캐릭터(sprite.js)
+// 선수마다 착용 장비대로 색 · 헤어 · 상의를 바꾼 시트를 만들어 쓴다 (hitman.js)
+const HW = 102, HH = 67;
+const HROW = { idle: [0, 6], jab1: [1, 4], jab2: [2, 4], dash: [3, 3], walk: [4, 8], block: [5, 2], hit: [6, 3], down: [7, 7] };
+const HIT = { ready: false, img: null, ax: HW / 2, ay: HH };
+(() => {
+  if (typeof Image === 'undefined') return;
+  const img = new Image();
+  img.onload = () => {
+    const c = mkCanvas(img.width, img.height), g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, img.width, img.height), a = d.data, at = (x, y) => a[(y * img.width + x) * 4 + 3];
+    // 발 기준점: 서기 첫 칸에서 그림이 있는 맨 아래 줄, 그 근처 칸들의 가로 가운데
+    let by = 0; for (let y = 0; y < HH; y++) for (let x = 0; x < HW; x++) if (at(x, y)) by = y;
+    let sx = 0, n = 0; for (let y = by - 3; y <= by; y++) for (let x = 0; x < HW; x++) if (at(x, y)) { sx += x; n++; }
+    HIT.ax = n ? Math.round(sx / n) : HW / 2; HIT.ay = by + 1;
+    HIT.img = img; HIT.ready = true; // 선수마다 장비대로 꾸민 시트는 처음 그릴 때 만든다 (hitman.js)
+  };
+  img.src = '/img/hitman/sheet.png';
+})();
+// 지금 동작 → [시트 줄 이름, 칸 번호]. 체험판엔 펀치가 플리커 잽뿐이라 모든 펀치를 잽 두 종류로 (손에 따라 번갈아)
+const H_PUNCH = new Set(['jab', 'cross', 'punch', 'hook', 'shorthook', 'upper', 'shortupper', 'bodyupper', 'bodyhook', 'body', 'overhand', 'gnp', 'elbow', 'kick', 'knee']);
+const H_GUARD = new Set(['block', 'parry', 'slip', 'duck', 'weave', 'roll', 'sway', 'dodge', 'clinch', 'shoot', 'pin']);
+function hitmanFrame(f, pose, t) {
+  const p = Math.min(1, Math.max(0, pose.p ?? 0)), k = pose.kind;
+  if (f.ko || f.lying > 0.05) return ['down', Math.min(6, Math.floor(f.lying * 6.99))]; // 쓰러질 땐 앞으로, 일어날 땐 거꾸로 (lying 이 줄어듦)
+  if (H_PUNCH.has(k)) return [pose.hand ? 'jab2' : 'jab1', Math.floor(p * 3.99)];
+  if (k === 'hit') return ['hit', Math.floor(p * 2.99)];
+  if (H_GUARD.has(k)) return ['block', p < 0.5 ? 0 : 1];
+  if (k === 'walk' || k === 'pivot' || k === 'jump') return ['walk', Math.floor(p * 7.99)];
+  if (k === 'back' || k === 'side' || k === 'lstep') return ['walk', 7 - Math.floor(p * 7.99)]; // 뒤로는 걷기를 거꾸로
+  return ['idle', Math.floor(t * 8) % 6];
 }
-const STAND_H = 36; // 월드에서 서 있는 키 (옛 캐릭터와 같은 크기 → 이름표 · 타격 효과 위치가 그대로 맞음)
-const SWING = { jab: ['jab0', 'jab1'], cross: ['cross0', 'cross1'], punch: ['cross0', 'cross1'], hook: ['hook0', 'hook1'], shorthook: ['hook0', 'shorthook'],
-  upper: ['upper0', 'upper1'], shortupper: ['upper0', 'upper1'], bodyupper: ['upper0', 'upper1'], bodyhook: ['bodyhook0', 'bodyhook1'],
-  body: ['bodystraight', 'bodystraight'], overhand: ['overhand0', 'overhand1'], gnp: ['hook0', 'hook1'], elbow: ['hook0', 'hook1'], kick: ['cross0', 'cross1'], knee: ['upper0', 'upper1'] };
-const HOLD = { block: 'block', parry: 'parry', slip: 'slip', duck: 'duck', weave: 'weave', roll: 'weave', sway: 'sway', dodge: 'sway', back: 'backstep',
-  clinch: 'clinch', shoot: 'duck', pin: 'kneel', jump: 'fwd0', side: 'back0', lstep: 'back0', pivot: 'fwd0', walk: 'fwd0' };
-const STEPS = new Set(['walk', 'back', 'side', 'lstep', 'pivot', 'jump']); // 스텝: 한 장 유지 + 작게 통통 뛰며 이동
-// 지금 동작 → 프레임 이름. 펀치는 진행 앞 35% · 마지막 15% = 준비 자세, 가운데 = 뻗은 자세
-function pickFrame(f, pose, t) {
-  if (f.ko || f.lying > 0.6) return 'lying';
-  if (f.lying > 0.05) return f.tLying > f.lying ? 'fall' : 'getup';
-  if (pose.kneel) return 'kneel';
-  if (f.win) return Math.sin(t * 5) > 0 ? 'win0' : 'win1';
-  const k = pose.kind, p = pose.p ?? 0;
-  if (SWING[k]) return pose.fin && p > 0.3 && p < 0.85 ? 'finish' : (p < 0.35 || p > 0.85 ? SWING[k][0] : SWING[k][1]);
-  if (k === 'hit') return pose.dur >= 0.5 ? 'stagger' : p < 0.5 ? 'hithead' : 'hitbody';
-  if (HOLD[k]) return HOLD[k];
-  return 'idle0'; // 서 있을 땐 한 장 고정 (출렁임은 위치로) — 눈 깜빡임 · 다른 서기 그림으로 바꾸면 튐
+function drawHitman(w, f, pose, t) {
+  const [name, i] = hitmanFrame(f, pose, t), row = HROW[name][0];
+  w.save();
+  w.translate(Math.round(f.x), Math.round(FLOOR + f.y + (f.win ? -Math.abs(Math.sin(t * 5)) * 3 : 0))); // 승리 동작이 없어 서기 + 통통 뜀
+  w.scale(f.d, 1);
+  if (f.flash > 0) w.filter = 'brightness(2)';
+  f.hsheet ||= customize(HIT.img, kitFromLook(f.look)); // 회원 장비(글러브 · 트렁크 · 복싱화 · 상의 · 헤어)대로 꾸민 시트, 선수마다 한 번
+  w.drawImage(f.hsheet, i * HW, row * HH, HW, HH, -HIT.ax, -HIT.ay, HW, HH);
+  w.restore();
 }
 
 const LW = 160, LH = 100;          // 월드(도트) 해상도
 const FLOOR = 76, CX = LW / 2;     // 발 위치, 링 중앙
 const FONT = 'Galmuri11, "Galmuri11", monospace';
+// 링 · 배경 색 = 경기 캐릭터(히트맨) 11색 계열 — 외곽선 · 망점 없이 평평한 면으로
+const ST = {
+  night: '#181526', crowdBack: '#231f3d', crowdFront: '#1e2370', beam: '#ffce93',
+  mat: '#b9d3d6', matEdge: '#87a0ae', matSide: '#a7c1c6',
+  red: '#b51d38', white: '#faefe6', post: '#225c99', postTop: '#1e2370', pad: '#87a0ae',
+  apron: '#225c99', apronDash: '#1e2370',
+};
 
 const logoImg = new Image(); logoImg.src = '/logo.png';
 let logoDark = null; // 밝은 매트용 검정 로고
@@ -75,7 +99,6 @@ export class Arena {
     if (this.demo) this.demoTick();
   }
   mk(side, p, d) {
-    NAMES.forEach((n) => frameImg(lookOf(p).gender, n)); // 동작 프레임 미리 불러오기 (처음 쓰는 동작에서 옛 캐릭터가 잠깐 보이지 않게)
     return { side, d, id: p.id, name: p.name || '', look: lookOf(p), st: SIDE[side], sp: mkCanvas(SW, SH),
       x: CX - d * 40, tx: CX, y: 0, vy: 0, kx: 0, lying: 0, tLying: 0, hand: 0, anim: null, ko: false, down: false, win: false, flash: 0, blink: 2 + Math.random() * 3 };
   }
@@ -415,7 +438,7 @@ export class Arena {
     for (let i = 0; i < n; i++) this.parts.push({ x, y, vx: dir * (30 + Math.random() * 90) + (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 70, life: 0.4 + Math.random() * 0.5, c: cols[i % cols.length], g: 260, s: Math.random() < 0.3 ? 2 : 1 });
   }
   dust(x, n) {
-    for (let i = 0; i < n; i++) this.parts.push({ x: x + (Math.random() - 0.5) * 16, y: FLOOR - 1, vx: (Math.random() - 0.5) * 60, vy: -10 - Math.random() * 25, life: 0.5 + Math.random() * 0.4, c: i % 2 ? '#9c9c9c' : '#c4c4c4', g: 30, s: 2 });
+    for (let i = 0; i < n; i++) this.parts.push({ x: x + (Math.random() - 0.5) * 16, y: FLOOR - 1, vx: (Math.random() - 0.5) * 60, vy: -10 - Math.random() * 25, life: 0.5 + Math.random() * 0.4, c: i % 2 ? ST.matEdge : ST.matSide, g: 30, s: 2 });
   }
 
   // ── 루프
@@ -505,9 +528,9 @@ export class Arena {
 
   drawStage(w) {
     const t = this.rt;
-    w.fillStyle = '#000'; w.fillRect(0, 0, LW, LH);
-    // 스포트라이트 빔
-    w.save(); w.globalAlpha = 0.06 + this.hype * 0.03; w.fillStyle = '#fff';
+    w.fillStyle = ST.night; w.fillRect(0, 0, LW, LH);
+    // 스포트라이트 빔 (따뜻한 조명)
+    w.save(); w.globalAlpha = 0.07 + this.hype * 0.03; w.fillStyle = ST.beam;
     for (const [x0, x1] of [[CX - 46, CX - 8], [CX + 8, CX + 46]]) {
       w.beginPath(); w.moveTo(x0 + 30, 0); w.lineTo(x1 + 18, 0); w.lineTo(x1, FLOOR); w.lineTo(x0, FLOOR); w.closePath(); w.fill();
     }
@@ -517,7 +540,7 @@ export class Arena {
       const by = 26 + ri * 9;
       for (const c of row) {
         const j = Math.round(Math.max(0, Math.sin(t * 9 + c.p)) * this.hype * 2.5);
-        w.fillStyle = ri ? '#161616' : '#0e0e0e';
+        w.fillStyle = ri ? ST.crowdFront : ST.crowdBack;
         w.fillRect(c.x, by - 5 - j - c.s, 4, 4); w.fillRect(c.x - 1, by - 1 - j - c.s, 6, 8);
         if (this.hype > 0.6 && Math.sin(t * 9 + c.p) > 0.6 && c.s === 1) { w.fillRect(c.x - 2, by - 8 - j, 1, 4); w.fillRect(c.x + 5, by - 8 - j, 1, 4); }
       }
@@ -527,20 +550,16 @@ export class Arena {
     if (Math.random() < flashes) this.fx.push({ kind: 'camflash', x: 2 + Math.random() * (LW - 4), y: 10 + Math.random() * 24, t0: this.rt, dur: 0.09 });
     // 매트
     const top = 52;
-    w.fillStyle = '#d8d8d8'; w.fillRect(0, top, LW, LH - top);
-    w.fillStyle = '#bcbcbc'; w.fillRect(0, top, LW, 3);
-    // 디더 그늘 (가장자리)
-    w.fillStyle = '#b4b4b4';
-    for (let y = top + 3; y < 84; y += 1) for (let x = (y % 2); x < LW; x += 2) {
-      const e = Math.abs(x - CX) / CX;
-      if (e > 0.72 || (y < top + 6 && x % 4 === 0)) w.fillRect(x, y, 1, 1);
-    }
+    w.fillStyle = ST.mat; w.fillRect(0, top, LW, LH - top);
+    // 가장자리 그늘: 평평한 면 (양옆 · 뒤쪽 끝)
+    w.fillStyle = ST.matSide; w.fillRect(0, top, Math.round(CX * 0.28), LH - top); w.fillRect(LW - Math.round(CX * 0.28), top, Math.round(CX * 0.28), LH - top);
+    w.fillStyle = ST.matEdge; w.fillRect(0, top, LW, 3);
     if (logoDark) { w.globalAlpha = 0.13; w.drawImage(logoDark, CX - 26, top + 7, 52, 15); w.globalAlpha = 1; }
     // 뒤쪽 로프 & 포스트
     for (const [i, y] of [[0, 32], [1, 39], [2, 46]].map(([i, y]) => [i, y])) {
-      w.fillStyle = i === 1 ? '#ff1744' : '#f0f0f0'; w.globalAlpha = 0.85; w.fillRect(18, y, LW - 36, 1); w.globalAlpha = 1;
+      w.fillStyle = i === 1 ? ST.red : ST.white; w.globalAlpha = 0.85; w.fillRect(18, y, LW - 36, 1); w.globalAlpha = 1;
     }
-    for (const x of [16, LW - 19]) { w.fillStyle = '#fff'; w.fillRect(x, 28, 3, 26); w.fillStyle = '#000'; w.fillRect(x, 28, 3, 2); }
+    for (const x of [16, LW - 19]) { w.fillStyle = ST.post; w.fillRect(x, 28, 3, 26); w.fillStyle = ST.postTop; w.fillRect(x, 28, 3, 2); }
     // 옆 로프: 뒤 기둥에서 앞 기둥으로 비스듬히 내려오는 3줄 (양쪽). 가로 로프만 있으면 링이 벽처럼 보여서
     const BACK = [32, 39, 46], FRONT = [61, 70, 79];
     const rope = (x0, y0, x1, y1, c) => {
@@ -549,25 +568,25 @@ export class Arena {
       for (let k = 0; k <= n; k++) w.fillRect(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), 1, 1);
     };
     BACK.forEach((yb, i) => {
-      const c = i === 1 ? '#ff1744' : '#f0f0f0';
+      const c = i === 1 ? ST.red : ST.white;
       w.globalAlpha = 0.85;
       rope(17, yb, 2, FRONT[i], c);           // 왼쪽
       rope(LW - 18, yb, LW - 3, FRONT[i], c); // 오른쪽
       w.globalAlpha = 1;
     });
     // 뒤 기둥 코너 패드 (로프가 묶이는 자리)
-    for (const x of [16, LW - 19]) BACK.forEach((yb, i) => { w.fillStyle = i === 1 ? '#ff1744' : '#9a9a9a'; w.fillRect(x, yb - 1, 3, 3); });
+    for (const x of [16, LW - 19]) BACK.forEach((yb, i) => { w.fillStyle = i === 1 ? ST.red : ST.pad; w.fillRect(x, yb - 1, 3, 3); });
     // 앞 에이프런
-    w.fillStyle = '#000'; w.fillRect(0, 84, LW, LH - 84);
-    w.fillStyle = '#fff'; w.fillRect(0, 84, LW, 1);
-    w.fillStyle = '#ff1744'; w.fillRect(0, 86, LW, 1);
+    w.fillStyle = ST.apron; w.fillRect(0, 84, LW, LH - 84);
+    w.fillStyle = ST.white; w.fillRect(0, 84, LW, 1);
+    w.fillStyle = ST.red; w.fillRect(0, 86, LW, 1);
     if (logoImg.complete && logoImg.naturalWidth) w.drawImage(logoImg, CX - 13, 89, 26, 9);
-    w.fillStyle = '#3a3a3a';
+    w.fillStyle = ST.apronDash;
     for (let x = 6; x < LW; x += 12) if (Math.abs(x - CX) > 20) w.fillRect(x, 93, 6, 1);
     // 앞 포스트
-    for (const x of [0, LW - 4]) { w.fillStyle = '#fff'; w.fillRect(x, 58, 4, 32); w.fillStyle = '#ff1744'; w.fillRect(x, 58, 4, 3); }
+    for (const x of [0, LW - 4]) { w.fillStyle = ST.post; w.fillRect(x, 58, 4, 32); w.fillStyle = ST.red; w.fillRect(x, 58, 4, 3); }
     // 앞 기둥 코너 패드 (옆 로프가 묶이는 자리)
-    for (const x of [0, LW - 4]) [61, 70, 79].forEach((yf, i) => { w.fillStyle = i === 1 ? '#ff1744' : '#9a9a9a'; w.fillRect(x, yf - 1, 4, 3); });
+    for (const x of [0, LW - 4]) [61, 70, 79].forEach((yf, i) => { w.fillStyle = i === 1 ? ST.red : ST.pad; w.fillRect(x, yf - 1, 4, 3); });
   }
 
   drawFighter(w, f) {
@@ -579,7 +598,7 @@ export class Arena {
       if (p > 1) f.anim = null;
       else {
         pose.kind = an.kind; pose.hand = an.hand; pose.p = p; pose.fin = an.fin; pose.dur = an.dur;
-        pose.k = an.kind === 'shoot' ? Math.min(1, easeOut(p * 1.6)) * (p > 0.8 ? (1 - p) * 5 : 1) : bump(p);
+        pose.k = keyK(an.kind, p) ?? (an.kind === 'shoot' ? Math.min(1, easeOut(p * 1.6)) * (p > 0.8 ? (1 - p) * 5 : 1) : bump(p));
         if (['punch', 'kick', 'knee', 'elbow', 'gnp', 'jab', 'cross', 'hook', 'upper', 'body', 'shorthook', 'overhand', 'shortupper', 'bodyhook', 'bodyupper'].includes(an.kind)) pose.face = 'effort';
       }
     }
@@ -590,12 +609,7 @@ export class Arena {
     const standing = f.lying < 0.5 && !pose.kneel;
     pose.bob = standing && this.pos !== 'ground' ? (Math.sin(t * (f.win ? 12 : 7) + f.look.phase) > 0.2 ? 1 : 0) : 0;
     if (f.win) pose.bob = Math.sin(t * 10) > 0 ? 1 : 0;
-    // 동작 프레임 그림이 준비됐으면 화면 해상도에서 그린다 (present) — 월드(160×100)에 그리면 디테일이 뭉개짐
-    const img = frameImg(f.look.gender, pickFrame(f, pose, t));
-    const sway = f.lying < 0.05 && !f.win && !STEPS.has(pose.kind) ? Math.sin(t * 6 + f.look.phase) * 0.6 : 0;   // 숨쉬듯 출렁
-    const hop = STEPS.has(pose.kind) ? -Math.sin(Math.min(1, pose.p ?? 0) * Math.PI) * 2.5 : 0;                      // 스텝: 한 번 통 뜀
-    f.frame = img ? { img, y: FLOOR + f.y + (pose.kneel ? -3 : 0) + (f.win ? -Math.abs(Math.sin(t * 5)) * 3 : 0) + sway + hop } : null;
-    if (f.frame) return;
+    if (HIT.ready) return drawHitman(w, f, pose, t); // 체험판 히트맨 시트가 있으면 우선
     const g = f.sp.getContext('2d');
     drawSprite(g, f.look, f.st, pose);
     if (f.flash > 0) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = '#fff'; g.fillRect(0, 0, SW, SH); g.globalCompositeOperation = 'source-over'; }
@@ -690,23 +704,13 @@ export class Arena {
       c.fillStyle = g; c.fillRect(0, 0, W, H);
     }
     const toS = (wx, wy) => [(wx - x0) * S + shx, (wy - y0) * S + shy];
-    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
-    for (const f of [...this.fighters].sort((p, q) => q.lying - p.lying)) {
-      if (!f.frame) continue;
-      const [sx, sy] = toS(f.x, f.frame.y), k = (S * STAND_H) / STAND[f.look.gender];
-      c.save(); c.translate(sx, sy); c.scale(f.d * k, k);
-      if (f.flash > 0) c.filter = 'brightness(2.2)';   // 맞는 순간 번쩍
-      c.drawImage(f.frame.img, -FRAME.anchor, -FRAME.base);
-      c.restore();
-    }
-    c.imageSmoothingEnabled = false;
     const px = H / 100; // 화면 기준 단위
 
     // 이름표
     if (!this.demo) for (const f of this.fighters) {
       if (!f.name) continue;
       const [hx, hy] = this.headPos(f);
-      const [sx, sy] = toS(hx, hy - (f.lying > 0.5 ? 10 : 12));
+      const [sx, sy] = toS(hx, hy - (f.lying > 0.5 ? 10 : HIT.ready ? 19 : 12)); // 체험판 캐릭터는 키가 커서 이름표를 더 위로
       c.font = `700 ${Math.round(5.2 * px)}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
       const tw = c.measureText(f.name).width + 6 * px;
       c.fillStyle = 'rgba(0,0,0,.8)'; c.fillRect(Math.round(sx - tw / 2), Math.round(sy - 4 * px), Math.round(tw), Math.round(8 * px));

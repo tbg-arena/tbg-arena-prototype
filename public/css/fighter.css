@@ -52,18 +52,18 @@
 /* POWER: 전광판 칸 */
 .cp { background: var(--well); background-image: var(--halftone); background-size: 4px 4px; padding: 6px 8px 4px; clip-path: var(--notch); }
 .cp span { color: var(--red-text); }
-/* 사진 칸 = 링 위 장면: 위에서 비추는 조명 · 뒤로 지나가는 로프 3줄 · 매트 바닥 · 흰 테두리 */
+/* 사진 칸 = 링 위 장면 (경기 화면과 같은 히트맨 색): 밤 배경 · 따뜻한 조명 · 뒤로 지나가는 로프 3줄 · 하늘빛 매트 */
 .sprite-box {
-  background-color: #2c2c2c;
+  background-color: #181526;
   background-image:
-    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,255,255,.42), rgba(255,255,255,.08) 60%, transparent 75%),
-    linear-gradient(to bottom, transparent 34%, var(--red) 34%, var(--red) calc(34% + 2px), transparent calc(34% + 2px),
-      transparent 50%, rgba(239,239,239,.7) 50%, rgba(239,239,239,.7) calc(50% + 2px), transparent calc(50% + 2px),
-      transparent 66%, var(--red) 66%, var(--red) calc(66% + 2px), transparent calc(66% + 2px));
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,206,147,.32), rgba(255,206,147,.06) 60%, transparent 75%),
+    linear-gradient(to bottom, transparent 34%, #b51d38 34%, #b51d38 calc(34% + 2px), transparent calc(34% + 2px),
+      transparent 50%, rgba(250,239,230,.8) 50%, rgba(250,239,230,.8) calc(50% + 2px), transparent calc(50% + 2px),
+      transparent 66%, #b51d38 66%, #b51d38 calc(66% + 2px), transparent calc(66% + 2px));
   box-shadow: inset 0 0 0 2px var(--ink);
   clip-path: var(--notch);
 }
-.sprite-box::after { height: 14px; background: #cfcfcf; box-shadow: inset 0 3px 0 #a9a9a9; } /* 매트 + 가장자리 */
+.sprite-box::after { height: 14px; background: #b9d3d6; box-shadow: inset 0 3px 0 #87a0ae; } /* 매트 + 가장자리 */
 .sprite-box img { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
 /* 능력치 막대: 경기 체력바처럼 틀 안에 */
 .sbar { height: 12px; padding: 2px; background: var(--well); box-shadow: inset 0 0 0 1px var(--line2); }
@@ -107,7 +107,7 @@
 .pod-base b { font-size: 13px; max-width: 100%; }
 .pod-base em { font-style: normal; font-size: 11px; color: var(--muted); }
 
-/* 기본 캐릭터 그림 (img/chars): 부드럽게 축소하고 가로세로 비율 유지 */
+/* 기본 캐릭터 그림 (img/pose, 4px 칸으로 줄인 그림): 부드럽게 축소하고 가로세로 비율 유지 */
 .fig-box { width: auto; }
 .fig-box img, .pod img, .ent img { image-rendering: auto; }
 .fig-box img { width: auto; height: 162px; }
