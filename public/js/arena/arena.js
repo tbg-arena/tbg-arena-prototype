@@ -79,7 +79,7 @@ export class Arena {
   constructor(canvas, L, R, opts = {}) {
     this.c = canvas; this.ctx = canvas.getContext('2d');
     this.demo = !!opts.demo;
-    this.cast = opts.cast || null; this.castI = 0; this.bouts = 0; this.comboBy = null; // 데모: 여러 대진을 번갈아
+    this.cast = opts.cast || null; this.castI = 0; this.bouts = 0; this.comboBy = null; // 데모: 여러 대진을 번갈아 (배열, 또는 라운드마다 새 대진을 주는 함수)
     this.world = mkCanvas(LW, LH); this.w = this.world.getContext('2d');
     this.order = [L.id, R.id];
     this.f = { [L.id]: this.mk('L', L, 1), [R.id]: this.mk('R', R, -1) };
@@ -393,15 +393,17 @@ export class Arena {
   // 대진이 여러 개면 11번 주고받을 때마다 다음 대진으로 (옷 · 장비 · 머리가 바뀐다)
   nextBout() {
     this.bouts = 0; this.comboBy = null;
-    this.castI = (this.castI + 1) % this.cast.length;
-    const [L, R] = this.cast[this.castI], [a, b] = this.fighters;
+    const fresh = typeof this.cast === 'function';
+    this.castI = fresh ? this.castI + 1 : (this.castI + 1) % this.cast.length;
+    const [L, R] = fresh ? this.cast() : this.cast[this.castI], [a, b] = this.fighters;
     a.look = lookOf({ ...L, id: a.id }); b.look = lookOf({ ...R, id: b.id });
+    a.hsheet = b.hsheet = null; // 히트맨 시트도 새 옷으로 다시 꾸미기
     this.flash = 0.35; this.hype = 0.6;
     this.text(`ROUND ${this.castI + 1}`, a, '#ffffff', 1.5, -30, 22);
     this.demoTimer = setTimeout(() => this.running && this.demoTick(), 1400);
   }
   demoTick() {
-    if (this.cast?.length > 1 && ++this.bouts > 11) return this.nextBout();
+    if ((typeof this.cast === 'function' || this.cast?.length > 1) && ++this.bouts > 11) return this.nextBout();
     const [a, b] = this.fighters;
     // 맞힌 쪽이 이어서 치는 연타 (40%) — 한 번씩 주고받기만 하면 단조로워서
     const att = this.comboBy && Math.random() < 0.7 ? this.comboBy : Math.random() < 0.5 ? a : b;

@@ -117,5 +117,7 @@
 /* 옷 디테일(프린트 · 로고)이 보이게 사진 영역을 키움: 상점 피팅룸 162 → 210, 홈 프로필 82 → 124 */
 .fig-box img { width: auto; height: 210px; }
 .fig-box.sm img { width: auto; height: 108px; }
+/* 선수 분석: 상점 피팅룸과 같은 큰 사진(훈련장 배경)이라 옆 칸이 좁아서, POWER 는 이름 · 전적 아래로 */
+.cp.under { display: inline-block; text-align: left; margin-top: 10px; }
 .sprite-box.base { width: 104px; height: 130px; }
 .sprite-box.base img { height: 124px; width: auto; animation: none; image-rendering: auto; }

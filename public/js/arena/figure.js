@@ -57,10 +57,17 @@ function charURL(p, bust) {
   if (urlCache.has(key)) return urlCache.get(key);
   const cv = poseCanvas(kitFromLook(look), look.gender === 'F', look.gear.arts, look.gear.hairArt); // 상품 그림(프린트 · 로고) · 헤어까지
   // 얼굴 = 머리 꼭대기부터 그림 폭만큼 정사각 (머리 + 양옆 글러브). 그림 위엔 솟은 머리용 여백이 있어서 꼭대기를 찾음
-  let top = 0;
-  if (bust) { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; while (top < cv.height && ![...Array(cv.width).keys()].some((x) => d[(top * cv.width + x) * 4 + 3])) top++; }
+  let top = 0, dx = 0;
+  if (bust) {
+    const W = cv.width, d = cv.getContext('2d').getImageData(0, 0, W, cv.height).data, on = (x, y) => d[(y * W + x) * 4 + 3] > 0;
+    while (top < cv.height && ![...Array(W).keys()].some((x) => on(x, top))) top++;
+    // 가운데 맞추기: 머리(꼭대기부터 폭의 30%) 중심과 잘린 칸 안 몸 전체의 무게중심, 그 둘의 가운데를 칸 가운데로
+    // (AI 그림은 인물이 살짝 왼쪽에 있고, 앞손 글러브가 한쪽으로 나와 있어서 머리만 · 몸만 기준이면 어느 쪽으로든 치우쳐 보임)
+    const mid = (y0, y1) => { let s = 0, n = 0; for (let y = y0; y < Math.min(cv.height, y1); y++) for (let x = 0; x < W; x++) if (on(x, y)) { s += x; n++; } return n ? s / n : W / 2; };
+    dx = Math.round(W / 2 - (mid(top, top + W * 0.3) + mid(top, top + W)) / 2);
+  }
   const out = bust ? mkCanvas(cv.width, cv.width) : cv;
-  if (bust) out.getContext('2d').drawImage(cv, 0, -Math.max(0, top - 2));
+  if (bust) out.getContext('2d').drawImage(cv, dx, -Math.max(0, top - 2));
   const url = out.toDataURL();
   urlCache.set(key, url);
   return url;

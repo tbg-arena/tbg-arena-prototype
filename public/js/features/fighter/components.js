@@ -15,13 +15,14 @@ export function fighterCard(m, opts = {}) {
   return `
     <div class="card profile">
       <div class="p-head">
-        ${opts.figure ? `<div class="fig-box sm"><img src="${figureURL(m, 2)}" alt="" /></div>` : `<div class="sprite-box base"><img src="${baseURL(m)}" alt="" /></div>`}
+        ${opts.figure ? `<div class="fig-box"><img src="${figureURL(m, 2)}" alt="" /></div>` : `<div class="sprite-box base"><img src="${baseURL(m)}" alt="" /></div>`}
         <div class="grow" style="min-width:0">
           ${m.streak >= 2 ? `<div class="small" style="margin-bottom:8px"><span class="badge red">${m.streak} WIN STREAK</span></div>` : ''}
           <div class="name ellipsis">${esc(m.name)}</div>
           <div class="small">${record(m)} <span class="muted">· KO/TKO ${m.kos}</span></div>
+          ${opts.figure ? `<div class="cp under"><span>POWER</span><b>${m.power}</b></div>` : ''}
         </div>
-        <div class="cp"><span>POWER</span><b>${m.power}</b></div>
+        ${opts.figure ? '' : `<div class="cp"><span>POWER</span><b>${m.power}</b></div>`}
       </div>
       <div class="p-body">
       ${m.titles?.length || m.laps ? `<div class="titles">${m.laps ? `<span class="badge red">31주 완주${m.laps > 1 ? ` ×${m.laps}` : ''}</span>` : ''}${(m.titles || []).map((t) => `<span class="badge solid">${esc(t)} 마스터</span>`).join('')}</div>` : ''}

@@ -2,7 +2,7 @@
 import { state } from '../../core/state.js';
 import { $app, esc, toast } from '../../core/ui.js';
 import { api } from '../../core/api.js';
-import { addPage } from '../../core/router.js';
+import { addPage, go } from '../../core/router.js';
 import { fighterCard } from './components.js';
 import { skillGroups } from '../skills/components.js';
 
@@ -10,6 +10,11 @@ addPage('fighter', renderFighter);
 
 async function renderFighter(id) {
   state.tab = 'fighter';
+  // 본인은 상대 분석을 볼 수 없다 (주소를 직접 쳐도) — 내 정보는 홈에서
+  if (state.role === 'member') {
+    if (!state.me) state.me = await api('GET', '/api/me').catch(() => null);
+    if (state.me?.member?.id === id) { toast('나는 상대 분석을 볼 수 없어요.', true); return history.length > 1 ? history.back() : go('#/'); }
+  }
   let d;
   try { d = await api('GET', `/api/members/${id}`); } catch (e) { toast(e.message, true); return history.back(); }
   const m = d.member;

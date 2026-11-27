@@ -17,7 +17,7 @@ const played = (o) => o.wins + o.losses + o.draws > 0;
 function rankView(me, members) {
   const ranked = members.filter(played).length;
   const item = (o, i) => `
-      <div class="list-item ${o.id === me.member.id ? 'me' : ''}" data-go="#/fighter/${o.id}" style="cursor:pointer">
+      <div class="list-item ${o.id === me.member.id ? 'me' : ''}" ${o.id === me.member.id ? '' : `data-go="#/fighter/${o.id}" style="cursor:pointer"`}>
         ${i < ranked ? `<div class="rank r${i + 1}">${i + 1}</div>` : '<div class="rank">–</div>'}
         ${avatar(o)}
         <div class="grow" style="min-width:0"><div class="ellipsis" style="font-weight:800">${esc(o.name)} ${o.titles.length ? '<span class="badge solid">TITLE</span>' : ''}</div>
@@ -25,18 +25,18 @@ function rankView(me, members) {
         ${i < ranked ? `<div class="center"><b class="pts">${o.points}</b><div class="muted px" style="font-size:9px">PTS</div></div>` : '<span class="badge">배치 전</span>'}
       </div>`;
   return `<div class="section-title">TBG 랭킹</div>
-    ${podium(members.slice(0, Math.min(3, ranked)))}
+    ${podium(members.slice(0, Math.min(3, ranked)), me.member.id)}
     ${ranked ? members.slice(0, ranked).map(item).join('') : '<div class="card empty">아직 경기를 치른 회원이 없어요.</div>'}
     ${ranked < members.length ? `<div class="section-title">배치 전 <span class="muted">${members.length - ranked}명 · 첫 경기를 치르면 순위가 매겨져요</span></div>
     ${members.slice(ranked).map((o, j) => item(o, ranked + j)).join('')}` : ''}
     ${myBar(me, members, ranked)}`;
 }
 
-// 상위 3명 시상대: 가운데 1위가 가장 크게. 누르면 선수 분석
-function podium(top) {
+// 상위 3명 시상대: 가운데 1위가 가장 크게. 누르면 선수 분석 (나는 분석할 수 없어서 링크 없음)
+function podium(top, myId) {
   if (!top.length) return '';
   return `<div class="podium">${[1, 0, 2].filter((i) => top[i]).map((i) => `
-    <div class="pod p${i + 1}" data-go="#/fighter/${top[i].id}">
+    <div class="pod p${i + 1}" ${top[i].id === myId ? 'style="cursor:default"' : `data-go="#/fighter/${top[i].id}"`}>
       <img src="${figureURL(top[i], 2)}" alt="" />
       <div class="pod-base"><span class="px">${i + 1}</span><b class="ellipsis">${esc(top[i].name)}</b><em class="px">${top[i].points}</em></div>
     </div>`).join('')}</div>`;
