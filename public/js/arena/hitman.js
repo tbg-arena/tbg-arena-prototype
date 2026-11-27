@@ -11,7 +11,7 @@ const SKIN = new Set([P.skinL, P.skinM, P.skinD]);
 const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
 const shade = (c, t) => c.map((v) => Math.round(v * (1 - t))); // 그늘 색 = 본색을 어둡게
 
-// kit = { gloves, trunks, shoes, top?, topKind?: 'tank' | 'bra', hair: 'spiky'|'buzz'|'bald'|'blond'|'mohawk'|'ponytail'|'bob'|'bun', hairColor?, tie? }
+// kit = { gloves, trunks, shoes, boxy?(박스핏 — 트렁크 밑단을 허벅지로 2줄 늘림), top?, topKind?: 'tank' | 'bra', hair: 'spiky'|'buzz'|'bald'|'blond'|'mohawk'|'ponytail'|'bob'|'bun', hairColor?, tie? }
 export function customize(sheetImg, kit) {
   const W = sheetImg.width, H = sheetImg.height;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
@@ -35,16 +35,22 @@ function frame(d, W, ox, oy, kit) {
   // 1) 글러브 · 트렁크 · 신발 색
   const G = hex(kit.gloves), T = hex(kit.trunks), S = hex(kit.shoes);
   let tTop = 1e9, tx0 = 1e9, tx1 = -1;
+  const trunkPx = [];
   for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) {
     const k = col(x, y);
     if (k === P.glove) put(x, y, G); else if (k === P.gloveD) put(x, y, shade(G, 0.4));
     else if (k === P.blue || k === P.navy) {
       const dark = k === P.navy;
       if (y >= shoeTop) put(x, y, dark ? shade(S, 0.35) : S);
-      else { put(x, y, dark ? shade(T, 0.35) : T); if (y < tTop) tTop = y; }
+      else { put(x, y, dark ? shade(T, 0.35) : T); if (y < tTop) tTop = y; trunkPx.push([x, y, dark]); }
     }
   }
   for (let x = 0; x < CW; x++) for (let y = tTop; y <= tTop + 2; y++) { const k = col(x, y); if (k && !SKIN.has(k) && k !== P.hair) { if (x < tx0) tx0 = x; if (x > tx1) tx1 = x; } }
+  // 1-1) 박스핏: 다리(세로 줄)마다 트렁크 맨 아랫칸 밑의 허벅지 피부 2줄을 트렁크로 — 길고 넉넉한 기장
+  if (kit.boxy && trunkPx.length) {
+    const bot = {}; for (const [x, y] of trunkPx) bot[x] = Math.max(bot[x] ?? -1, y);
+    for (const [x, b] of Object.entries(bot)) for (let dy = 1; dy <= 2; dy++) if (SKIN.has(col(+x, b + dy))) put(+x, b + dy, dy === 2 ? shade(T, 0.2) : T);
+  }
   // 2) 상의: 트렁크 바로 위 몸통 피부 (탱크 = 7줄, 스포츠 브라 = 위쪽 3줄만 — 배가 보임, 반팔 티 = 턱 아래부터 + 소매)
   if (kit.top && tTop < 1e9) {
     const Tp = hex(kit.top), TpD = shade(Tp, 0.35), tee = kit.topKind === 'tee';
@@ -113,7 +119,7 @@ function frame(d, W, ox, oy, kit) {
 }
 
 // 회원 장비(look) → 꾸미기 설정. look.gear = 서버 lookFor (arts: 부위별 상점 그림 설정, hairArt: 헤어 그림 이름)
-// 상의: 민소매 = 탱크탑, 크롭 · 레이서 = 스포츠 브라, 그 밖(반팔 티) = 반팔 (어깨에서 이어진 위팔만 소매)
+// 상의: 민소매 = 탱크탑, 크롭 · 레이서 = 스포츠 브라, 상의 탈의(bare) = 맨몸, 그 밖(반팔 티) = 반팔 (어깨에서 이어진 위팔만 소매)
 const HAIR_OF = { spiky: ['spiky'], buzz: ['buzz'], bald: ['bald'], 'blond-buzz': ['buzz', '#d9ae49'], mohawk: ['mohawk'],
   bob: ['bob'], ponytail: ['ponytail'], bun: ['bun'], bandana: ['bob'], 'bandana-m': ['buzz'], long: ['bob'], cornrow: ['buzz'] }; // 두건 · 콘로우: 경기 캐릭터엔 그 그림이 없어 두피에 붙은 짧은 머리(buzz)로, 여자 두건만 단발로
 export function kitFromLook(look) {
@@ -122,7 +128,8 @@ export function kitFromLook(look) {
   const s = a.shirt;
   return {
     gloves: a.gloves?.body || '#ececec', trunks: a.trunks?.body || '#1b2a63', shoes: a.shoes?.body || '#2a2a2a',
+    boxy: a.trunks?.boxy,
     hair, hairColor: hc || (F ? '#4a2f24' : '#1f1a26'),
-    top: s?.body, topKind: !s ? null : s.crop || s.cut === 'racer' ? 'bra' : s.sleeveless ? 'tank' : 'tee',
+    top: s?.bare ? undefined : s?.body, topKind: !s || s.bare ? null : s.crop || s.cut === 'racer' ? 'bra' : s.sleeveless ? 'tank' : 'tee', // bare = 상의 탈의 → 맨몸 그대로
   };
 }

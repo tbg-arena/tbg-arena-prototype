@@ -3,11 +3,12 @@
 //
 // 글러브 art: { type: 'glove', body, accent?(투톤 색), cuff, piping, closure: 'lace' | 'velcro',
 //              lace?(끈 색), strap?(벨크로 색), label?(손목 위 작은 로고 패치 색), text?: ['줄1', '줄2'], textColor? }
-// 트렁크 art: { type: 'trunks', body, band, bandText?(허리 밴드 글자 색), stripe?(옆선 색), hem?(밑단 색), vPanel?, split?(밑단 옆트임) }
+// 트렁크 art: { type: 'trunks', body, band, bandText?(허리 밴드 글자 색), stripe?(옆선 색), hem?(밑단 색), vPanel?, split?(밑단 옆트임),
+//              boxy?(박스핏: 통이 곧게 떨어지고 기장이 길다) }
 // 티셔츠 art: { type: 'shirt', body, collar?(목 둘레 색), print?(가슴 글자 색), text?: ['줄1', …], sleeveless?(탱크탑),
 //              cut?: 'muscle'(굵은 어깨 · 깊은 진동) | 'racer'(가운데로 모인 어깨끈) — 탱크탑만, crop?(배꼽 위 기장) — 탱크탑만,
-//              fabric?: 'washed'(빛바랜 얼룩) | 'mesh'(구멍 격자) }
-// 복싱화 art: { type: 'shoe', body, height: 'low' | 'mid' | 'high', sole, accent?(옆면 사선 띠), lace?, collar?(발목 패드 색) }
+//              fabric?: 'washed'(빛바랜 얼룩) | 'mesh'(구멍 격자), bare?(상의 탈의 — 옷 대신 단련된 맨몸) }
+// 복싱화 art: { type: 'shoe', body, height: 'low' | 'mid' | 'high', sole, accent?(옆면 사선 띠), lace?, collar?(발목 패드 색), }
 import { mkCanvas } from './util.js';
 
 const N = 32;
@@ -165,15 +166,15 @@ function glove(a) {
 // ── 트렁크 (앞모습)
 function trunks(a) {
   const G = grid();
-  const bandTop = 5, bandBot = 10, bot = 27;
+  const bandTop = 5, bandBot = 10, bot = a.boxy ? 29 : 27;
   for (let y = bandTop; y <= bandBot; y++) {
     const x0 = y === bandTop ? 5 : 4, x1 = y === bandTop ? 26 : 27;
     for (let x = x0; x <= x1; x++) G.set(x, y, tone(a.band, y === bandTop ? 1 : y === bandBot ? -1 : x <= 5 ? 1 : x >= 26 ? -1 : 0));
   }
   for (let y = bandBot + 1; y <= bot; y++) {
-    const grow = Math.floor((y - bandBot) / 7);
+    const grow = a.boxy ? 1 + Math.floor((y - bandBot) / 9) : Math.floor((y - bandBot) / 7);
     const x0 = 4 - grow, x1 = 27 + grow;
-    const gap = y >= 19 ? Math.floor((y - 18) * 0.6) : -1; // 다리 사이
+    const gap = a.boxy ? (y >= 22 ? Math.floor((y - 21) * 0.4) : -1) : y >= 19 ? Math.floor((y - 18) * 0.6) : -1; // 다리 사이 (박스핏은 늦게 · 좁게)
     for (let x = x0; x <= x1; x++) {
       if (gap >= 0 && x >= 15 - gap && x <= 16 + gap) continue;
       const slit = y - (bot - 4); // 옆트임: 밑단 바깥쪽을 아래로 갈수록 넓게 파냄
@@ -207,6 +208,7 @@ function trunks(a) {
 
 // ── 티셔츠 (앞모습: 반팔, 둥근 목, 가슴 프린트)
 function shirt(a) {
+  if (a.bare) return torso();
   if (a.sleeveless) return tank(a);
   const G = grid();
   const collar = a.collar || tone(a.body, 1);
@@ -233,6 +235,39 @@ function shirt(a) {
   for (let x = 12; x <= 19; x++) G.set(x, 3, null);
   // 가슴 프린트
   if (a.text) text(G, a.text, 15.5, 7, a.print || '#ffffff', null);
+  outline(G);
+  return G;
+}
+
+// ── 상의 탈의: 단련된 맨몸 (넓은 어깨 → 좁은 허리 V자, 가슴 · 식스팩 · 옆구리 사선). 빛은 왼쪽 위에서
+const SKIN = '#e8b088';
+function torso() {
+  const G = grid();
+  const span = (y) => (y <= 3 ? [13, 18] : y === 4 ? [12, 19] : y === 5 ? [7, 24] : y === 6 ? [4, 27] : y <= 12 ? [3, 28] : [3 + Math.round((y - 12) * 0.3), 28 - Math.round((y - 12) * 0.3)]);
+  for (let y = 1; y <= 30; y++) {
+    const [x0, x1] = span(y);
+    for (let x = x0; x <= x1; x++) G.set(x, y, tone(SKIN, x <= x0 + 1 ? 1 : x >= x1 - 1 ? -1 : 0));
+  }
+  const S = (x, y, k) => G.get(x, y) && G.set(x, y, tone(SKIN, k));
+  for (let x = 13; x <= 18; x++) S(x, 4, -1);                               // 턱 밑 그늘
+  for (const [x, y] of [[8, 6], [9, 6], [10, 7], [11, 7], [12, 7], [23, 6], [22, 6], [21, 7], [20, 7], [19, 7]]) S(x, y, -1); // 쇄골
+  for (let y = 4; y <= 6; y++) { S(4 + (6 - y) * 2, y + 1, 1); S(5 + (6 - y) * 2, y + 1, 1); } // 왼쪽 어깨 빛
+  // 가슴: 아랫선은 둥글게 처지고, 윗면은 밝게
+  for (const [cx, sgn] of [[10, 1], [21, -1]]) {
+    for (let dx = -5; dx <= 5; dx++) {
+      const x = cx + dx, y = 13 + (Math.abs(dx) >= 4 ? -1 : 0) + (Math.abs(dx) === 5 ? -1 : 0);
+      S(x, y, -2); S(x, y + 1, -1);
+      if (Math.abs(dx) <= 3 && sgn > 0) { S(x, 9, 1); S(x, 10, 1); }
+      if (Math.abs(dx) <= 2 && sgn < 0) S(x, 9, 1);
+    }
+  }
+  for (let y = 8; y <= 28; y++) { S(15, y, -1); S(16, y, y > 15 ? -2 : -1); } // 가슴 · 배 가운데 골
+  // 식스팩: 가로 마디 3줄, 덩어리마다 왼쪽 위 1칸 빛
+  for (const y of [18, 22, 26]) for (let x = 11; x <= 20; x++) if (x !== 15 && x !== 16) S(x, y, -2);
+  for (const y of [16, 20, 24]) for (const x of [12, 18]) { S(x, y, 1); S(x + 1, y, 1); }
+  for (let y = 16; y <= 27; y++) { S(10, y, -1); S(21, y, -2); }               // 복근 바깥선
+  // 옆구리 사선 (V라인이 허리 밴드 쪽으로 모임)
+  for (let i = 0; i <= 6; i++) { S(7 + Math.round(i * 0.5), 24 + i, -1); S(24 - Math.round(i * 0.5), 24 + i, -2); }
   outline(G);
   return G;
 }

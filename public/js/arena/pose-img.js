@@ -99,8 +99,26 @@ export function poseCanvas(kit, F, arts, hairArt) {
   // 부위별 바꿀 색 · 기준 밝기(그림의 기본 차림 색이 이 밝기일 때 바꿀 색 그대로)
   const target = { 1: kit.top || '#22336e', 2: kit.trunks, 3: kit.gloves, 4: kit.hairColor, 5: kit.shoes };
   const T = {}; for (const k in target) { const rgb = hex(target[k]); T[k] = { rgb, L: Math.max(lum(...rgb), 1) }; }
+  // 박스핏 트렁크: 트렁크 밑단(흰 띠) 아래 허벅지를 그림 높이의 4%만큼 더 덮어 길게 (외곽선은 그대로 두어 다리 모양 유지)
+  const ext = new Uint8Array(W * H);
+  if (kit.boxy && box[2]) {
+    const E = Math.round(H * 0.04), b = box[2], bots = {};
+    for (let x = b.x0; x <= b.x1; x++) for (let y = b.y0; y <= b.y1; y++) if (R[y * W + x] === 2) bots[x] = y;
+    // 밑단 흰 띠는 트렁크보다 양옆으로 몇 칸 더 나와 있어서, 바깥 줄은 가장 가까운 트렁크 줄의 밑단 높이를 쓴다
+    const near = (x) => { for (let k = 0; k <= 5; k++) { if (bots[x - k] != null) return bots[x - k]; if (bots[x + k] != null) return bots[x + k]; } return -1; };
+    for (let x = b.x0 - 5; x <= b.x1 + 5; x++) {
+      const bot = bots[x] ?? near(x);
+      if (bot < 0) continue;
+      for (let y = bot - 2; y <= Math.min(H - 1, bot + E); y++) {
+        const p = y * W + x, i = p * 4, r = d[i], gg = d[i + 1], bb = d[i + 2], mx = Math.max(r, gg, bb), mn = Math.min(r, gg, bb);
+        if (R[p] || !d[i + 3]) continue;
+        if ((r > gg && gg > bb && r - bb > 50) || (mx - mn < 30 && lum(r, gg, bb) > 60)) ext[p] = 1; // 피부 · 흰 회색 밑단 (검정 외곽선 제외)
+      }
+    }
+  }
   for (let p = 0; p < W * H; p++) {
-    const i = p * 4, raw = R[p], role = raw === 6 ? 1 : raw; // 탱크탑 배 = 상의와 같은 색 · 그림 (명암 기준만 피부 평균)
+    const i = p * 4, raw = R[p], role = raw === 6 ? 1 : raw;
+    if (ext[p]) { o[i + 3] = d[i + 3]; for (let ch = 0; ch < 3; ch++) o[i + ch] = Math.round(T[2].rgb[ch] * 0.92); continue; } // 탱크탑 배 = 상의와 같은 색 · 그림 (명암 기준만 피부 평균)
     o[i + 3] = d[i + 3];
     if (!role) { o[i] = d[i]; o[i + 1] = d[i + 1]; o[i + 2] = d[i + 2]; continue; }
     // 원래 밝기 / 부위 평균 밝기 = 명암 비율 → 바꿀 색에 곱함 (흰 글러브처럼 밝은 색은 위쪽에서 잘리니 살짝 낮춤)

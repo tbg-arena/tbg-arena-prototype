@@ -79,17 +79,19 @@ function categoryBar(shop) {
 function itemCard(me, shop, it) {
   const slot = Object.fromEntries(shop.slots)[it.slot];
   const short = shop.coins < it.price;
+  const god = it.god; // 신 등급 전용 (신 등급 회원에게만 보임): 금빛 카드 + 전용 배지
   const action = it.owned
     ? (it.equipped ? '<span class="badge solid">착용 중</span>' : `<button class="btn sm" data-equip="${it.id}">착용</button>`)
     : !it.unlocked ? '<button class="btn sm" disabled>잠김</button>'
     : `<button class="btn sm primary" data-buy="${it.id}" ${short ? 'disabled' : ''}>${short ? '코인 부족' : '구매'}</button>`;
   return `
-    <div class="card shop-item ${preview[it.slot] === it.id ? 'on' : ''}" data-preview="${it.id}">
+    <div class="card shop-item ${preview[it.slot] === it.id ? 'on' : ''} ${god ? 'god' : ''}" data-preview="${it.id}">
       <div class="shop-thumb"><img src="${itemImage(me, shop, it, 2)}" alt="" /></div>
       <div class="grow" style="min-width:0">
         ${it.brand ? `<div class="brand px">${esc(it.brand)}</div>` : ''}
         <div class="iname">${esc(it.name)} <span class="muted small">· ${esc(slot)}</span></div>
         ${it.desc ? `<div class="muted small">${esc(it.desc)}</div>` : ''}
+        ${god ? '<div class="reqs"><span class="req god">신 등급 전용</span></div>' : ''}
         ${it.require.length ? `<div class="reqs">${it.require.map((r) => `<span class="req ${r.ok ? 'ok' : ''}">${r.ok ? '✓ ' : ''}${esc(r.label)} ${Math.min(r.have, r.need)}/${r.need}</span>`).join('')}</div>` : ''}
       </div>
       <div class="shop-buy"><div class="price px">${it.owned ? '보유' : `${it.price} COIN`}</div>${action}</div>

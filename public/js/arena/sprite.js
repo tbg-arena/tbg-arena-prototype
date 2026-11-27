@@ -236,8 +236,9 @@ export function drawSprite(g, look, st, pose) {
     body.push(lb(2, -9, kx, ky, 3, C.skin), lb(kx, ky, kx - 1, ky + 7, 3, C.skin), rc(kx - 3, ky + 6, 4, 2, st.shoe));
   } else body.push(lb(2, -9, fL[0], -2, 3, C.skin), rc(fL[0] - 1, -2, 4, 2, st.shoe));
   const gear = look.gear || {};
-  body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, gear.trunks || CLOTH.p)); // 반바지 (트렁크)
-  body.push(rc(-4 + ux, -20 + uy, 8, 8, gear.shirt || CLOTH.c));                     // 반팔 티 (상의)
+  if (gear.trunksBoxy) body.push(rc(-6 + Math.round(ux / 3), -13 + Math.round(uy / 2), 12, 7, gear.trunks)); // 박스핏: 넓고 길게
+  else body.push(rc(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 5, gear.trunks || CLOTH.p)); // 반바지 (트렁크)
+  body.push(rc(-4 + ux, -20 + uy, 8, 8, gear.shirtless ? C.skin : gear.shirt || CLOTH.c)); // 반팔 티 (상의) · 상의 탈의면 맨몸
   group(g, body);
   if (gear.trunksPanel) {
     g.fillStyle = gear.trunksPanel;
@@ -252,10 +253,14 @@ export function drawSprite(g, look, st, pose) {
       g.fillRect(3 + Math.round(ux / 3), y + Math.round(uy / 2), 1, 1);
     }
   }
-  g.fillStyle = gear.trunksS || CLOTH.ps; g.fillRect(-5 + Math.round(ux / 3), -13 + Math.round(uy / 2), 10, 1); // 허리 밴드
+  g.fillStyle = gear.trunksS || CLOTH.ps; g.fillRect((gear.trunksBoxy ? -6 : -5) + Math.round(ux / 3), -13 + Math.round(uy / 2), gear.trunksBoxy ? 12 : 10, 1); // 허리 밴드
   if (gear.trunksMark) { g.fillStyle = gear.trunksMark; g.fillRect(-1 + Math.round(ux / 3), -13 + Math.round(uy / 2), 2, 1); } // 밴드 로고
-  g.fillStyle = gear.shirtS || CLOTH.s; g.fillRect(-4 + ux, -20 + uy, 2, 8);
-  if (gear.sleeveless) { g.fillStyle = C.skin; g.fillRect(-4 + ux, -20 + uy, 2, 1); g.fillRect(2 + ux, -20 + uy, 2, 1); } // 탱크탑 어깨선
+  if (gear.shirtless) { // 맨몸: 등 쪽 그늘 + 가슴 아랫선 · 복근 마디
+    g.fillStyle = C.skinS; g.fillRect(-4 + ux, -20 + uy, 1, 8);
+    g.fillRect(ux - 3, -17 + uy, 2, 1); g.fillRect(ux + 1, -17 + uy, 2, 1);
+    g.fillRect(ux - 1, -15 + uy, 1, 1); g.fillRect(ux + 1, -15 + uy, 1, 1); g.fillRect(ux - 1, -13 + uy, 1, 1); g.fillRect(ux + 1, -13 + uy, 1, 1);
+  } else { g.fillStyle = gear.shirtS || CLOTH.s; g.fillRect(-4 + ux, -20 + uy, 2, 8); }
+  if (gear.sleeveless && !gear.shirtless) { g.fillStyle = C.skin; g.fillRect(-4 + ux, -20 + uy, 2, 1); g.fillRect(2 + ux, -20 + uy, 2, 1); } // 탱크탑 어깨선
   if (gear.shirtGraphic) {
     g.fillStyle = gear.shirtGraphic;
     g.fillRect(ux - 3, -18 + uy, 6, 1); g.fillRect(ux - 2, -17 + uy, 4, 1); g.fillRect(ux - 3, -16 + uy, 6, 1);
