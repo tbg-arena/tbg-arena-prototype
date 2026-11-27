@@ -40,11 +40,24 @@ Redis 환경변수가 있으면 **Upstash Redis**, 없으면 로컬 파일.
 2. 프로젝트 → **Storage** → **Upstash for Redis** 생성 후 연결 → `KV_REST_API_URL`, `KV_REST_API_TOKEN` 자동 등록
 3. **Settings → Environment Variables** 에 `COACH_PIN` 추가 (기본값 1234 그대로 두지 말 것)
    - 체육관 위치를 지도에서 고르려면 `KAKAO_JS_KEY` (카카오 JavaScript 키)도 추가. 없으면 체육관 안에서 '지금 위치로 저장'만 됨
+   - 경기 캐릭터(히트맨 시트)를 쓰려면 `ASSET_REPO` · `ASSET_TOKEN` 도 추가 (아래 '유료 에셋')
 4. Redeploy
 
 - 정적 파일은 `public/`, `/api/*` 는 서버리스 함수 하나가 처리
 - 요청마다 Redis에서 DB를 불러와 처리 후 저장. 경기 중계 데이터는 경기별 키(`tbg:fight:<id>`)로 분리
 - 동시에 여러 서버 인스턴스가 쓰면 마지막 저장이 이기는 구조라, 체육관 규모(동시 사용 적음)를 전제로 함
+
+### 유료 에셋 (재배포 금지 라이선스)
+
+이 레포는 공개라서 Sayleok 히트맨 시트처럼 재배포가 금지된 에셋은 올리지 않습니다(`.gitignore`). 대신 **비공개 에셋 레포**에 두고, 배포 빌드 때 받아서 결과물에만 넣습니다 (`tools/fetch-assets.js`).
+
+1. 개인 계정에 비공개 레포를 만들고 `hitman/sheet.png` 로 시트를 올림 (예: `SH38038038/tbg-assets`)
+2. GitHub → Settings → Developer settings → **Fine-grained token**: 그 레포만, Contents **Read-only**
+3. Vercel 환경변수: `ASSET_REPO` = `SH38038038/tbg-assets`, `ASSET_TOKEN` = 토큰 (Production · Preview)
+4. Redeploy → 빌드 로그에 `[assets] hitman/sheet.png → public/img/hitman/sheet.png`
+
+- 토큰이 없거나 받기에 실패해도 빌드는 계속됨 → 경기 캐릭터만 옛 도트 캐릭터로 나옴
+- 로컬에서는 `public/img/hitman/sheet.png` 에 직접 복사해서 씀
 
 ## 게임 루프
 
