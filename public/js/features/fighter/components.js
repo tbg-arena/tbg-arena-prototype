@@ -1,5 +1,6 @@
 // 선수 카드 · 능력치 막대 (홈, 선수 분석, 코치 회원 관리에서 같이 쓴다)
 import { esc, sprite, record } from '../../core/ui.js';
+import { figureURL, baseURL } from '../../arena/figure.js';
 
 export const STAT_LABEL = { power: ['PWR', '파워'], speed: ['SPD', '스피드'], stamina: ['STA', '체력'], iq: ['IQ', 'IQ'], chin: ['DEF', '맷집'] };
 
@@ -14,7 +15,7 @@ export function fighterCard(m, opts = {}) {
   return `
     <div class="card profile">
       <div class="p-head">
-        <div class="sprite-box"><img src="${sprite(m, { pose: 'idle', scale: 2 })}" alt="" /></div>
+        ${opts.figure ? `<div class="fig-box sm"><img src="${figureURL(m, 2)}" alt="" /></div>` : `<div class="sprite-box base"><img src="${baseURL(m)}" alt="" /></div>`}
         <div class="grow" style="min-width:0">
           ${m.streak >= 2 ? `<div class="small" style="margin-bottom:8px"><span class="badge red">${m.streak} WIN STREAK</span></div>` : ''}
           <div class="name ellipsis">${esc(m.name)}</div>

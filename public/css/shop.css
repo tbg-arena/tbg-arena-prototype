@@ -1,7 +1,16 @@
 /* ── 상점 · 옷장 (js/features/shop) */
-.shop-hero { display: flex; gap: 14px; align-items: flex-end; }
+/* 위쪽 카드: 캐릭터 · 장비 목록 · 코인을 세로 가운데로, 버튼 줄은 늘 있어서 입어 봐도 높이 그대로 */
+.shop-hero-top { display: flex; gap: 14px; align-items: center; }
+.shop-hero-act { display: flex; gap: 8px; margin-top: 12px; }
+.shop-coin { margin-top: 10px; font-size: 12px; color: var(--muted); }
+.shop-coin b { font-size: 22px; color: var(--yellow); margin-left: 4px; }
+.shop-hero-act .btn:disabled { opacity: .45; }
+.shop-hero-act .grow { flex: 1; }
 .shop-wearing { font-size: 12px; font-weight: 700; line-height: 1.6; margin-top: 2px; }
 .shop-wearing .px { font-size: 10px; color: var(--muted); margin-right: 6px; }
+.shop-wearing > div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } /* 긴 이름이 두 줄로 접혀 카드가 늘어나지 않게 */
+.shop-hero.trying .shop-wearing > div:not(.chg) { color: var(--muted); } /* 입어 보는 중: 바뀐 부위만 또렷하게 */
+.ward.try { border-color: var(--ink); color: var(--ink); background: var(--surface2); }
 .shop-item { display: flex; gap: 12px; align-items: center; cursor: pointer; }
 .shop-item.on { box-shadow: inset 0 0 0 1px var(--ink), 3px 3px 0 var(--red); }
 .shop-thumb { width: 66px; height: 66px; flex-shrink: 0; background: var(--ink); border: 1px solid var(--ink); display: grid; place-items: center; overflow: hidden; }

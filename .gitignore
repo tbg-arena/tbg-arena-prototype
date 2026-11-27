@@ -8,3 +8,6 @@ data/
 # 회원 개인정보 (공개 저장소에 올리지 않음)
 docs/*.xlsx
 tools/reset-new-stats.js
+
+# 유료 · 체험판 스프라이트 (Sayleok, 재배포 금지 라이선스 — 공개 저장소에 올리지 않음)
+public/img/hitman/

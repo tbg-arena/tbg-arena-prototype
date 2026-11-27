@@ -2,35 +2,59 @@
 const W = 1080, H = 1920;
 const PIXEL = 'Galmuri11, monospace';
 
+import { figureURL } from '../../arena/figure.js';
+import { gearArtURL } from '../../arena/gear-art.js';
+import { lookOf } from '../../arena/sprite.js';
+
 const loadImg = (src) => new Promise((ok) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => ok(null); i.src = src; });
 
-// d = { ring: canvas, L: {id, name, power}, R: {id, name, power}, winnerId, title, lose, method, meta, delta, date }
+// d = { ring: canvas, L: {id, name, power, gender, look}, R, winnerId, title, lose, method, meta, delta, date }
+// 저장하는 사람(경기 화면에서 늘 왼쪽 L)은 산 옷을 입은 캐릭터를 크게 + 입은 상품 그림 칸 — 상점에서 산 디테일이 보이게
+const SLOTS = [['gloves', 'GLOVES'], ['shirt', 'TOP'], ['trunks', 'TRUNKS'], ['shoes', 'SHOES']];
 export async function storyCanvas(d) {
-  const [logo] = await Promise.all([loadImg('/logo.png'), document.fonts?.load(`700 40px Galmuri11`).catch(() => {})]);
+  const arts = lookOf(d.L).gear.arts || {};
+  const worn = SLOTS.filter(([k]) => arts[k]);
+  const [logo, fig, ...tiles] = await Promise.all([loadImg('/logo.png'), loadImg(figureURL(d.L)), ...worn.map(([k]) => loadImg(gearArtURL(arts[k], 8))),
+    document.fonts?.load(`700 40px Galmuri11`).catch(() => {})]);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#212121'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#1a1d1f'; g.fillRect(0, 0, W, H);
   g.textAlign = 'center'; g.textBaseline = 'middle';
 
   // 로고
-  const lh = logo ? 380 * logo.height / logo.width : 200;
-  if (logo) g.drawImage(logo, (W - 380) / 2, 110, 380, lh);
-  g.fillStyle = '#ff1744'; g.font = `700 44px ${PIXEL}`; g.fillText('ARENA', W / 2, 110 + lh + 50);
+  const lh = logo ? 300 * logo.height / logo.width : 160;
+  if (logo) g.drawImage(logo, (W - 300) / 2, 70, 300, lh);
+  g.fillStyle = '#d8344e'; g.font = `700 40px ${PIXEL}`; g.fillText('ARENA', W / 2, 70 + lh + 40);
 
-  // 링 장면 (도트 유지)
-  const rw = 960, rh = rw * 100 / 160, rx = (W - rw) / 2, ry = 110 + lh + 120;
+  // 가운데: 왼쪽 = 내 캐릭터 크게 / 오른쪽 = 링 마지막 장면(작게) + 입은 상품 칸 2×2
+  const top = 70 + lh + 90;
+  if (fig) {
+    const fh = 760, fw = fh * fig.width / fig.height, fx = 300 - fw / 2;
+    g.fillStyle = '#181526'; g.fillRect(60, top, 480, fh + 40);   // 히트맨 밤 배경 + 하늘빛 매트
+    g.fillStyle = '#b9d3d6'; g.fillRect(60, top + fh - 30, 480, 70);
+    g.fillStyle = '#87a0ae'; g.fillRect(60, top + fh - 30, 480, 8);
+    g.imageSmoothingEnabled = false; g.drawImage(fig, fx, top + 10, fw, fh);
+  }
+  const rx = 580, rw = 440, rh = rw * 100 / 160;
   g.imageSmoothingEnabled = false;
-  g.drawImage(d.ring, rx, ry, rw, rh);
-  g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(rx - 3, ry - 3, rw + 6, rh + 6);
+  g.drawImage(d.ring, rx, top, rw, rh);
+  g.strokeStyle = '#fff'; g.lineWidth = 6; g.strokeRect(rx - 3, top - 3, rw + 6, rh + 6);
+  const ts = 200, tg = 40;
+  worn.forEach(([, label], i) => {
+    const tx = rx + (i % 2) * (ts + tg), ty = top + rh + 50 + Math.floor(i / 2) * (ts + 70);
+    g.fillStyle = '#2c2c2c'; g.fillRect(tx, ty, ts, ts);
+    if (tiles[i]) g.drawImage(tiles[i], tx + 4, ty + 4, ts - 8, ts - 8);
+    g.fillStyle = '#888'; g.font = `700 28px ${PIXEL}`; g.fillText(label, tx + ts / 2, ty + ts + 30);
+  });
 
   // 선수: 판정승은 링 장면만으론 승자가 안 보여서 이름 줄에 WINNER 표시, 패자는 흐리게
-  const ny = ry + rh + 150;
+  const ny = top + 800 + 150;
   g.fillStyle = '#888'; g.font = `700 40px ${PIXEL}`;
   g.fillText('VS', W / 2, ny);
-  for (const [p, x, color] of [[d.L, W / 2 - 280, '#75a7ff'], [d.R, W / 2 + 280, '#ff5c77']]) {
+  for (const [p, x, color] of [[d.L, W / 2 - 280, '#6b9bd1'], [d.R, W / 2 + 280, '#e8657a']]) {
     const lost = d.winnerId && p.id !== d.winnerId;
     if (p.id === d.winnerId) {
-      g.fillStyle = '#ffea00'; g.fillRect(x - 110, ny - 112, 220, 50);
+      g.fillStyle = '#d9ae49'; g.fillRect(x - 110, ny - 112, 220, 50);
       g.fillStyle = '#111'; g.font = `700 34px ${PIXEL}`; g.fillText('WINNER', x, ny - 86);
     }
     g.fillStyle = lost ? '#555' : color; g.font = `700 52px ${PIXEL}`; g.fillText(fit(g, p.name, 380), x, ny);
@@ -38,20 +62,20 @@ export async function storyCanvas(d) {
   }
 
   // 결과
-  const ty = ny + 210;
-  g.font = `700 150px ${PIXEL}`;
-  if (!d.lose) { g.fillStyle = '#2979ff'; g.fillText(d.title, W / 2 + 8, ty + 8); }
+  const ty = ny + 180;
+  g.font = `700 120px ${PIXEL}`;
+  if (!d.lose) { g.fillStyle = '#225c99'; g.fillText(d.title, W / 2 + 8, ty + 8); }
   g.fillStyle = d.lose ? '#888' : '#fff'; g.fillText(d.title, W / 2, ty);
-  g.fillStyle = '#fff'; g.font = `700 56px ${PIXEL}`; g.fillText(fit(g, d.method, 960), W / 2, ty + 150);
-  g.fillStyle = '#aaa'; g.font = `700 42px ${PIXEL}`; g.fillText(fit(g, d.meta, 960), W / 2, ty + 230);
+  g.fillStyle = '#fff'; g.font = `700 52px ${PIXEL}`; g.fillText(fit(g, d.method, 960), W / 2, ty + 120);
+  g.fillStyle = '#aaa'; g.font = `700 38px ${PIXEL}`; g.fillText(fit(g, d.meta, 960), W / 2, ty + 185);
   if (d.delta != null) {
-    g.fillStyle = d.delta >= 0 ? '#00e676' : '#ff1744'; g.font = `700 64px ${PIXEL}`;
-    g.fillText(`RANK PTS ${d.delta >= 0 ? '+' : ''}${d.delta}`, W / 2, ty + 340);
+    g.fillStyle = d.delta >= 0 ? '#7fb36a' : '#d8344e'; g.font = `700 56px ${PIXEL}`;
+    g.fillText(`RANK PTS ${d.delta >= 0 ? '+' : ''}${d.delta}`, W / 2, ty + 265);
   }
 
   // 하단
   g.fillStyle = '#666'; g.font = `700 32px ${PIXEL}`;
-  g.fillText(`${d.date} · TBG BOXING & MMA · SINSA`, W / 2, H - 90);
+  g.fillText(`${d.date} · TBG BOXING & MMA · SINSA`, W / 2, H - 60);
   return c;
 }
 

@@ -20,6 +20,13 @@ export const MOVE_FX = {
   liver: { seq: [['bodyhook', 0.4]], trail: 'low', hit: 'hitBody', label: 'LIVER!', dy: 13 },
   bodyupper: { seq: [['bodyupper', 0.36]], trail: 'up', hit: 'hitBody', label: 'BODY UPPER!', dy: 10 },
 };
+// 도트식 키프레임: 진행도 p(0..1)를 구간으로 끊어 포즈 세기 k 를 계단식으로 준다 (매끈한 bump 대신 딱딱 끊기는 맛)
+// 항목 = [이 구간이 끝나는 p, 그동안의 k]. k<0 은 치기 전에 살짝 당기는 예비 동작. 여기 없는 동작은 bump 그대로
+export const KEYS = {
+  jab: [[0.1, -0.15], [0.25, 0.6], [0.55, 1], [0.8, 0.45], [1, 0]],   // 짧게 당기고 바로 뻗음 → 빠릿한 잽
+  cross: [[0.2, -0.3], [0.3, 0.6], [0.6, 1], [0.8, 0.5], [1, 0]],     // 뒷손을 더 당겼다가 길게 멈춤 → 묵직한 크로스
+};
+export const keyK = (kind, p) => KEYS[kind]?.find(([end]) => p <= end)?.[1];
 export function guessMove(cat, name) {
   const n = String(name || '').replace(/\s/g, '');
   if (cat === 'jab') return /원투|1-2/.test(n) ? 'onetwo' : /더블|트리플/.test(n) ? 'double' : /스트레이트|크로스/.test(n) ? 'straight' : /핀|블라인드/.test(n) ? 'pin' : 'jab';

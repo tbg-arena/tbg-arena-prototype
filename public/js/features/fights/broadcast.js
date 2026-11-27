@@ -7,6 +7,7 @@ import { Arena } from '../../arena/arena.js';
 import { SFX } from '../../arena/sfx.js';
 import { clock } from './components.js';
 import { shareStory } from './story.js';
+import { figureURL } from '../../arena/figure.js';
 
 const POS_LABEL = { clinch: '클린치', ground: '그라운드' }; // 예전(MMA) 경기 다시보기용
 
@@ -43,7 +44,7 @@ async function renderFight(id) {
           </div>`).join('<div class="vs">VS</div>')}
       </div>
       <div class="scoreboard"><span id="rnd">1R</span><b id="clk">${clock(f.roundSec || 300)}</b><span id="pos" class="badge" style="display:none"></span></div>
-      <div class="ring"><canvas id="ring"></canvas>${f.taunt ? `<div class="taunt" id="taunt"><span>도전장</span><b>${esc(nameOf(f.taunt.by))}</b><p>“${esc(f.taunt.text)}”</p></div>` : ''}</div>
+      <div class="ring"><canvas id="ring"></canvas>${entrance([L, R])}${f.taunt ? `<div class="taunt hidden" id="taunt"><span>도전장</span><b>${esc(nameOf(f.taunt.by))}</b><p>“${esc(f.taunt.text)}”</p></div>` : ''}</div>
       <div class="feed" id="feed"></div>
       <div id="result"></div>
       <div class="row" id="ctrl"><button class="btn grow" id="spd">▶ 1x</button><button class="btn primary grow" id="skip">결과 바로 보기 ⏭</button></div>
@@ -58,7 +59,7 @@ async function renderFight(id) {
   sndLabel();
   $snd.onclick = () => { SFX.toggle(); sndLabel(); vibrate(15); };
   document.getElementById('spd').onclick = (e) => { speed = speed === 1 ? 3 : speed === 3 ? 8 : 1; e.target.textContent = `▶ ${speed}x`; if (arena) arena.speed = speed; };
-  document.getElementById('skip').onclick = () => { clearTimeout(state.playTimer); document.getElementById('taunt')?.remove(); while (i < f.events.length) show(f.events[i++], true); if (arena) arena.silent = true; arena?.snap(f.events[f.events.length - 1], f.result); end(); };
+  document.getElementById('skip').onclick = () => { clearTimeout(state.playTimer); document.getElementById('entrance')?.remove(); document.getElementById('taunt')?.remove(); while (i < f.events.length) show(f.events[i++], true); if (arena) arena.silent = true; arena?.snap(f.events[f.events.length - 1], f.result); end(); };
 
   const $feed = document.getElementById('feed');
   function show(e, silent) {
@@ -122,8 +123,17 @@ async function renderFight(id) {
     // 긴 콤보는 정해진 간격보다 연출이 길어서, 끝나기 전에 다음 공방이 겹치지 않도록 남은 연출만큼 더 기다린다
     state.playTimer = setTimeout(step, Math.max(base / speed, (arena?.busyLeft?.() || 0) + 120 / speed));
   }
-  if (f.taunt) {
+  // 입장: 양 선수가 입은 모습을 정면 전신으로 잠깐 보여 준 뒤 → 도전장(있으면) → 경기 시작
+  const begin = () => {
+    const t = document.getElementById('taunt');
+    if (!t) return step();
     // 도전장 한마디: 링 위에 잠깐 띄운 뒤 경기 시작 (피드엔 남기지 않음 — 해설 톤과 섞임)
-    state.playTimer = setTimeout(() => { document.getElementById('taunt')?.remove(); step(); }, 2800);
-  } else step();
+    t.classList.remove('hidden');
+    state.playTimer = setTimeout(() => { t.remove(); step(); }, 2800);
+  };
+  state.playTimer = setTimeout(() => { document.getElementById('entrance')?.remove(); begin(); }, 2400);
 }
+
+// 입장 장면: 두 선수를 정면 전신으로 (옷 · 글러브 · 복싱화가 보이는 자리 — 상점 장비가 남에게 보이는 곳)
+const entrance = (ps) => `<div class="entrance" id="entrance">${ps.map((p, k) => `
+  <div class="ent ${k ? 'r' : 'l'}"><img src="${figureURL(p, 2)}" alt="" /><b class="ellipsis">${esc(p.name)}</b></div>`).join('<span class="ent-vs px">VS</span>')}</div>`;

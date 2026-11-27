@@ -5,11 +5,65 @@
 import { SFX } from './sfx.js';
 import { clamp01, bump, easeOut, lerp, hash, mkCanvas } from './util.js';
 import { SW, SH, OX, OY, SIDE, lookOf, drawSprite } from './sprite.js';
-import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR, DODGE_MOVE } from './moves.js';
+import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR, DODGE_MOVE, keyK } from './moves.js';
+import { customize, kitFromLook } from './hitman.js';
+
+// ── 체험판 히트맨 스프라이트 (Sayleok 'Hitman Stance Boxer' 무료 체험판, public/img/hitman/sheet.png — 재배포 금지라 git 제외)
+// 시트: 102×67 칸, 줄마다 동작 (서기 6 · 플리커 잽1 4 · 잽2 4 · 대시 3 · 걷기 8 · 블록 2 · 맞기 3 · 다운 7), 오른쪽을 봄, 키 약 40점
+// 월드(160×100)의 옛 캐릭터와 크기가 비슷해서 월드에 도트 그대로 그린다. 시트가 없으면 옛 캐릭터(sprite.js)
+// 선수마다 착용 장비대로 색 · 헤어 · 상의를 바꾼 시트를 만들어 쓴다 (hitman.js)
+const HW = 102, HH = 67;
+const HROW = { idle: [0, 6], jab1: [1, 4], jab2: [2, 4], dash: [3, 3], walk: [4, 8], block: [5, 2], hit: [6, 3], down: [7, 7] };
+const HIT = { ready: false, img: null, ax: HW / 2, ay: HH };
+(() => {
+  if (typeof Image === 'undefined') return;
+  const img = new Image();
+  img.onload = () => {
+    const c = mkCanvas(img.width, img.height), g = c.getContext('2d');
+    g.drawImage(img, 0, 0);
+    const d = g.getImageData(0, 0, img.width, img.height), a = d.data, at = (x, y) => a[(y * img.width + x) * 4 + 3];
+    // 발 기준점: 서기 첫 칸에서 그림이 있는 맨 아래 줄, 그 근처 칸들의 가로 가운데
+    let by = 0; for (let y = 0; y < HH; y++) for (let x = 0; x < HW; x++) if (at(x, y)) by = y;
+    let sx = 0, n = 0; for (let y = by - 3; y <= by; y++) for (let x = 0; x < HW; x++) if (at(x, y)) { sx += x; n++; }
+    HIT.ax = n ? Math.round(sx / n) : HW / 2; HIT.ay = by + 1;
+    HIT.img = img; HIT.ready = true; // 선수마다 장비대로 꾸민 시트는 처음 그릴 때 만든다 (hitman.js)
+  };
+  img.src = '/img/hitman/sheet.png';
+})();
+// 지금 동작 → [시트 줄 이름, 칸 번호]. 체험판엔 펀치가 플리커 잽뿐이라 모든 펀치를 잽 두 종류로 (손에 따라 번갈아)
+const H_PUNCH = new Set(['jab', 'cross', 'punch', 'hook', 'shorthook', 'upper', 'shortupper', 'bodyupper', 'bodyhook', 'body', 'overhand', 'gnp', 'elbow', 'kick', 'knee']);
+const H_GUARD = new Set(['block', 'parry', 'slip', 'duck', 'weave', 'roll', 'sway', 'dodge', 'clinch', 'shoot', 'pin']);
+function hitmanFrame(f, pose, t) {
+  const p = Math.min(1, Math.max(0, pose.p ?? 0)), k = pose.kind;
+  if (f.ko || f.lying > 0.05) return ['down', Math.min(6, Math.floor(f.lying * 6.99))]; // 쓰러질 땐 앞으로, 일어날 땐 거꾸로 (lying 이 줄어듦)
+  if (H_PUNCH.has(k)) return [pose.hand ? 'jab2' : 'jab1', Math.floor(p * 3.99)];
+  if (k === 'hit') return ['hit', Math.floor(p * 2.99)];
+  if (H_GUARD.has(k)) return ['block', p < 0.5 ? 0 : 1];
+  if (k === 'walk' || k === 'pivot' || k === 'jump') return ['walk', Math.floor(p * 7.99)];
+  if (k === 'back' || k === 'side' || k === 'lstep') return ['walk', 7 - Math.floor(p * 7.99)]; // 뒤로는 걷기를 거꾸로
+  return ['idle', Math.floor(t * 8) % 6];
+}
+function drawHitman(w, f, pose, t) {
+  const [name, i] = hitmanFrame(f, pose, t), row = HROW[name][0];
+  w.save();
+  w.translate(Math.round(f.x), Math.round(FLOOR + f.y + (f.win ? -Math.abs(Math.sin(t * 5)) * 3 : 0))); // 승리 동작이 없어 서기 + 통통 뜀
+  w.scale(f.d, 1);
+  if (f.flash > 0) w.filter = 'brightness(2)';
+  f.hsheet ||= customize(HIT.img, kitFromLook(f.look)); // 회원 장비(글러브 · 트렁크 · 복싱화 · 상의 · 헤어)대로 꾸민 시트, 선수마다 한 번
+  w.drawImage(f.hsheet, i * HW, row * HH, HW, HH, -HIT.ax, -HIT.ay, HW, HH);
+  w.restore();
+}
 
 const LW = 160, LH = 100;          // 월드(도트) 해상도
 const FLOOR = 76, CX = LW / 2;     // 발 위치, 링 중앙
 const FONT = 'Galmuri11, "Galmuri11", monospace';
+// 링 · 배경 색 = 경기 캐릭터(히트맨) 11색 계열 — 외곽선 · 망점 없이 평평한 면으로
+const ST = {
+  night: '#181526', crowdBack: '#231f3d', crowdFront: '#1e2370', beam: '#ffce93',
+  mat: '#b9d3d6', matEdge: '#87a0ae', matSide: '#a7c1c6',
+  red: '#b51d38', white: '#faefe6', post: '#225c99', postTop: '#1e2370', pad: '#87a0ae',
+  apron: '#225c99', apronDash: '#1e2370',
+};
 
 const logoImg = new Image(); logoImg.src = '/logo.png';
 let logoDark = null; // 밝은 매트용 검정 로고
@@ -132,7 +186,7 @@ export class Arena {
       let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
       const swing = () => {
         if (!live(att)) return;
-        att.anim = { kind, t0: this.gt, dur, hand: att.hand };
+        att.anim = { kind, t0: this.gt, dur, hand: att.hand, fin: !!a.finisher };
         if (DODGE_LABEL[kind]) return evade(att, kind); // 콤보가 방어·스텝 동작으로 시작
         this.whoosh(att, mv ? mv.trail : kind);
         this.sfx(a.cat === 'kick' ? 'kick' : 'whoosh', 0);
@@ -146,7 +200,7 @@ export class Arena {
         lead += dur * 0.85; dur = d2;
         this.later(lead * 1000, () => {
           if (!live(att)) return;
-          att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand };
+          att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand, fin: !!a.finisher };
           if (DODGE_LABEL[k2]) return evade(att, k2); // 콤보 속 방어·스텝 동작
           this.whoosh(att, mv.trail); this.sfx('whoosh', 0);
         });
@@ -164,7 +218,7 @@ export class Arena {
             def.anim = { kind: end.hit, t0: this.gt, dur: 0.22 }; def.kx = -def.d * 25; def.flash = 0.05;
             this.burst(hx - def.d * 4, hy + (end.dy || 1), false); this.sfx('hit', 0);
             // 필살기 연타 카운트업: 숫자가 커지고 흔들림·멈춤이 점점 세짐
-            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#ff1744', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
+            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#d8344e', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
           });
         });
       }
@@ -177,8 +231,8 @@ export class Arena {
         this.sfx('counter', 2);
       }
       // 펀치 없는 필살기: 움직임이 끝나면 라벨 (스포트라이트는 저절로 걷힘)
-      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#ff1744', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
-      if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff1744', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
+      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#d8344e', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
+      if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#d8344e', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
         this.later((lead + dur * 0.45) * 1000, () => {
@@ -203,23 +257,23 @@ export class Arena {
           if (a.finisher) {
             this.slowmo(0.3, 1.3); this.invert = 0.14; this.flash = 0.9; this.shake = 1.4; this.stop = 0.22;
             this.speedLines = { t0: this.rt, dur: 1.3 }; this.hype = 2; this.dim = 0;
-            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#ff1744', 1.7, -30, att.d * 6);
+            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#d8344e', 1.7, -30, att.d * 6);
             this.later(10, () => { def.kx = -def.d * 150; def.vy = -50; });
             this.sfx('big', 2);
-          } else if (mv?.combo) this.text(mv.label, att, '#ff1744', 1.1, -22, att.d * 6);
+          } else if (mv?.combo) this.text(mv.label, att, '#d8344e', 1.1, -22, att.d * 6);
           else if (mv && !big) this.text(mv.label, att, a.cat === 'jab' ? '#cfcfcf' : '#ffffff', a.cat === 'jab' ? 0.7 : 0.9, -20, att.d * 6);
-          if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#cfefff', '#9fd8ff']);
+          if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#b9d3d6', '#87a0ae']);
           if (mv && a.cat === 'uppercut') this.spray(px, py - 2, 0, 6, ['#ffffff']);
           def.flash = big ? 0.1 : 0.06;
           def.kx = -def.d * (big ? 90 : 45);
           this.stop = big ? 0.16 : 0.06;
           this.sfx(e.type === 'down' ? 'down' : big ? 'big' : 'hit', e.type === 'down' ? 2 : big ? 1 : 0);
           this.burst(px, py, big);
-          this.spray(px, py, -def.d, big ? 14 : 6, big ? ['#ffffff', '#cfefff', '#ff1744'] : ['#ffffff', '#cfefff']);
+          this.spray(px, py, -def.d, big ? 14 : 6, big ? ['#ffffff', '#b9d3d6', '#d8344e'] : ['#ffffff', '#b9d3d6']);
           this.shake = big ? 1 : 0.35;
           this.cam.punch = big ? 0.35 : 0.08; this.cam.fx = px; this.cam.fy = py;
           const d = dmgOf(def.id);
-          if (d) a.finisher ? this.text(`-${d}`, def, '#ff1744', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
+          if (d) a.finisher ? this.text(`-${d}`, def, '#d8344e', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
           if (big) {
             this.flash = 0.5; this.hype = Math.min(1.5, this.hype + 0.8);
             this.text(e.type === 'down' ? 'DOWN!' : ['BIG HIT!', 'BAM!', 'CRACK!'][Math.floor(Math.random() * 3)], def, '#ffffff', e.type === 'down' ? 1.6 : 1.3, -16);
@@ -261,9 +315,9 @@ export class Arena {
         att.anim = { kind: 'shoot', t0: this.gt, dur: 0.3 };
         this.text('CLINCH', att, '#bdbdbd', 0.8, -14);
       } else if (a.cat === 'ground' && e.type === 'td' && this.top && e.top && e.top !== this.top) {
-        this.later(150, () => { this.text('SWEEP!', att, '#ff1744', 1.2, -14); this.shake = 0.5; this.dust(CX, 10); this.sfx('sweep', 1); });
+        this.later(150, () => { this.text('SWEEP!', att, '#d8344e', 1.2, -14); this.shake = 0.5; this.dust(CX, 10); this.sfx('sweep', 1); });
       } else if (a.cat === 'submission') {
-        if (e.type === 'sub') { this.lock(1.6); this.text('LOCKED!', att, '#ff1744', 1.2, -18); this.sfx('lock', 1); }
+        if (e.type === 'sub') { this.lock(1.6); this.text('LOCKED!', att, '#d8344e', 1.2, -18); this.sfx('lock', 1); }
         else if (e.type === 'miss') this.text('...', att, '#8a8a8a', 0.9, -12);
         else if (e.type === 'info') { this.text('ESCAPE!', def, '#ffffff', 1, -14); this.sfx('escape', 1); }
       }
@@ -305,7 +359,7 @@ export class Arena {
         const [hx, hy] = this.headPos(loser);
         this.cam.punch = 0.6; this.cam.fx = hx; this.cam.fy = hy + 14;
         this.burst(hx - loser.d * 4, hy, true, true);
-        this.spray(hx, hy, -loser.d, 26, ['#ffffff', '#ff1744', '#cfefff']);
+        this.spray(hx, hy, -loser.d, 26, ['#ffffff', '#d8344e', '#b9d3d6']);
         loser.ko = true; loser.tLying = 1; loser.vy = -150; loser.kx = -loser.d * 160;
         loser.anim = { kind: 'hit', t0: this.gt, dur: 0.6 };
         this.speedLines = { t0: this.rt, dur: 1.4 };
@@ -371,7 +425,7 @@ export class Arena {
     const [hx, hy] = this.headPos(f);
     this.fx.push({ kind: 'text', text, x: hx + dx, y: hy + dy, t0: this.rt, dur: 1, color, size });
   }
-  num(text, x, y, big) { this.fx.push({ kind: 'text', text, x: x + (Math.random() - 0.5) * 6, y, t0: this.rt, dur: 0.8, color: big ? '#ff1744' : '#ffffff', size: big ? 1.15 : 0.85, num: true }); }
+  num(text, x, y, big) { this.fx.push({ kind: 'text', text, x: x + (Math.random() - 0.5) * 6, y, t0: this.rt, dur: 0.8, color: big ? '#d8344e' : '#ffffff', size: big ? 1.15 : 0.85, num: true }); }
   lock(dur, tap) { this.fx = this.fx.filter((x) => x.kind !== 'lock'); this.fx.push({ kind: 'lock', t0: this.rt, dur, tap }); }
   stars(f, dur) { this.fx = this.fx.filter((x) => !(x.kind === 'stars' && x.f === f)); this.fx.push({ kind: 'stars', f, t0: this.rt, dur }); }
   banner(text, dur = 1.2, o = {}) {
@@ -384,7 +438,7 @@ export class Arena {
     for (let i = 0; i < n; i++) this.parts.push({ x, y, vx: dir * (30 + Math.random() * 90) + (Math.random() - 0.5) * 40, vy: -40 - Math.random() * 70, life: 0.4 + Math.random() * 0.5, c: cols[i % cols.length], g: 260, s: Math.random() < 0.3 ? 2 : 1 });
   }
   dust(x, n) {
-    for (let i = 0; i < n; i++) this.parts.push({ x: x + (Math.random() - 0.5) * 16, y: FLOOR - 1, vx: (Math.random() - 0.5) * 60, vy: -10 - Math.random() * 25, life: 0.5 + Math.random() * 0.4, c: i % 2 ? '#9c9c9c' : '#c4c4c4', g: 30, s: 2 });
+    for (let i = 0; i < n; i++) this.parts.push({ x: x + (Math.random() - 0.5) * 16, y: FLOOR - 1, vx: (Math.random() - 0.5) * 60, vy: -10 - Math.random() * 25, life: 0.5 + Math.random() * 0.4, c: i % 2 ? ST.matEdge : ST.matSide, g: 30, s: 2 });
   }
 
   // ── 루프
@@ -474,9 +528,9 @@ export class Arena {
 
   drawStage(w) {
     const t = this.rt;
-    w.fillStyle = '#000'; w.fillRect(0, 0, LW, LH);
-    // 스포트라이트 빔
-    w.save(); w.globalAlpha = 0.06 + this.hype * 0.03; w.fillStyle = '#fff';
+    w.fillStyle = ST.night; w.fillRect(0, 0, LW, LH);
+    // 스포트라이트 빔 (따뜻한 조명)
+    w.save(); w.globalAlpha = 0.07 + this.hype * 0.03; w.fillStyle = ST.beam;
     for (const [x0, x1] of [[CX - 46, CX - 8], [CX + 8, CX + 46]]) {
       w.beginPath(); w.moveTo(x0 + 30, 0); w.lineTo(x1 + 18, 0); w.lineTo(x1, FLOOR); w.lineTo(x0, FLOOR); w.closePath(); w.fill();
     }
@@ -486,7 +540,7 @@ export class Arena {
       const by = 26 + ri * 9;
       for (const c of row) {
         const j = Math.round(Math.max(0, Math.sin(t * 9 + c.p)) * this.hype * 2.5);
-        w.fillStyle = ri ? '#161616' : '#0e0e0e';
+        w.fillStyle = ri ? ST.crowdFront : ST.crowdBack;
         w.fillRect(c.x, by - 5 - j - c.s, 4, 4); w.fillRect(c.x - 1, by - 1 - j - c.s, 6, 8);
         if (this.hype > 0.6 && Math.sin(t * 9 + c.p) > 0.6 && c.s === 1) { w.fillRect(c.x - 2, by - 8 - j, 1, 4); w.fillRect(c.x + 5, by - 8 - j, 1, 4); }
       }
@@ -496,20 +550,16 @@ export class Arena {
     if (Math.random() < flashes) this.fx.push({ kind: 'camflash', x: 2 + Math.random() * (LW - 4), y: 10 + Math.random() * 24, t0: this.rt, dur: 0.09 });
     // 매트
     const top = 52;
-    w.fillStyle = '#d8d8d8'; w.fillRect(0, top, LW, LH - top);
-    w.fillStyle = '#bcbcbc'; w.fillRect(0, top, LW, 3);
-    // 디더 그늘 (가장자리)
-    w.fillStyle = '#b4b4b4';
-    for (let y = top + 3; y < 84; y += 1) for (let x = (y % 2); x < LW; x += 2) {
-      const e = Math.abs(x - CX) / CX;
-      if (e > 0.72 || (y < top + 6 && x % 4 === 0)) w.fillRect(x, y, 1, 1);
-    }
+    w.fillStyle = ST.mat; w.fillRect(0, top, LW, LH - top);
+    // 가장자리 그늘: 평평한 면 (양옆 · 뒤쪽 끝)
+    w.fillStyle = ST.matSide; w.fillRect(0, top, Math.round(CX * 0.28), LH - top); w.fillRect(LW - Math.round(CX * 0.28), top, Math.round(CX * 0.28), LH - top);
+    w.fillStyle = ST.matEdge; w.fillRect(0, top, LW, 3);
     if (logoDark) { w.globalAlpha = 0.13; w.drawImage(logoDark, CX - 26, top + 7, 52, 15); w.globalAlpha = 1; }
     // 뒤쪽 로프 & 포스트
     for (const [i, y] of [[0, 32], [1, 39], [2, 46]].map(([i, y]) => [i, y])) {
-      w.fillStyle = i === 1 ? '#ff1744' : '#f0f0f0'; w.globalAlpha = 0.85; w.fillRect(18, y, LW - 36, 1); w.globalAlpha = 1;
+      w.fillStyle = i === 1 ? ST.red : ST.white; w.globalAlpha = 0.85; w.fillRect(18, y, LW - 36, 1); w.globalAlpha = 1;
     }
-    for (const x of [16, LW - 19]) { w.fillStyle = '#fff'; w.fillRect(x, 28, 3, 26); w.fillStyle = '#000'; w.fillRect(x, 28, 3, 2); }
+    for (const x of [16, LW - 19]) { w.fillStyle = ST.post; w.fillRect(x, 28, 3, 26); w.fillStyle = ST.postTop; w.fillRect(x, 28, 3, 2); }
     // 옆 로프: 뒤 기둥에서 앞 기둥으로 비스듬히 내려오는 3줄 (양쪽). 가로 로프만 있으면 링이 벽처럼 보여서
     const BACK = [32, 39, 46], FRONT = [61, 70, 79];
     const rope = (x0, y0, x1, y1, c) => {
@@ -518,25 +568,25 @@ export class Arena {
       for (let k = 0; k <= n; k++) w.fillRect(Math.round(x0 + (x1 - x0) * k / n), Math.round(y0 + (y1 - y0) * k / n), 1, 1);
     };
     BACK.forEach((yb, i) => {
-      const c = i === 1 ? '#ff1744' : '#f0f0f0';
+      const c = i === 1 ? ST.red : ST.white;
       w.globalAlpha = 0.85;
       rope(17, yb, 2, FRONT[i], c);           // 왼쪽
       rope(LW - 18, yb, LW - 3, FRONT[i], c); // 오른쪽
       w.globalAlpha = 1;
     });
     // 뒤 기둥 코너 패드 (로프가 묶이는 자리)
-    for (const x of [16, LW - 19]) BACK.forEach((yb, i) => { w.fillStyle = i === 1 ? '#ff1744' : '#9a9a9a'; w.fillRect(x, yb - 1, 3, 3); });
+    for (const x of [16, LW - 19]) BACK.forEach((yb, i) => { w.fillStyle = i === 1 ? ST.red : ST.pad; w.fillRect(x, yb - 1, 3, 3); });
     // 앞 에이프런
-    w.fillStyle = '#000'; w.fillRect(0, 84, LW, LH - 84);
-    w.fillStyle = '#fff'; w.fillRect(0, 84, LW, 1);
-    w.fillStyle = '#ff1744'; w.fillRect(0, 86, LW, 1);
+    w.fillStyle = ST.apron; w.fillRect(0, 84, LW, LH - 84);
+    w.fillStyle = ST.white; w.fillRect(0, 84, LW, 1);
+    w.fillStyle = ST.red; w.fillRect(0, 86, LW, 1);
     if (logoImg.complete && logoImg.naturalWidth) w.drawImage(logoImg, CX - 13, 89, 26, 9);
-    w.fillStyle = '#3a3a3a';
+    w.fillStyle = ST.apronDash;
     for (let x = 6; x < LW; x += 12) if (Math.abs(x - CX) > 20) w.fillRect(x, 93, 6, 1);
     // 앞 포스트
-    for (const x of [0, LW - 4]) { w.fillStyle = '#fff'; w.fillRect(x, 58, 4, 32); w.fillStyle = '#ff1744'; w.fillRect(x, 58, 4, 3); }
+    for (const x of [0, LW - 4]) { w.fillStyle = ST.post; w.fillRect(x, 58, 4, 32); w.fillStyle = ST.red; w.fillRect(x, 58, 4, 3); }
     // 앞 기둥 코너 패드 (옆 로프가 묶이는 자리)
-    for (const x of [0, LW - 4]) [61, 70, 79].forEach((yf, i) => { w.fillStyle = i === 1 ? '#ff1744' : '#9a9a9a'; w.fillRect(x, yf - 1, 4, 3); });
+    for (const x of [0, LW - 4]) [61, 70, 79].forEach((yf, i) => { w.fillStyle = i === 1 ? ST.red : ST.pad; w.fillRect(x, yf - 1, 4, 3); });
   }
 
   drawFighter(w, f) {
@@ -547,8 +597,8 @@ export class Arena {
       const p = (t - an.t0) / an.dur;
       if (p > 1) f.anim = null;
       else {
-        pose.kind = an.kind; pose.hand = an.hand; pose.p = p;
-        pose.k = an.kind === 'shoot' ? Math.min(1, easeOut(p * 1.6)) * (p > 0.8 ? (1 - p) * 5 : 1) : bump(p);
+        pose.kind = an.kind; pose.hand = an.hand; pose.p = p; pose.fin = an.fin; pose.dur = an.dur;
+        pose.k = keyK(an.kind, p) ?? (an.kind === 'shoot' ? Math.min(1, easeOut(p * 1.6)) * (p > 0.8 ? (1 - p) * 5 : 1) : bump(p));
         if (['punch', 'kick', 'knee', 'elbow', 'gnp', 'jab', 'cross', 'hook', 'upper', 'body', 'shorthook', 'overhand', 'shortupper', 'bodyhook', 'bodyupper'].includes(an.kind)) pose.face = 'effort';
       }
     }
@@ -559,6 +609,7 @@ export class Arena {
     const standing = f.lying < 0.5 && !pose.kneel;
     pose.bob = standing && this.pos !== 'ground' ? (Math.sin(t * (f.win ? 12 : 7) + f.look.phase) > 0.2 ? 1 : 0) : 0;
     if (f.win) pose.bob = Math.sin(t * 10) > 0 ? 1 : 0;
+    if (HIT.ready) return drawHitman(w, f, pose, t); // 체험판 히트맨 시트가 있으면 우선
     const g = f.sp.getContext('2d');
     drawSprite(g, f.look, f.st, pose);
     if (f.flash > 0) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = '#fff'; g.fillRect(0, 0, SW, SH); g.globalCompositeOperation = 'source-over'; }
@@ -584,7 +635,7 @@ export class Arena {
         const a = (i / n) * Math.PI * 2 + (x.big ? 0.2 : 0.4);
         const len = i % 2 ? R : R * 0.6;
         for (let r = R * 0.35; r < len; r += 1) {
-          w.fillStyle = r > len - 2 ? '#ff1744' : '#ffffff';
+          w.fillStyle = r > len - 2 ? '#d8344e' : '#ffffff';
           if (!x.big && r > len - 2) w.fillStyle = '#ffffff';
           w.fillRect(Math.round(x.x + Math.cos(a) * r), Math.round(x.y + Math.sin(a) * r), 1, 1);
         }
@@ -616,7 +667,7 @@ export class Arena {
       for (let i = 0; i < 3; i++) {
         const a = this.rt * 4 + (i * Math.PI * 2) / 3;
         const sx = Math.round(hx + Math.cos(a) * 8), sy = Math.round(hy - 7 + Math.sin(a) * 3);
-        w.fillStyle = i === 1 ? '#ff1744' : '#fff';
+        w.fillStyle = i === 1 ? '#d8344e' : '#fff';
         w.fillRect(sx, sy - 1, 1, 3); w.fillRect(sx - 1, sy, 3, 1);
       }
     } else if (x.kind === 'lock') {
@@ -624,7 +675,7 @@ export class Arena {
       const mx = Math.round((a.x + b.x) / 2), my = FLOOR - 10;
       const pulse = Math.sin(this.rt * 16) > 0 ? 1 : 0;
       const r = 11 + pulse;
-      w.fillStyle = x.tap ? '#ff1744' : '#fff';
+      w.fillStyle = x.tap ? '#d8344e' : '#fff';
       for (let i = 0; i < 16; i++) {
         if (i % 2) continue;
         const an = (i / 16) * Math.PI * 2 + this.rt * 2;
@@ -659,7 +710,7 @@ export class Arena {
     if (!this.demo) for (const f of this.fighters) {
       if (!f.name) continue;
       const [hx, hy] = this.headPos(f);
-      const [sx, sy] = toS(hx, hy - (f.lying > 0.5 ? 10 : 12));
+      const [sx, sy] = toS(hx, hy - (f.lying > 0.5 ? 10 : HIT.ready ? 19 : 12)); // 체험판 캐릭터는 키가 커서 이름표를 더 위로
       c.font = `700 ${Math.round(5.2 * px)}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
       const tw = c.measureText(f.name).width + 6 * px;
       c.fillStyle = 'rgba(0,0,0,.8)'; c.fillRect(Math.round(sx - tw / 2), Math.round(sy - 4 * px), Math.round(tw), Math.round(8 * px));
@@ -737,14 +788,14 @@ export class Arena {
     c.fillStyle = 'rgba(0,0,0,.72)';
     c.beginPath(); c.moveTo(0, cy - bandH / 2 + 4 * px); c.lineTo(W, cy - bandH / 2 - 4 * px); c.lineTo(W, cy + bandH / 2 - 4 * px); c.lineTo(0, cy + bandH / 2 + 4 * px); c.fill();
     c.fillStyle = '#fff'; c.fillRect(0, cy - bandH / 2 - 6 * px + (1 - tin) * 20 * px, W * tin, Math.max(2, px));
-    c.fillStyle = '#ff1744'; c.fillRect(W * (1 - tin), cy + bandH / 2 + 4 * px, W * tin, Math.max(2, px));
+    c.fillStyle = '#d8344e'; c.fillRect(W * (1 - tin), cy + bandH / 2 + 4 * px, W * tin, Math.max(2, px));
     // 글자: 왼쪽에서 오버슈트로 날아 들어옴
     const ov = tin < 1 ? (1 - easeOut(tin)) * -W * 0.7 + Math.sin(tin * Math.PI) * 6 * px : 0;
     const shakeT = x.big && p < 0.15 ? (Math.random() - 0.5) * 4 * px : 0;
     const size = Math.round((x.big ? 26 : x.small ? 10 : 17) * px);
     c.font = `700 ${size}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
     const tx = W / 2 + ov + shakeT, ty = cy - (x.sub ? 3 * px : 0) + shakeT;
-    c.fillStyle = '#ff1744'; c.fillText(x.text, tx + 2 * px, ty + 2 * px);
+    c.fillStyle = '#d8344e'; c.fillText(x.text, tx + 2 * px, ty + 2 * px);
     c.lineWidth = Math.max(3, size * 0.16); c.strokeStyle = '#000'; c.lineJoin = 'round'; c.strokeText(x.text, tx, ty);
     c.fillStyle = '#fff'; c.fillText(x.text, tx, ty);
     if (x.sub && p > 0.45) {
@@ -752,7 +803,7 @@ export class Arena {
       const s2 = Math.round(9 * px * (1.8 - sp * 0.8));
       c.font = `700 ${s2}px ${FONT}`;
       c.lineWidth = Math.max(2, s2 * 0.25); c.strokeText(x.sub, W / 2, cy + 9 * px);
-      c.fillStyle = '#ff1744'; c.fillText(x.sub, W / 2, cy + 9 * px);
+      c.fillStyle = '#d8344e'; c.fillText(x.sub, W / 2, cy + 9 * px);
     }
     c.restore();
   }

@@ -14,7 +14,7 @@
 .lchip.moved { background: var(--well); color: var(--ink); border: 2px solid var(--ink); }
 .lchip.off { background: transparent; color: var(--dim); border: 1px dashed var(--line2); text-decoration: line-through; }
 .lchip.done { background: transparent; color: var(--muted); border: 1px solid var(--line2); }
-.lcta { position: sticky; bottom: calc(72px + var(--safe-b)); margin-top: 18px; padding: 10px 0 6px; background: rgba(33,33,33,.96); }
+.lcta { position: sticky; bottom: calc(72px + var(--safe-b)); margin-top: 18px; padding: 10px 0 6px; background: rgba(26,29,31,.96); }
 .lcta .small { margin-top: 6px; }
 .lstep .btn { width: 52px; height: 52px; font-size: 20px; padding: 0; }
 .lpick { height: 52px; border: 1px solid var(--ink); display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -25,8 +25,8 @@
 .lcur summary::-webkit-details-marker { display: none; }
 .lcur + .lcur { margin-top: 8px; }
 .lcur-body { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 14px; }
-.lcur-body p { margin: 0 0 10px; color: #d0d0d0; }
-.lcur-body ul { margin: 0 0 10px; padding-left: 18px; color: #d0d0d0; }
+.lcur-body p { margin: 0 0 10px; color: #ddd3ca; }
+.lcur-body ul { margin: 0 0 10px; padding-left: 18px; color: #ddd3ca; }
 .lcur-k { font-size: 12px; color: var(--muted); margin-bottom: 4px; }
 /* 주차 추가 · 수정 창의 능력치 칸 */
 .lstats { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }

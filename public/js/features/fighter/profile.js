@@ -17,7 +17,7 @@ async function renderFighter(id) {
   $app.innerHTML = `
     <div class="topbar"><span style="width:60px"></span><div class="muted small">상대 분석</div><span style="width:60px"></span></div>
     <div class="page no-tabs">
-      ${fighterCard(m)}
+      ${fighterCard(m, { figure: true })}
       <div class="section-title">기본 전략</div>
       <div class="card small">${esc(s.stance)} · ${esc(s.guard)} · ${esc(s.style)} · ${(s.focus || []).map(esc).join('·')} 공략</div>
       <div class="section-title">배운 기술 (${d.skills.length})</div>

@@ -4,7 +4,7 @@ import { clamp01, hash, mkCanvas } from './util.js';
 
 export const SW = 64, SH = 64, OX = 32, OY = 56; // 스프라이트 버퍼, 발 기준점
 
-const C = {
+export const C = { // 피부 · 얼굴 색 (figure.js 정면 전신도 같이 씀)
   o: '#050505', skin: '#f6cfab', skinS: '#d99d76', blush: '#ff9a9a', eye: '#111', mouth: '#8c3b2e', white: '#ffffff',
 };
 export const SIDE = {
@@ -57,7 +57,7 @@ function glove(x, y, st, gear = {}) {
 const BUZZ = ['#4b4038', '#6a5c52']; // 짧게 깎은 머리 (거뭇한 색, 결)
 const SHINE = '#fff3e3';             // 빡빡이 반짝임
 const TIE = '#e23d6b';               // 머리끈
-function drawHead(g, hx, hy, look, st, face) {
+export function drawHead(g, hx, hy, look, st, face) { // figure.js 가 2배로 키워 정면 전신 머리로도 씀
   const style = look.gear?.hair || 'default';
   const [hc, hl] = style === 'bob' ? ['#79513d', '#bb8b64'] : HAIR;
   const girl = look.gender === 'F' && style === 'default'; // 두건은 여자 기본 머리일 때만
@@ -135,6 +135,7 @@ function drawHead(g, hx, hy, look, st, face) {
 
 // pose: { kind, k(0..1), hand, face, kneel, gdt }
 export function drawSprite(g, look, st, pose) {
+  if (look.gear?.shoe) st = { ...st, shoe: look.gear.shoe }; // 상점 복싱화 색 (기본 복싱화는 코너 색 그대로)
   g.clearRect(0, 0, SW, SH);
   g.save(); g.translate(OX, OY);
   const k = pose.k || 0;

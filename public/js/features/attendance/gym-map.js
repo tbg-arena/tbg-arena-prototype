@@ -59,7 +59,7 @@ function mountMap(el, maps, { gym, radius }, onChange) {
   const start = gym || SEOUL;
   const map = new maps.Map(box, { center: new maps.LatLng(start.lat, start.lng), level: gym ? 2 : 7 });
   map.addControl(new maps.ZoomControl(), maps.ControlPosition.RIGHT);
-  const red = getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#ff1744';
+  const red = getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#b51d38';
   const marker = new maps.Marker({ draggable: true });
   const circle = new maps.Circle({ radius, strokeWeight: 2, strokeColor: red, strokeOpacity: 0.9, fillColor: red, fillOpacity: 0.18 });
   const places = new maps.services.Places(), geocoder = new maps.services.Geocoder();

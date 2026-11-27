@@ -3,8 +3,11 @@
 //
 // 글러브 art: { type: 'glove', body, accent?(투톤 색), cuff, piping, closure: 'lace' | 'velcro',
 //              lace?(끈 색), strap?(벨크로 색), label?(손목 위 작은 로고 패치 색), text?: ['줄1', '줄2'], textColor? }
-// 트렁크 art: { type: 'trunks', body, band, bandText?(허리 밴드 글자 색), stripe?(옆선 색), hem?(밑단 색) }
-// 티셔츠 art: { type: 'shirt', body, collar?(목 둘레 색), print?(가슴 글자 색), text?: ['줄1', …], sleeveless?(탱크탑) }
+// 트렁크 art: { type: 'trunks', body, band, bandText?(허리 밴드 글자 색), stripe?(옆선 색), hem?(밑단 색), vPanel?, split?(밑단 옆트임) }
+// 티셔츠 art: { type: 'shirt', body, collar?(목 둘레 색), print?(가슴 글자 색), text?: ['줄1', …], sleeveless?(탱크탑),
+//              cut?: 'muscle'(굵은 어깨 · 깊은 진동) | 'racer'(가운데로 모인 어깨끈) — 탱크탑만, crop?(배꼽 위 기장) — 탱크탑만,
+//              fabric?: 'washed'(빛바랜 얼룩) | 'mesh'(구멍 격자) }
+// 복싱화 art: { type: 'shoe', body, height: 'low' | 'mid' | 'high', sole, accent?(옆면 사선 띠), lace?, collar?(발목 패드 색) }
 import { mkCanvas } from './util.js';
 
 const N = 32;
@@ -30,6 +33,7 @@ const FONT = {
   W: ['10001', '10001', '10101', '10101', '01010'], G: ['011', '100', '101', '101', '011'], P: ['110', '101', '110', '100', '100'],
   C: ['011', '100', '100', '100', '011'], O: ['010', '101', '101', '101', '010'], B: ['110', '101', '110', '101', '110'],
   X: ['101', '101', '010', '101', '101'], F: ['111', '100', '110', '100', '100'],
+  D: ['110', '101', '101', '101', '110'], Y: ['101', '101', '010', '010', '010'],
 };
 
 function grid() {
@@ -49,6 +53,21 @@ function outline(G) {
   }
   for (const [x, y] of add) G.set(x, y, OUTLINE);
 }
+// 원단 질감: 지금까지 칠한 칸(= 몸판 · 소매, 목둘레 · 프린트를 그리기 전)에 무늬를 얹는다
+//   washed: 빛바랜 얼룩 (밝은 점 · 어두운 점을 듬성듬성) / mesh: 2칸 간격 구멍 격자
+function fabric(G, kind) {
+  if (!kind) return;
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+    const c = G.get(x, y);
+    if (!c) continue;
+    if (kind === 'mesh' && x % 2 === 0 && y % 2 === 1) G.set(x, y, mix(c, '#000000', 0.35));
+    if (kind === 'washed') {
+      if ((x * 3 + y * 5) % 7 === 0 && (x + y) % 3 !== 0) G.set(x, y, mix(c, '#ffffff', 0.1));
+      else if ((x * 5 + y * 2) % 11 === 0) G.set(x, y, mix(c, '#000000', 0.12));
+    }
+  }
+}
+
 // 글자 (줄마다 가운데 정렬). shadow 색이 있으면 오른쪽 아래로 1칸 그림자를 먼저 깐다
 function text(G, lines, cx, y0, color, shadow) {
   const dots = [];
@@ -157,6 +176,8 @@ function trunks(a) {
     const gap = y >= 19 ? Math.floor((y - 18) * 0.6) : -1; // 다리 사이
     for (let x = x0; x <= x1; x++) {
       if (gap >= 0 && x >= 15 - gap && x <= 16 + gap) continue;
+      const slit = y - (bot - 4); // 옆트임: 밑단 바깥쪽을 아래로 갈수록 넓게 파냄
+      if (a.split && slit > 0 && (x - x0 < slit || x1 - x < slit)) continue;
       const dx = (x + 0.5 - 16) / (x1 - x0 + 2) * 2;
       let k = dx < -0.75 ? 1 : dx > 0.8 ? -2 : dx > 0.5 ? -1 : 0;
       if (gap >= 0 && (x === 14 - gap || x === 17 + gap)) k = -1; // 다리 안쪽 그늘
@@ -204,6 +225,7 @@ function shirt(a) {
   }
   // 겨드랑이 주름
   for (let y = 12; y <= 14; y++) { G.set(4, y, tone(a.body, -1)); G.set(27, y, tone(a.body, -2)); }
+  fabric(G, a.fabric);
   // 둥근 목: 안쪽(뒤판)은 어둡게, 테두리는 립 색
   for (let x = 12; x <= 19; x++) G.set(x, 4, tone(a.body, -2));
   for (let x = 13; x <= 18; x++) G.set(x, 5, tone(a.body, -2));
@@ -215,32 +237,87 @@ function shirt(a) {
   return G;
 }
 
-// ── 탱크탑 (소매 없음: 어깨끈, 깊게 파인 목·진동둘레)
+// ── 탱크탑 (소매 없음). cut: tank(기본: 가는 끈 · 깊게 파인 목) | muscle(굵은 어깨 · 깊은 진동) | racer(가운데로 모인 끈)
+//    crop: 배꼽 위에서 끝나는 기장 + 밑단 고무 밴드
+const TANK = {
+  tank: { straps: [10, 11, 20, 21], top: 7, span: (y) => (y === 7 ? [9, 22] : y === 8 ? [8, 23] : [7, 24]) },
+  muscle: { straps: [10, 11, 12, 13, 18, 19, 20, 21], top: 7, span: (y) => (y < 14 ? [10, 21] : y === 14 ? [8, 23] : [7, 24]) },
+  racer: { straps: [12, 13, 18, 19], top: 8, span: (y) => (y === 8 ? [11, 20] : y === 9 ? [10, 21] : y === 10 ? [9, 22] : [8, 23]) },
+};
 function tank(a) {
   const G = grid();
   const trim = a.collar || tone(a.body, 1);
-  for (let y = 7; y <= 30; y++) {
-    const x0 = y === 7 ? 9 : y === 8 ? 8 : 7, x1 = y === 7 ? 22 : y === 8 ? 23 : 24; // 진동둘레 곡선
-    for (let x = x0; x <= x1; x++) G.set(x, y, tone(a.body, x <= x0 + 1 ? 1 : x >= x1 - 1 ? -1 : y === 30 ? -1 : 0));
+  const S = TANK[a.cut] || TANK.tank, bot = a.crop ? 21 : 30;
+  for (let y = S.top; y <= bot; y++) {
+    const [x0, x1] = S.span(y); // 진동둘레 곡선
+    for (let x = x0; x <= x1; x++) G.set(x, y, tone(a.body, x <= x0 + 1 ? 1 : x >= x1 - 1 ? -1 : y === bot ? -1 : 0));
   }
-  for (let y = 3; y <= 6; y++) for (const x of [10, 11, 20, 21]) G.set(x, y, tone(a.body, x === 10 || x === 20 ? 1 : 0)); // 어깨끈
-  // 목선: 끈 사이를 깊게 파고 테두리
-  for (let y = 7; y <= 10; y++) for (let x = 12 + Math.max(0, y - 8); x <= 19 - Math.max(0, y - 8); x++) G.set(x, y, null);
-  for (const [x, y] of [[12, 8], [13, 9], [14, 10], [15, 11], [16, 11], [17, 10], [18, 9], [19, 8], [12, 7], [19, 7]]) G.set(x, y, trim);
-  for (const [x, y] of [[9, 7], [8, 8], [22, 7], [23, 8]]) G.set(x, y, trim); // 진동둘레 테두리
-  if (a.text) text(G, a.text, 15.5, 15, a.print || '#ffffff', null);
+  const half = S.straps.length / 2;
+  for (let y = 3; y < S.top; y++) S.straps.forEach((x, i) => G.set(x, y, tone(a.body, i === 0 || i === half ? 1 : 0))); // 어깨끈
+  fabric(G, a.fabric);
+  if (S === TANK.tank) {
+    // 목선: 끈 사이를 깊게 파고 테두리
+    for (let y = 7; y <= 10; y++) for (let x = 12 + Math.max(0, y - 8); x <= 19 - Math.max(0, y - 8); x++) G.set(x, y, null);
+    for (const [x, y] of [[12, 8], [13, 9], [14, 10], [15, 11], [16, 11], [17, 10], [18, 9], [19, 8], [12, 7], [19, 7]]) G.set(x, y, trim);
+    for (const [x, y] of [[9, 7], [8, 8], [22, 7], [23, 8]]) G.set(x, y, trim); // 진동둘레 테두리
+  } else {
+    // 얕은 둥근 목: 안쪽 끈 사이만 두 줄 파고 테두리
+    const l = S.straps[half - 1] + 1, r = S.straps[half] - 1;
+    for (let x = l; x <= r; x++) G.set(x, S.top, null);
+    for (let x = l + 1; x <= r - 1; x++) G.set(x, S.top + 1, null);
+    G.set(l, S.top + 1, trim); G.set(r, S.top + 1, trim);
+    for (let x = l + 1; x <= r - 1; x++) G.set(x, S.top + 2, trim);
+  }
+  if (a.crop) { const [x0, x1] = S.span(bot); for (let x = x0; x <= x1; x++) { G.set(x, bot - 1, trim); G.set(x, bot, tone(trim, -1)); } }
+  if (a.text) text(G, a.text, 15.5, a.crop ? 12 : 15, a.print || '#ffffff', null);
   outline(G);
   return G;
 }
 
-const cache = new Map();
+// ── 복싱화 (옆모습: 왼쪽 = 뒤꿈치, 오른쪽 = 발끝). height: low(발목 아래) · mid · high(종아리까지 올라오는 복싱 부츠)
+function shoe(a) {
+  const G = grid();
+  const top = { low: 15, mid: 10, high: 5 }[a.height] ?? 10;
+  const front = (y) => (y < 18 ? 16 : y === 18 ? 19 : y === 19 ? 22 : y === 20 ? 25 : y === 21 ? 26 : 27); // 발등 → 발끝 경사
+  const back = (y) => (y < 22 ? 7 : 6);
+  const slope = 7 / (20 - top); // 옆면 사선 띠: 뒤꿈치 아래 → 발목 앞 위
+  for (let y = top; y <= 24; y++) for (let x = back(y); x <= front(y); x++) {
+    const k = x <= back(y) + 1 ? 1 : y === 24 ? -1 : y >= 21 && x >= front(y) - 1 ? -1 : 0;
+    const band = a.accent && y > top + 1 && y <= 23 && Math.abs(x - 8 - (23 - y) * slope) <= 1;
+    G.set(x, y, tone(band ? a.accent : a.body, k));
+  }
+  // 발목 패드 (맨 윗줄)
+  for (let x = back(top); x <= front(top); x++) G.set(x, top, tone(a.collar || a.body, 1));
+  // 끈: 발등 앞쪽을 따라 두 칸씩
+  for (let y = top + 2; y <= 20; y += 2) { const x = front(y) - 2; G.set(x, y, a.lace || '#f2f2f2'); G.set(x - 1, y, a.lace || '#f2f2f2'); }
+  // 밑창 (얇은 고무창, 발끝은 둥글게)
+  for (let y = 25; y <= 27; y++) {
+    const x0 = y === 27 ? 6 : 5, x1 = y === 26 ? 28 : 27;
+    for (let x = x0; x <= x1; x++) G.set(x, y, tone(a.sole, y === 25 ? 1 : y === 27 ? -1 : 0));
+  }
+  // 낮은 신발은 위가 비어 보여서, 그림을 칸 세로 가운데로 올린다 (발목 높이만큼의 절반)
+  const up = Math.floor((top - 5) / 2);
+  if (up) for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) G.set(x, y, y + up < N ? G.get(x, y + up) : null);
+  outline(G);
+  return G;
+}
+
+const cache = new Map(), canvases = new Map();
+// art 설정 → 32×32 캔버스 (figure.js 가 정면 전신에 그대로 입힌다)
+export function gearArtCanvas(art) {
+  const key = JSON.stringify(art);
+  if (canvases.has(key)) return canvases.get(key);
+  const G = art.type === 'trunks' ? trunks(art) : art.type === 'shirt' ? shirt(art) : art.type === 'shoe' ? shoe(art) : glove(art);
+  const cv = mkCanvas(N, N), g = cv.getContext('2d');
+  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const c = G.get(x, y); if (c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); } }
+  canvases.set(key, cv);
+  return cv;
+}
 // art 설정 → 그림 주소 (scale 배 확대)
 export function gearArtURL(art, scale = 1) {
   const key = `${scale}|${JSON.stringify(art)}`;
   if (cache.has(key)) return cache.get(key);
-  const G = art.type === 'trunks' ? trunks(art) : art.type === 'shirt' ? shirt(art) : glove(art);
-  const cv = mkCanvas(N, N), g = cv.getContext('2d');
-  for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) { const c = G.get(x, y); if (c) { g.fillStyle = c; g.fillRect(x, y, 1, 1); } }
+  const cv = gearArtCanvas(art);
   let url;
   if (scale === 1) url = cv.toDataURL();
   else {

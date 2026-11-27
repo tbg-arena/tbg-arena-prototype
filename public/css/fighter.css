@@ -1,6 +1,6 @@
 /* ── 선수 카드 · 능력치 · 랭킹 (js/features/fighter) */
 .profile { padding: 0; overflow: hidden; }
-.profile .p-head { display: flex; gap: 14px; align-items: flex-end; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.profile .p-head { display: flex; gap: 14px; align-items: center; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .profile .p-body { padding: 16px 16px 18px; }
 .profile .name { font-size: 24px; font-weight: 900; letter-spacing: -1px; line-height: 1.2; }
 .sprite-box { width: 82px; height: 86px; flex-shrink: 0; position: relative; background: var(--ink); display: grid; place-items: end center; overflow: hidden; }
@@ -27,7 +27,7 @@
 .pts { font-family: var(--pixel); font-weight: 700; font-size: 16px; }
 /* 내 순위 고정 줄 (탭바 바로 위) */
 .mybar { position: sticky; bottom: calc(var(--tabbar-h) + var(--safe-b) + 10px); z-index: 4; margin: 16px 3px 0 0; display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--ink); color: var(--on-ink); box-shadow: 3px 3px 0 var(--red); }
-.mybar .muted { color: #555; }
+.mybar .muted { color: #535b60; }
 .mybar > .grow { flex: 1; min-width: 0; } /* 가운데 글자가 남는 폭을 차지해 '도전' 버튼이 오른쪽 끝에 붙게 */
 .mybar-no { width: 36px; flex-shrink: 0; text-align: center; font-size: 22px; font-weight: 700; }
 .mybar .btn.sm.primary { background: var(--on-ink); border-color: var(--on-ink); color: var(--ink); box-shadow: none; }
@@ -52,19 +52,23 @@
 /* POWER: 전광판 칸 */
 .cp { background: var(--well); background-image: var(--halftone); background-size: 4px 4px; padding: 6px 8px 4px; clip-path: var(--notch); }
 .cp span { color: var(--red-text); }
-/* 사진 칸 = 링 위 장면: 위에서 비추는 조명 · 뒤로 지나가는 로프 3줄 · 매트 바닥 · 흰 테두리 */
+/* 사진 칸 = 링 위 장면 (경기 화면과 같은 히트맨 색): 밤 배경 · 따뜻한 조명 · 뒤로 지나가는 로프 3줄 · 하늘빛 매트 */
 .sprite-box {
-  background-color: #2c2c2c;
+  background-color: #181526;
   background-image:
-    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,255,255,.42), rgba(255,255,255,.08) 60%, transparent 75%),
-    linear-gradient(to bottom, transparent 34%, var(--red) 34%, var(--red) calc(34% + 2px), transparent calc(34% + 2px),
-      transparent 50%, rgba(239,239,239,.7) 50%, rgba(239,239,239,.7) calc(50% + 2px), transparent calc(50% + 2px),
-      transparent 66%, var(--red) 66%, var(--red) calc(66% + 2px), transparent calc(66% + 2px));
+    radial-gradient(ellipse 70% 60% at 50% 0%, rgba(255,206,147,.32), rgba(255,206,147,.06) 60%, transparent 75%),
+    linear-gradient(to bottom, transparent 34%, #b51d38 34%, #b51d38 calc(34% + 2px), transparent calc(34% + 2px),
+      transparent 50%, rgba(250,239,230,.8) 50%, rgba(250,239,230,.8) calc(50% + 2px), transparent calc(50% + 2px),
+      transparent 66%, #b51d38 66%, #b51d38 calc(66% + 2px), transparent calc(66% + 2px));
   box-shadow: inset 0 0 0 2px var(--ink);
   clip-path: var(--notch);
 }
-.sprite-box::after { height: 14px; background: #cfcfcf; box-shadow: inset 0 3px 0 #a9a9a9; } /* 매트 + 가장자리 */
+.sprite-box::after { height: 14px; background: #b9d3d6; box-shadow: inset 0 3px 0 #87a0ae; } /* 매트 + 가장자리 */
 .sprite-box img { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+/* 상점 피팅룸 = 훈련장: 콘크리트 벽 · 쇠사슬 샌드백 2개 · 고무 매트 (img/gym-bg.png, 60×100 점 그림을 늘림). 그림은 가운데 매트 위 */
+.fig-box:not(.sm) { position: relative; width: 150px; padding: 14px 0 0; display: flex; justify-content: center; align-items: flex-end;
+  background: #2c3134 url(/img/gym-bg.png) center bottom / 100% 100% no-repeat; image-rendering: pixelated; box-shadow: inset 0 0 0 2px var(--ink); clip-path: var(--notch); }
+.fig-box:not(.sm) img { position: relative; z-index: 1; margin-bottom: 8px; image-rendering: auto; filter: drop-shadow(0 3px 0 rgba(0,0,0,.4)); }
 /* 능력치 막대: 경기 체력바처럼 틀 안에 */
 .sbar { height: 12px; padding: 2px; background: var(--well); box-shadow: inset 0 0 0 1px var(--line2); }
 .statrow .sl i { display: inline-block; min-width: 30px; }
@@ -87,3 +91,31 @@
 .rec-card { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: inset 3px 0 0 var(--yellow); }
 .rec-dot { margin-left: 4px; font-size: 10px; color: var(--yellow); vertical-align: 1px; }
 .seg button.on .rec-dot { color: inherit; }
+
+/* 정면 전신 상자 (arena/figure.js): 상점 피팅룸 · 선수 분석 — 너무 크면 부담스러워서 상점 1.5배 · 나머지 1배 */
+.fig-box { flex-shrink: 0; width: 96px; padding: 8px 6px 0; background: linear-gradient(transparent 82%, var(--well) 82%); box-shadow: inset 0 0 0 1px var(--line); }
+.fig-box img { width: 84px; height: 162px; image-rendering: pixelated; display: block; }
+.fig-box.sm { width: 68px; padding: 6px 6px 0; }
+.fig-box.sm img { width: 56px; height: 108px; }
+
+/* 랭킹 상위 3명 시상대 */
+.podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 8px; margin-bottom: 14px; }
+.pod { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 0; }
+.pod img { width: 56px; image-rendering: pixelated; display: block; margin-bottom: -2px; }
+.pod.p1 img { width: 70px; }
+.pod-base { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; background: var(--surface); box-shadow: inset 0 2px 0 var(--line2); min-width: 0; }
+.pod.p1 .pod-base { padding-top: 16px; box-shadow: inset 0 3px 0 var(--yellow); }
+.pod.p2 .pod-base { padding-top: 12px; }
+.pod-base span { font-size: 18px; font-weight: 700; }
+.pod.p1 .pod-base span { color: var(--yellow); }
+.pod-base b { font-size: 13px; max-width: 100%; }
+.pod-base em { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* 기본 캐릭터 그림 (img/pose, 4px 칸으로 줄인 그림): 부드럽게 축소하고 가로세로 비율 유지 */
+.fig-box { width: auto; }
+.fig-box img, .pod img, .ent img { image-rendering: auto; }
+/* 옷 디테일(프린트 · 로고)이 보이게 사진 영역을 키움: 상점 피팅룸 162 → 210, 홈 프로필 82 → 124 */
+.fig-box img { width: auto; height: 210px; }
+.fig-box.sm img { width: auto; height: 108px; }
+.sprite-box.base { width: 104px; height: 130px; }
+.sprite-box.base img { height: 124px; width: auto; animation: none; image-rendering: auto; }
