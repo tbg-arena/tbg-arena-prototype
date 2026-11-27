@@ -65,7 +65,7 @@ function calloutView(me, members, callouts) {
       ${c.fightId ? `<button class="btn sm" data-go="#/fight/${c.fightId}">중계</button>` : ''}</div>`).join('')}` : ''}`;
 }
 
-function bindCalloutActions() {
+export function bindCalloutActions() { // 선수 분석 화면의 콜아웃 버튼도 같이 씀
   document.querySelectorAll('[data-callout]').forEach((b) => (b.onclick = () => {
     openModal(`
       <h3>${esc(b.dataset.name)} 님에게 콜아웃</h3>
