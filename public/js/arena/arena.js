@@ -6,6 +6,36 @@ import { SFX } from './sfx.js';
 import { clamp01, bump, easeOut, lerp, hash, mkCanvas } from './util.js';
 import { SW, SH, OX, OY, SIDE, lookOf, drawSprite } from './sprite.js';
 import { STRIKES, boxingMove, comboMove, DODGE_LABEL, DODGE_DUR, DODGE_MOVE } from './moves.js';
+import { FRAME, STAND, NAMES } from './fight-frames.js';
+
+// ── 동작 프레임 그림 (img/fight/<M|F>-<이름>.png, BOXING-2 시트에서 잘라 냄)
+// 불러오기 전에는 옛 도트 캐릭터(sprite.js)로 그린다
+const frameImgs = new Map();
+function frameImg(g, name) {
+  const key = g + '-' + name;
+  let img = frameImgs.get(key);
+  if (!img) { img = new Image(); img.src = '/img/fight/' + key + '.png'; frameImgs.set(key, img); }
+  return img.complete && img.naturalWidth ? img : null;
+}
+const STAND_H = 36; // 월드에서 서 있는 키 (옛 캐릭터와 같은 크기 → 이름표 · 타격 효과 위치가 그대로 맞음)
+const SWING = { jab: ['jab0', 'jab1'], cross: ['cross0', 'cross1'], punch: ['cross0', 'cross1'], hook: ['hook0', 'hook1'], shorthook: ['hook0', 'shorthook'],
+  upper: ['upper0', 'upper1'], shortupper: ['upper0', 'upper1'], bodyupper: ['upper0', 'upper1'], bodyhook: ['bodyhook0', 'bodyhook1'],
+  body: ['bodystraight', 'bodystraight'], overhand: ['overhand0', 'overhand1'], gnp: ['hook0', 'hook1'], elbow: ['hook0', 'hook1'], kick: ['cross0', 'cross1'], knee: ['upper0', 'upper1'] };
+const HOLD = { block: 'block', parry: 'parry', slip: 'slip', duck: 'duck', weave: 'weave', roll: 'weave', sway: 'sway', dodge: 'sway', back: 'backstep',
+  clinch: 'clinch', shoot: 'duck', pin: 'kneel', jump: 'fwd0', side: 'back0', lstep: 'back0', pivot: 'fwd0', walk: 'fwd0' };
+const STEPS = new Set(['walk', 'back', 'side', 'lstep', 'pivot', 'jump']); // 스텝: 한 장 유지 + 작게 통통 뛰며 이동
+// 지금 동작 → 프레임 이름. 펀치는 진행 앞 35% · 마지막 15% = 준비 자세, 가운데 = 뻗은 자세
+function pickFrame(f, pose, t) {
+  if (f.ko || f.lying > 0.6) return 'lying';
+  if (f.lying > 0.05) return f.tLying > f.lying ? 'fall' : 'getup';
+  if (pose.kneel) return 'kneel';
+  if (f.win) return Math.sin(t * 5) > 0 ? 'win0' : 'win1';
+  const k = pose.kind, p = pose.p ?? 0;
+  if (SWING[k]) return pose.fin && p > 0.3 && p < 0.85 ? 'finish' : (p < 0.35 || p > 0.85 ? SWING[k][0] : SWING[k][1]);
+  if (k === 'hit') return pose.dur >= 0.5 ? 'stagger' : p < 0.5 ? 'hithead' : 'hitbody';
+  if (HOLD[k]) return HOLD[k];
+  return 'idle0'; // 서 있을 땐 한 장 고정 (출렁임은 위치로) — 눈 깜빡임 · 다른 서기 그림으로 바꾸면 튐
+}
 
 const LW = 160, LH = 100;          // 월드(도트) 해상도
 const FLOOR = 76, CX = LW / 2;     // 발 위치, 링 중앙
@@ -45,6 +75,7 @@ export class Arena {
     if (this.demo) this.demoTick();
   }
   mk(side, p, d) {
+    NAMES.forEach((n) => frameImg(lookOf(p).gender, n)); // 동작 프레임 미리 불러오기 (처음 쓰는 동작에서 옛 캐릭터가 잠깐 보이지 않게)
     return { side, d, id: p.id, name: p.name || '', look: lookOf(p), st: SIDE[side], sp: mkCanvas(SW, SH),
       x: CX - d * 40, tx: CX, y: 0, vy: 0, kx: 0, lying: 0, tLying: 0, hand: 0, anim: null, ko: false, down: false, win: false, flash: 0, blink: 2 + Math.random() * 3 };
   }
@@ -132,7 +163,7 @@ export class Arena {
       let dur = mv ? mv.seq[0][1] : a.cat === 'kick' ? 0.5 : a.cat === 'knee' ? 0.42 : 0.34;
       const swing = () => {
         if (!live(att)) return;
-        att.anim = { kind, t0: this.gt, dur, hand: att.hand };
+        att.anim = { kind, t0: this.gt, dur, hand: att.hand, fin: !!a.finisher };
         if (DODGE_LABEL[kind]) return evade(att, kind); // 콤보가 방어·스텝 동작으로 시작
         this.whoosh(att, mv ? mv.trail : kind);
         this.sfx(a.cat === 'kick' ? 'kick' : 'whoosh', 0);
@@ -146,7 +177,7 @@ export class Arena {
         lead += dur * 0.85; dur = d2;
         this.later(lead * 1000, () => {
           if (!live(att)) return;
-          att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand };
+          att.anim = { kind: k2, t0: this.gt, dur: d2, hand: att.hand, fin: !!a.finisher };
           if (DODGE_LABEL[k2]) return evade(att, k2); // 콤보 속 방어·스텝 동작
           this.whoosh(att, mv.trail); this.sfx('whoosh', 0);
         });
@@ -547,7 +578,7 @@ export class Arena {
       const p = (t - an.t0) / an.dur;
       if (p > 1) f.anim = null;
       else {
-        pose.kind = an.kind; pose.hand = an.hand; pose.p = p;
+        pose.kind = an.kind; pose.hand = an.hand; pose.p = p; pose.fin = an.fin; pose.dur = an.dur;
         pose.k = an.kind === 'shoot' ? Math.min(1, easeOut(p * 1.6)) * (p > 0.8 ? (1 - p) * 5 : 1) : bump(p);
         if (['punch', 'kick', 'knee', 'elbow', 'gnp', 'jab', 'cross', 'hook', 'upper', 'body', 'shorthook', 'overhand', 'shortupper', 'bodyhook', 'bodyupper'].includes(an.kind)) pose.face = 'effort';
       }
@@ -559,6 +590,12 @@ export class Arena {
     const standing = f.lying < 0.5 && !pose.kneel;
     pose.bob = standing && this.pos !== 'ground' ? (Math.sin(t * (f.win ? 12 : 7) + f.look.phase) > 0.2 ? 1 : 0) : 0;
     if (f.win) pose.bob = Math.sin(t * 10) > 0 ? 1 : 0;
+    // 동작 프레임 그림이 준비됐으면 화면 해상도에서 그린다 (present) — 월드(160×100)에 그리면 디테일이 뭉개짐
+    const img = frameImg(f.look.gender, pickFrame(f, pose, t));
+    const sway = f.lying < 0.05 && !f.win && !STEPS.has(pose.kind) ? Math.sin(t * 6 + f.look.phase) * 0.6 : 0;   // 숨쉬듯 출렁
+    const hop = STEPS.has(pose.kind) ? -Math.sin(Math.min(1, pose.p ?? 0) * Math.PI) * 2.5 : 0;                      // 스텝: 한 번 통 뜀
+    f.frame = img ? { img, y: FLOOR + f.y + (pose.kneel ? -3 : 0) + (f.win ? -Math.abs(Math.sin(t * 5)) * 3 : 0) + sway + hop } : null;
+    if (f.frame) return;
     const g = f.sp.getContext('2d');
     drawSprite(g, f.look, f.st, pose);
     if (f.flash > 0) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = '#fff'; g.fillRect(0, 0, SW, SH); g.globalCompositeOperation = 'source-over'; }
@@ -653,6 +690,16 @@ export class Arena {
       c.fillStyle = g; c.fillRect(0, 0, W, H);
     }
     const toS = (wx, wy) => [(wx - x0) * S + shx, (wy - y0) * S + shy];
+    c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+    for (const f of [...this.fighters].sort((p, q) => q.lying - p.lying)) {
+      if (!f.frame) continue;
+      const [sx, sy] = toS(f.x, f.frame.y), k = (S * STAND_H) / STAND[f.look.gender];
+      c.save(); c.translate(sx, sy); c.scale(f.d * k, k);
+      if (f.flash > 0) c.filter = 'brightness(2.2)';   // 맞는 순간 번쩍
+      c.drawImage(f.frame.img, -FRAME.anchor, -FRAME.base);
+      c.restore();
+    }
+    c.imageSmoothingEnabled = false;
     const px = H / 100; // 화면 기준 단위
 
     // 이름표
