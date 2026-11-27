@@ -18,13 +18,13 @@ export async function storyCanvas(d) {
     document.fonts?.load(`700 40px Galmuri11`).catch(() => {})]);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#212121'; g.fillRect(0, 0, W, H);
+  g.fillStyle = '#1a1d1f'; g.fillRect(0, 0, W, H);
   g.textAlign = 'center'; g.textBaseline = 'middle';
 
   // 로고
   const lh = logo ? 300 * logo.height / logo.width : 160;
   if (logo) g.drawImage(logo, (W - 300) / 2, 70, 300, lh);
-  g.fillStyle = '#ff1744'; g.font = `700 40px ${PIXEL}`; g.fillText('ARENA', W / 2, 70 + lh + 40);
+  g.fillStyle = '#d8344e'; g.font = `700 40px ${PIXEL}`; g.fillText('ARENA', W / 2, 70 + lh + 40);
 
   // 가운데: 왼쪽 = 내 캐릭터 크게 / 오른쪽 = 링 마지막 장면(작게) + 입은 상품 칸 2×2
   const top = 70 + lh + 90;
@@ -51,10 +51,10 @@ export async function storyCanvas(d) {
   const ny = top + 800 + 150;
   g.fillStyle = '#888'; g.font = `700 40px ${PIXEL}`;
   g.fillText('VS', W / 2, ny);
-  for (const [p, x, color] of [[d.L, W / 2 - 280, '#75a7ff'], [d.R, W / 2 + 280, '#ff5c77']]) {
+  for (const [p, x, color] of [[d.L, W / 2 - 280, '#6b9bd1'], [d.R, W / 2 + 280, '#e8657a']]) {
     const lost = d.winnerId && p.id !== d.winnerId;
     if (p.id === d.winnerId) {
-      g.fillStyle = '#ffea00'; g.fillRect(x - 110, ny - 112, 220, 50);
+      g.fillStyle = '#d9ae49'; g.fillRect(x - 110, ny - 112, 220, 50);
       g.fillStyle = '#111'; g.font = `700 34px ${PIXEL}`; g.fillText('WINNER', x, ny - 86);
     }
     g.fillStyle = lost ? '#555' : color; g.font = `700 52px ${PIXEL}`; g.fillText(fit(g, p.name, 380), x, ny);
@@ -64,12 +64,12 @@ export async function storyCanvas(d) {
   // 결과
   const ty = ny + 180;
   g.font = `700 120px ${PIXEL}`;
-  if (!d.lose) { g.fillStyle = '#2979ff'; g.fillText(d.title, W / 2 + 8, ty + 8); }
+  if (!d.lose) { g.fillStyle = '#225c99'; g.fillText(d.title, W / 2 + 8, ty + 8); }
   g.fillStyle = d.lose ? '#888' : '#fff'; g.fillText(d.title, W / 2, ty);
   g.fillStyle = '#fff'; g.font = `700 52px ${PIXEL}`; g.fillText(fit(g, d.method, 960), W / 2, ty + 120);
   g.fillStyle = '#aaa'; g.font = `700 38px ${PIXEL}`; g.fillText(fit(g, d.meta, 960), W / 2, ty + 185);
   if (d.delta != null) {
-    g.fillStyle = d.delta >= 0 ? '#00e676' : '#ff1744'; g.font = `700 56px ${PIXEL}`;
+    g.fillStyle = d.delta >= 0 ? '#7fb36a' : '#d8344e'; g.font = `700 56px ${PIXEL}`;
     g.fillText(`RANK PTS ${d.delta >= 0 ? '+' : ''}${d.delta}`, W / 2, ty + 265);
   }
 

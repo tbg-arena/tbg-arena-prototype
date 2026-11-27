@@ -7,7 +7,7 @@
 .cd-prs { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
 .cd-pr { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; background: var(--surface); text-align: left; color: var(--muted); font-weight: 700; }
 .cd-pr b { font-size: 18px; color: var(--ink); }
-.cd-pr.on { background: var(--ink); color: #555; box-shadow: 3px 3px 0 var(--red); position: relative; z-index: 1; }
+.cd-pr.on { background: var(--ink); color: #535b60; box-shadow: 3px 3px 0 var(--red); position: relative; z-index: 1; }
 .cd-pr.on b { color: var(--on-ink); }
 /* 기록 목록: 날짜별 묶음 */
 .cd-day { background: var(--surface); padding: 0 16px; }
@@ -37,7 +37,7 @@
 .cd-pre-grid button b { font-size: 14px; font-weight: 800; line-height: 1.25; }
 .cd-pre-grid button span { font-size: 11px; font-weight: 700; color: var(--muted); }
 .cd-pre-grid button.on { background: var(--ink); color: var(--on-ink); box-shadow: inset 3px 0 0 var(--red); }
-.cd-pre-grid button.on span { color: #555; }
+.cd-pre-grid button.on span { color: #535b60; }
 .cd-lines { display: grid; gap: 8px; }
 .cd-line { display: grid; gap: 6px; padding: 10px; background: var(--surface); clip-path: var(--notch); }
 .cd-line input { padding: 10px; font-size: 16px; } /* 16px 유지: iOS 확대 방지 */

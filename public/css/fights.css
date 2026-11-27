@@ -33,7 +33,7 @@
 .ev.round { text-align: center; font-family: var(--pixel); font-weight: 700; background: transparent; color: var(--ink); border: 0; letter-spacing: 1px; }
 .ev.big, .ev.down, .ev.sub { font-weight: 800; background: var(--surface2); }
 .ev.finish { font-weight: 900; background: var(--ink); color: var(--on-ink); font-size: 15px; border-left-color: var(--red); }
-.ev.finish .t { color: #555; }
+.ev.finish .t { color: #535b60; }
 .ev.miss { color: var(--muted); }
 .result { text-align: center; padding: 22px 18px; border-color: var(--ink); }
 .result .big { font-family: var(--pixel); font-size: 40px; font-weight: 700; letter-spacing: 0; line-height: 1.1; text-shadow: 3px 3px 0 var(--red); animation: slam .5s cubic-bezier(.2,1.6,.4,1); }

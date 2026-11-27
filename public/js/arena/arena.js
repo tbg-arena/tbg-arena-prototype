@@ -218,7 +218,7 @@ export class Arena {
             def.anim = { kind: end.hit, t0: this.gt, dur: 0.22 }; def.kx = -def.d * 25; def.flash = 0.05;
             this.burst(hx - def.d * 4, hy + (end.dy || 1), false); this.sfx('hit', 0);
             // 필살기 연타 카운트업: 숫자가 커지고 흔들림·멈춤이 점점 세짐
-            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#ff1744', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
+            if (a.finisher) { this.text(`${hitNo} HIT`, att, '#d8344e', 0.9 + hitNo * 0.15, -18 - hitNo * 3, att.d * 8); this.shake = 0.3 + hitNo * 0.15; this.stop = 0.04 + hitNo * 0.02; this.cam.punch = 0.3 + hitNo * 0.05; }
           });
         });
       }
@@ -231,8 +231,8 @@ export class Arena {
         this.sfx('counter', 2);
       }
       // 펀치 없는 필살기: 움직임이 끝나면 라벨 (스포트라이트는 저절로 걷힘)
-      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#ff1744', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
-      if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#ff1744', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
+      if (a.showcase && mv) this.later((lead + dur) * 1000, () => { this.hype = 1.2; this.text(mv.label.replace(' COMBO!', '!!'), att, '#d8344e', 1.4, -28, att.d * 6); this.sfx('counter', 1); });
+      if (a.counter) { this.text(pre ? `${DODGE_LABEL[a.from]} COUNTER!` : 'COUNTER!', att, '#d8344e', 1.1, -10); this.invert = 0.08; this.sfx('counter', 1); }
       if (landed && a.guard) {
         // 가드 위로 맞음: 맞는 반응 대신 막는 자세, 약한 충격
         this.later((lead + dur * 0.45) * 1000, () => {
@@ -257,23 +257,23 @@ export class Arena {
           if (a.finisher) {
             this.slowmo(0.3, 1.3); this.invert = 0.14; this.flash = 0.9; this.shake = 1.4; this.stop = 0.22;
             this.speedLines = { t0: this.rt, dur: 1.3 }; this.hype = 2; this.dim = 0;
-            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#ff1744', 1.7, -30, att.d * 6);
+            this.text(mv?.combo ? mv.label.replace(' COMBO!', '!!') : 'FINISH!!', att, '#d8344e', 1.7, -30, att.d * 6);
             this.later(10, () => { def.kx = -def.d * 150; def.vy = -50; });
             this.sfx('big', 2);
-          } else if (mv?.combo) this.text(mv.label, att, '#ff1744', 1.1, -22, att.d * 6);
+          } else if (mv?.combo) this.text(mv.label, att, '#d8344e', 1.1, -22, att.d * 6);
           else if (mv && !big) this.text(mv.label, att, a.cat === 'jab' ? '#cfcfcf' : '#ffffff', a.cat === 'jab' ? 0.7 : 0.9, -20, att.d * 6);
-          if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#cfefff', '#9fd8ff']);
+          if (mv && a.cat === 'body') this.spray(px, py, -def.d, 8, ['#b9d3d6', '#87a0ae']);
           if (mv && a.cat === 'uppercut') this.spray(px, py - 2, 0, 6, ['#ffffff']);
           def.flash = big ? 0.1 : 0.06;
           def.kx = -def.d * (big ? 90 : 45);
           this.stop = big ? 0.16 : 0.06;
           this.sfx(e.type === 'down' ? 'down' : big ? 'big' : 'hit', e.type === 'down' ? 2 : big ? 1 : 0);
           this.burst(px, py, big);
-          this.spray(px, py, -def.d, big ? 14 : 6, big ? ['#ffffff', '#cfefff', '#ff1744'] : ['#ffffff', '#cfefff']);
+          this.spray(px, py, -def.d, big ? 14 : 6, big ? ['#ffffff', '#b9d3d6', '#d8344e'] : ['#ffffff', '#b9d3d6']);
           this.shake = big ? 1 : 0.35;
           this.cam.punch = big ? 0.35 : 0.08; this.cam.fx = px; this.cam.fy = py;
           const d = dmgOf(def.id);
-          if (d) a.finisher ? this.text(`-${d}`, def, '#ff1744', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
+          if (d) a.finisher ? this.text(`-${d}`, def, '#d8344e', 1.6, -4) : this.num(`-${d}`, px, py - 6, big);
           if (big) {
             this.flash = 0.5; this.hype = Math.min(1.5, this.hype + 0.8);
             this.text(e.type === 'down' ? 'DOWN!' : ['BIG HIT!', 'BAM!', 'CRACK!'][Math.floor(Math.random() * 3)], def, '#ffffff', e.type === 'down' ? 1.6 : 1.3, -16);
@@ -315,9 +315,9 @@ export class Arena {
         att.anim = { kind: 'shoot', t0: this.gt, dur: 0.3 };
         this.text('CLINCH', att, '#bdbdbd', 0.8, -14);
       } else if (a.cat === 'ground' && e.type === 'td' && this.top && e.top && e.top !== this.top) {
-        this.later(150, () => { this.text('SWEEP!', att, '#ff1744', 1.2, -14); this.shake = 0.5; this.dust(CX, 10); this.sfx('sweep', 1); });
+        this.later(150, () => { this.text('SWEEP!', att, '#d8344e', 1.2, -14); this.shake = 0.5; this.dust(CX, 10); this.sfx('sweep', 1); });
       } else if (a.cat === 'submission') {
-        if (e.type === 'sub') { this.lock(1.6); this.text('LOCKED!', att, '#ff1744', 1.2, -18); this.sfx('lock', 1); }
+        if (e.type === 'sub') { this.lock(1.6); this.text('LOCKED!', att, '#d8344e', 1.2, -18); this.sfx('lock', 1); }
         else if (e.type === 'miss') this.text('...', att, '#8a8a8a', 0.9, -12);
         else if (e.type === 'info') { this.text('ESCAPE!', def, '#ffffff', 1, -14); this.sfx('escape', 1); }
       }
@@ -359,7 +359,7 @@ export class Arena {
         const [hx, hy] = this.headPos(loser);
         this.cam.punch = 0.6; this.cam.fx = hx; this.cam.fy = hy + 14;
         this.burst(hx - loser.d * 4, hy, true, true);
-        this.spray(hx, hy, -loser.d, 26, ['#ffffff', '#ff1744', '#cfefff']);
+        this.spray(hx, hy, -loser.d, 26, ['#ffffff', '#d8344e', '#b9d3d6']);
         loser.ko = true; loser.tLying = 1; loser.vy = -150; loser.kx = -loser.d * 160;
         loser.anim = { kind: 'hit', t0: this.gt, dur: 0.6 };
         this.speedLines = { t0: this.rt, dur: 1.4 };
@@ -425,7 +425,7 @@ export class Arena {
     const [hx, hy] = this.headPos(f);
     this.fx.push({ kind: 'text', text, x: hx + dx, y: hy + dy, t0: this.rt, dur: 1, color, size });
   }
-  num(text, x, y, big) { this.fx.push({ kind: 'text', text, x: x + (Math.random() - 0.5) * 6, y, t0: this.rt, dur: 0.8, color: big ? '#ff1744' : '#ffffff', size: big ? 1.15 : 0.85, num: true }); }
+  num(text, x, y, big) { this.fx.push({ kind: 'text', text, x: x + (Math.random() - 0.5) * 6, y, t0: this.rt, dur: 0.8, color: big ? '#d8344e' : '#ffffff', size: big ? 1.15 : 0.85, num: true }); }
   lock(dur, tap) { this.fx = this.fx.filter((x) => x.kind !== 'lock'); this.fx.push({ kind: 'lock', t0: this.rt, dur, tap }); }
   stars(f, dur) { this.fx = this.fx.filter((x) => !(x.kind === 'stars' && x.f === f)); this.fx.push({ kind: 'stars', f, t0: this.rt, dur }); }
   banner(text, dur = 1.2, o = {}) {
@@ -635,7 +635,7 @@ export class Arena {
         const a = (i / n) * Math.PI * 2 + (x.big ? 0.2 : 0.4);
         const len = i % 2 ? R : R * 0.6;
         for (let r = R * 0.35; r < len; r += 1) {
-          w.fillStyle = r > len - 2 ? '#ff1744' : '#ffffff';
+          w.fillStyle = r > len - 2 ? '#d8344e' : '#ffffff';
           if (!x.big && r > len - 2) w.fillStyle = '#ffffff';
           w.fillRect(Math.round(x.x + Math.cos(a) * r), Math.round(x.y + Math.sin(a) * r), 1, 1);
         }
@@ -667,7 +667,7 @@ export class Arena {
       for (let i = 0; i < 3; i++) {
         const a = this.rt * 4 + (i * Math.PI * 2) / 3;
         const sx = Math.round(hx + Math.cos(a) * 8), sy = Math.round(hy - 7 + Math.sin(a) * 3);
-        w.fillStyle = i === 1 ? '#ff1744' : '#fff';
+        w.fillStyle = i === 1 ? '#d8344e' : '#fff';
         w.fillRect(sx, sy - 1, 1, 3); w.fillRect(sx - 1, sy, 3, 1);
       }
     } else if (x.kind === 'lock') {
@@ -675,7 +675,7 @@ export class Arena {
       const mx = Math.round((a.x + b.x) / 2), my = FLOOR - 10;
       const pulse = Math.sin(this.rt * 16) > 0 ? 1 : 0;
       const r = 11 + pulse;
-      w.fillStyle = x.tap ? '#ff1744' : '#fff';
+      w.fillStyle = x.tap ? '#d8344e' : '#fff';
       for (let i = 0; i < 16; i++) {
         if (i % 2) continue;
         const an = (i / 16) * Math.PI * 2 + this.rt * 2;
@@ -788,14 +788,14 @@ export class Arena {
     c.fillStyle = 'rgba(0,0,0,.72)';
     c.beginPath(); c.moveTo(0, cy - bandH / 2 + 4 * px); c.lineTo(W, cy - bandH / 2 - 4 * px); c.lineTo(W, cy + bandH / 2 - 4 * px); c.lineTo(0, cy + bandH / 2 + 4 * px); c.fill();
     c.fillStyle = '#fff'; c.fillRect(0, cy - bandH / 2 - 6 * px + (1 - tin) * 20 * px, W * tin, Math.max(2, px));
-    c.fillStyle = '#ff1744'; c.fillRect(W * (1 - tin), cy + bandH / 2 + 4 * px, W * tin, Math.max(2, px));
+    c.fillStyle = '#d8344e'; c.fillRect(W * (1 - tin), cy + bandH / 2 + 4 * px, W * tin, Math.max(2, px));
     // 글자: 왼쪽에서 오버슈트로 날아 들어옴
     const ov = tin < 1 ? (1 - easeOut(tin)) * -W * 0.7 + Math.sin(tin * Math.PI) * 6 * px : 0;
     const shakeT = x.big && p < 0.15 ? (Math.random() - 0.5) * 4 * px : 0;
     const size = Math.round((x.big ? 26 : x.small ? 10 : 17) * px);
     c.font = `700 ${size}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
     const tx = W / 2 + ov + shakeT, ty = cy - (x.sub ? 3 * px : 0) + shakeT;
-    c.fillStyle = '#ff1744'; c.fillText(x.text, tx + 2 * px, ty + 2 * px);
+    c.fillStyle = '#d8344e'; c.fillText(x.text, tx + 2 * px, ty + 2 * px);
     c.lineWidth = Math.max(3, size * 0.16); c.strokeStyle = '#000'; c.lineJoin = 'round'; c.strokeText(x.text, tx, ty);
     c.fillStyle = '#fff'; c.fillText(x.text, tx, ty);
     if (x.sub && p > 0.45) {
@@ -803,7 +803,7 @@ export class Arena {
       const s2 = Math.round(9 * px * (1.8 - sp * 0.8));
       c.font = `700 ${s2}px ${FONT}`;
       c.lineWidth = Math.max(2, s2 * 0.25); c.strokeText(x.sub, W / 2, cy + 9 * px);
-      c.fillStyle = '#ff1744'; c.fillText(x.sub, W / 2, cy + 9 * px);
+      c.fillStyle = '#d8344e'; c.fillText(x.sub, W / 2, cy + 9 * px);
     }
     c.restore();
   }
