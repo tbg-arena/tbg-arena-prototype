@@ -1,6 +1,6 @@
 /* ── 선수 카드 · 능력치 · 랭킹 (js/features/fighter) */
 .profile { padding: 0; overflow: hidden; }
-.profile .p-head { display: flex; gap: 14px; align-items: flex-end; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.profile .p-head { display: flex; gap: 14px; align-items: center; padding: 16px; background: var(--surface); border-bottom: 1px solid var(--line); }
 .profile .p-body { padding: 16px 16px 18px; }
 .profile .name { font-size: 24px; font-weight: 900; letter-spacing: -1px; line-height: 1.2; }
 .sprite-box { width: 82px; height: 86px; flex-shrink: 0; position: relative; background: var(--ink); display: grid; place-items: end center; overflow: hidden; }
@@ -65,6 +65,10 @@
 }
 .sprite-box::after { height: 14px; background: #b9d3d6; box-shadow: inset 0 3px 0 #87a0ae; } /* 매트 + 가장자리 */
 .sprite-box img { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
+/* 상점 피팅룸 = 훈련장: 콘크리트 벽 · 쇠사슬 샌드백 2개 · 고무 매트 (img/gym-bg.png, 60×100 점 그림을 늘림). 그림은 가운데 매트 위 */
+.fig-box:not(.sm) { position: relative; width: 150px; padding: 14px 0 0; display: flex; justify-content: center; align-items: flex-end;
+  background: #2c3134 url(/img/gym-bg.png) center bottom / 100% 100% no-repeat; image-rendering: pixelated; box-shadow: inset 0 0 0 2px var(--ink); clip-path: var(--notch); }
+.fig-box:not(.sm) img { position: relative; z-index: 1; margin-bottom: 8px; image-rendering: auto; filter: drop-shadow(0 3px 0 rgba(0,0,0,.4)); }
 /* 능력치 막대: 경기 체력바처럼 틀 안에 */
 .sbar { height: 12px; padding: 2px; background: var(--well); box-shadow: inset 0 0 0 1px var(--line2); }
 .statrow .sl i { display: inline-block; min-width: 30px; }
@@ -110,6 +114,8 @@
 /* 기본 캐릭터 그림 (img/pose, 4px 칸으로 줄인 그림): 부드럽게 축소하고 가로세로 비율 유지 */
 .fig-box { width: auto; }
 .fig-box img, .pod img, .ent img { image-rendering: auto; }
-.fig-box img { width: auto; height: 162px; }
+/* 옷 디테일(프린트 · 로고)이 보이게 사진 영역을 키움: 상점 피팅룸 162 → 210, 홈 프로필 82 → 124 */
+.fig-box img { width: auto; height: 210px; }
 .fig-box.sm img { width: auto; height: 108px; }
-.sprite-box.base img { height: 82px; width: auto; animation: none; image-rendering: auto; }
+.sprite-box.base { width: 104px; height: 130px; }
+.sprite-box.base img { height: 124px; width: auto; animation: none; image-rendering: auto; }
