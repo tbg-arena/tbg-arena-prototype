@@ -14,7 +14,7 @@ import { customize, kitFromLook } from './hitman.js';
 // 선수마다 착용 장비대로 색 · 헤어 · 상의를 바꾼 시트를 만들어 쓴다 (hitman.js)
 const HW = 102, HH = 67;
 const HROW = { idle: [0, 6], jab1: [1, 4], jab2: [2, 4], dash: [3, 3], walk: [4, 8], block: [5, 2], hit: [6, 3], down: [7, 7] };
-const HIT = { ready: false, img: null, ax: HW / 2, ay: HH };
+const HIT = { ready: false, img: null, ax: HW / 2, ay: HH, koLift: 10, koHead: [0, -30], koTop: 20 };
 (() => {
   if (typeof Image === 'undefined') return;
   const img = new Image();
@@ -26,6 +26,13 @@ const HIT = { ready: false, img: null, ax: HW / 2, ay: HH };
     let by = 0; for (let y = 0; y < HH; y++) for (let x = 0; x < HW; x++) if (at(x, y)) by = y;
     let sx = 0, n = 0; for (let y = by - 3; y <= by; y++) for (let x = 0; x < HW; x++) if (at(x, y)) { sx += x; n++; }
     HIT.ax = n ? Math.round(sx / n) : HW / 2; HIT.ay = by + 1;
+    // KO 로 뒤로 넘어갈 때(다운 줄 첫 칸을 발 기준 90° 눕힘) 등 쪽이 매트 아래로 내려가지 않게 올릴 높이 = 발 기준점에서 그림 뒤쪽 끝까지
+    let left = HW, right = -1, top = HH; for (let y = 0; y < HH; y++) for (let x = 0; x < HW; x++) if (at(x, HROW.down[0] * HH + y)) { left = Math.min(left, x); right = Math.max(right, x); top = Math.min(top, y); }
+    HIT.koLift = Math.max(0, HIT.ax - left);
+    HIT.koTop = HIT.koLift + Math.max(0, right - HIT.ax); // 누웠을 때 몸 윗면 높이 (앞쪽이 위로 감)
+    // 그 칸의 머리 = 맨 위 8줄 그림의 가로 가운데 · 위에서 5줄 아래 (발 기준점에서 잰 위치) → 누운 머리 위치 계산 (이름표 · KO 별)
+    let hs = 0, hn = 0; for (let y = top; y < top + 8; y++) for (let x = 0; x < HW; x++) if (at(x, HROW.down[0] * HH + y)) { hs += x; hn++; }
+    HIT.koHead = [(hn ? hs / hn : HIT.ax) - HIT.ax, top + 5 - HIT.ay];
     HIT.img = img; HIT.ready = true; // 선수마다 장비대로 꾸민 시트는 처음 그릴 때 만든다 (hitman.js)
   };
   img.src = '/img/hitman/sheet.png';
@@ -35,7 +42,11 @@ const H_PUNCH = new Set(['jab', 'cross', 'punch', 'hook', 'shorthook', 'upper', 
 const H_GUARD = new Set(['block', 'parry', 'slip', 'duck', 'weave', 'roll', 'sway', 'dodge', 'clinch', 'shoot', 'pin']);
 function hitmanFrame(f, pose, t) {
   const p = Math.min(1, Math.max(0, pose.p ?? 0)), k = pose.kind;
-  if (f.ko || f.lying > 0.05) return ['down', Math.min(6, Math.floor(f.lying * 6.99))]; // 쓰러질 땐 앞으로, 일어날 땐 거꾸로 (lying 이 줄어듦)
+  // 다운 줄 = 비틀(0) → 웅크려 무릎 꿇기(1~4) → 일어나기(5) → 선 자세(6). 대자로 누운 칸은 없다
+  // KO · TKO: 맞고 튕겨 나간 직후엔 맞는 칸, 그다음 비틀 칸(0)을 drawHitman 이 발 기준으로 뒤로 눕혀 바닥에 쓰러진 채로
+  if (f.ko) return f.lying < 0.15 ? ['hit', 2] : ['down', 0];
+  // 다운(넉다운): 쓰러질 땐 무릎 꿇는 칸(4)까지, 일어날 땐(lying 이 줄어듦) 시트의 일어나는 칸으로
+  if (f.lying > 0.05) return f.tLying >= f.lying ? ['down', Math.min(4, Math.floor(f.lying * 4.99))] : ['down', f.lying > 0.45 ? 4 : f.lying > 0.2 ? 5 : 6];
   if (H_PUNCH.has(k)) return [pose.hand ? 'jab2' : 'jab1', Math.floor(p * 3.99)];
   if (k === 'hit') return ['hit', Math.floor(p * 2.99)];
   if (H_GUARD.has(k)) return ['block', p < 0.5 ? 0 : 1];
@@ -48,6 +59,7 @@ function drawHitman(w, f, pose, t) {
   w.save();
   w.translate(Math.round(f.x), Math.round(FLOOR + f.y + (f.win ? -Math.abs(Math.sin(t * 5)) * 3 : 0))); // 승리 동작이 없어 서기 + 통통 뜀
   w.scale(f.d, 1);
+  if (f.ko && f.lying >= 0.15) { const k = Math.min(1, (f.lying - 0.15) / 0.85); w.translate(0, -HIT.koLift * k); w.rotate(-k * Math.PI / 2); } // 발을 축으로 뒤로 넘어가 대자로 (머리 위치는 headPos 가 같은 식으로)
   if (f.flash > 0) w.filter = 'brightness(2)';
   f.hsheet ||= customize(HIT.img, kitFromLook(f.look)); // 회원 장비(글러브 · 트렁크 · 복싱화 · 상의 · 헤어)대로 꾸민 시트, 선수마다 한 번
   w.drawImage(f.hsheet, i * HW, row * HH, HW, HH, -HIT.ax, -HIT.ay, HW, HH);
@@ -145,6 +157,13 @@ export class Arena {
     if (snap) for (const f of [a, b]) { f.x = f.tx; f.lying = f.tLying; }
   }
   headPos(f) {
+    // 히트맨이 KO 로 누운 중: drawHitman 과 같은 변환(올리기 → 발 기준 회전 → 좌우)으로 그 칸의 머리 위치를 옮김
+    if (HIT.ready && f.ko && f.lying >= 0.15) {
+      const k = Math.min(1, (f.lying - 0.15) / 0.85), q = -k * Math.PI / 2, [dx, dy] = HIT.koHead;
+      return [f.x + f.d * (dx * Math.cos(q) - dy * Math.sin(q)), FLOOR + f.y - HIT.koLift * k + dx * Math.sin(q) + dy * Math.cos(q)];
+    }
+    // 히트맨 다운(넉다운)은 눕지 않고 그 자리에 웅크림 → 머리가 회전 없이 내려옴 (선 키 기준 -25 → 무릎 꿇으면 -17)
+    if (HIT.ready && !f.ko) return [f.x, FLOOR + f.y - 25 + 8 * Math.min(1, f.lying) + (this.isMount(f) ? -3 : 0)];
     const a = -f.lying * Math.PI / 2, lx = 0, ly = -25;
     const x = lx * Math.cos(a) - ly * Math.sin(a), y = lx * Math.sin(a) + ly * Math.cos(a);
     return [f.x + f.d * x, FLOOR + f.y - f.lying * 6 + (this.isMount(f) ? -3 : 0) + y];
@@ -712,7 +731,9 @@ export class Arena {
     if (!this.demo) for (const f of this.fighters) {
       if (!f.name) continue;
       const [hx, hy] = this.headPos(f);
-      const [sx, sy] = toS(hx, hy - (f.lying > 0.5 ? 10 : HIT.ready ? 19 : 12)); // 체험판 캐릭터는 키가 커서 이름표를 더 위로
+      // 체험판 캐릭터는 키가 커서 이름표를 더 위로. KO 로 누운 히트맨은 머리 위 · 누운 몸 윗면보다 위 중 더 높은 곳
+      const ny = HIT.ready && f.ko && f.lying > 0.5 ? Math.min(hy - 9, FLOOR + f.y - HIT.koTop - 7) : hy - (HIT.ready ? 19 : f.lying > 0.5 ? 10 : 12);
+      const [sx, sy] = toS(hx, ny);
       c.font = `700 ${Math.round(5.2 * px)}px ${FONT}`; c.textAlign = 'center'; c.textBaseline = 'middle';
       const tw = c.measureText(f.name).width + 6 * px;
       c.fillStyle = 'rgba(0,0,0,.8)'; c.fillRect(Math.round(sx - tw / 2), Math.round(sy - 4 * px), Math.round(tw), Math.round(8 * px));
