@@ -6,6 +6,8 @@
 import { mkCanvas } from './util.js';
 import { drawHead, lookOf, SIDE, C } from './sprite.js';
 import { gearArtCanvas } from './gear-art.js';
+import { kitFromLook } from './hitman.js';
+import { poseCanvas } from './pose-img.js';
 
 export const FW = 56, FH = 108; // 그림 크기 (점 단위)
 const O = '#050505';
@@ -48,11 +50,23 @@ function draw(look) {
   return cv;
 }
 
-// 기본 캐릭터 그림 (public/img/chars — GPT 로 만든 헤어 시트의 3/4 서 있는 모습, 흰 옷)
-// 성별 + 헤어(look.hairArt, 상점 헤어)만 반영. 옷은 아직 안 입힘 — 다음 단계: 흰 옷에 아이템 색 · 프린트 입히기
-const charKey = (p) => { const l = lookOf(p); return `${l.gender}-${l.gear.hairArt || (l.gender === 'F' ? 'bob' : 'spiky')}`; };
-export const baseURL = (p) => `/img/chars/${charKey(p)}.png`;
-export const bustURL = (p) => `/img/chars/${charKey(p)}-bust.png`;
+// 기본 캐릭터 그림 = AI 로 그린 정면 하이 가드 그림(pose-img.js)을 회원 장비 색으로 칠한 것 (글러브 · 상의 · 트렁크 · 신발 · 머리 색)
+const urlCache = new Map();
+function charURL(p, bust) {
+  const look = lookOf(p), key = (bust ? 'b|' : 'f|') + look.gender + JSON.stringify(look.gear);
+  if (urlCache.has(key)) return urlCache.get(key);
+  const cv = poseCanvas(kitFromLook(look), look.gender === 'F', look.gear.arts, look.gear.hairArt); // 상품 그림(프린트 · 로고) · 헤어까지
+  // 얼굴 = 머리 꼭대기부터 그림 폭만큼 정사각 (머리 + 양옆 글러브). 그림 위엔 솟은 머리용 여백이 있어서 꼭대기를 찾음
+  let top = 0;
+  if (bust) { const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; while (top < cv.height && ![...Array(cv.width).keys()].some((x) => d[(top * cv.width + x) * 4 + 3])) top++; }
+  const out = bust ? mkCanvas(cv.width, cv.width) : cv;
+  if (bust) out.getContext('2d').drawImage(cv, 0, -Math.max(0, top - 2));
+  const url = out.toDataURL();
+  urlCache.set(key, url);
+  return url;
+}
+export const baseURL = (p) => charURL(p, false);
+export const bustURL = (p) => charURL(p, true);
 export const figureURL = (p) => baseURL(p);
 
 // (예전) 상점 그림을 조립한 정면 전신 — 기본 캐릭터 그림으로 바꾸면서 안 씀. 옷 색 입히기 단계에서 지울 것
