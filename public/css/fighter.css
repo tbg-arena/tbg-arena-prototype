@@ -67,7 +67,8 @@
 .sprite-box img { filter: drop-shadow(0 2px 0 rgba(0,0,0,.35)); }
 /* 상점 피팅룸 = 훈련장: 콘크리트 벽 · 쇠사슬 샌드백 2개 · 고무 매트 (img/gym-bg.png, 60×100 점 그림을 늘림). 그림은 가운데 매트 위 */
 .fig-box:not(.sm) { position: relative; width: 150px; padding: 14px 0 0; display: flex; justify-content: center; align-items: flex-end;
-  background: #2c3134 url(/img/gym-bg.png) center bottom / 100% 100% no-repeat; image-rendering: pixelated; box-shadow: inset 0 0 0 2px var(--ink); clip-path: var(--notch); }
+  background: #2c3134 url(/img/gym-bg.png) center bottom / 100% 100% no-repeat; image-rendering: pixelated; box-shadow: inset 0 0 0 2px var(--ink); clip-path: var(--notch);
+  margin-right: 8px; } /* 옆 글자(이름 · 착용 목록)와 간격: 줄 간격 14px + 8px */
 .fig-box:not(.sm) img { position: relative; z-index: 1; margin-bottom: 8px; image-rendering: auto; filter: drop-shadow(0 3px 0 rgba(0,0,0,.4)); }
 /* 능력치 막대: 경기 체력바처럼 틀 안에 */
 .sbar { height: 12px; padding: 2px; background: var(--well); box-shadow: inset 0 0 0 1px var(--line2); }
