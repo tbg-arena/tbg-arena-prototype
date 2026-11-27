@@ -1,6 +1,7 @@
 // 화면 공용 도구: 포맷 · 아이콘 · 아바타 · 토스트 · 모달 · 타이머
 import { state } from './state.js';
 import { spriteURL } from '../arena/sprite.js';
+import { bustURL } from '../arena/figure.js';
 
 export const $app = document.getElementById('app');
 const $modal = document.getElementById('modal');
@@ -26,7 +27,8 @@ export const record = (m) => `${m.wins}승 ${m.losses}패${m.draws ? ` ${m.draws
 // ── 아이콘 · 캐릭터 이미지
 export const svg = (d) => `<svg viewBox="0 0 24 24">${d}</svg>`; // 탭 아이콘 (24×24 선 아이콘)
 export const sprite = (p, opts) => spriteURL(p, opts);
-export const avatar = (p, cls = '', side) => `<div class="avatar ${cls}"><img src="${sprite(p, { side })}" alt="" /></div>`;
+// 얼굴 아바타 = 기본 캐릭터 얼굴 그림 (성별). side 는 예전 코너 색 아바타용 — 지금은 안 씀
+export const avatar = (p, cls = '', side) => `<div class="avatar ${cls}"><img src="${bustURL(p)}" alt="" /></div>`;
 
 // ── 알림
 let toastTimer;

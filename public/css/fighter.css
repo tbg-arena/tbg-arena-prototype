@@ -87,3 +87,29 @@
 .rec-card { margin-bottom: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: inset 3px 0 0 var(--yellow); }
 .rec-dot { margin-left: 4px; font-size: 10px; color: var(--yellow); vertical-align: 1px; }
 .seg button.on .rec-dot { color: inherit; }
+
+/* 정면 전신 상자 (arena/figure.js): 상점 피팅룸 · 선수 분석 — 너무 크면 부담스러워서 상점 1.5배 · 나머지 1배 */
+.fig-box { flex-shrink: 0; width: 96px; padding: 8px 6px 0; background: linear-gradient(transparent 82%, var(--well) 82%); box-shadow: inset 0 0 0 1px var(--line); }
+.fig-box img { width: 84px; height: 162px; image-rendering: pixelated; display: block; }
+.fig-box.sm { width: 68px; padding: 6px 6px 0; }
+.fig-box.sm img { width: 56px; height: 108px; }
+
+/* 랭킹 상위 3명 시상대 */
+.podium { display: grid; grid-template-columns: 1fr 1.15fr 1fr; align-items: end; gap: 8px; margin-bottom: 14px; }
+.pod { display: flex; flex-direction: column; align-items: center; cursor: pointer; min-width: 0; }
+.pod img { width: 56px; image-rendering: pixelated; display: block; margin-bottom: -2px; }
+.pod.p1 img { width: 70px; }
+.pod-base { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px; background: var(--surface); box-shadow: inset 0 2px 0 var(--line2); min-width: 0; }
+.pod.p1 .pod-base { padding-top: 16px; box-shadow: inset 0 3px 0 var(--yellow); }
+.pod.p2 .pod-base { padding-top: 12px; }
+.pod-base span { font-size: 18px; font-weight: 700; }
+.pod.p1 .pod-base span { color: var(--yellow); }
+.pod-base b { font-size: 13px; max-width: 100%; }
+.pod-base em { font-style: normal; font-size: 11px; color: var(--muted); }
+
+/* 기본 캐릭터 그림 (img/chars): 부드럽게 축소하고 가로세로 비율 유지 */
+.fig-box { width: auto; }
+.fig-box img, .pod img, .ent img { image-rendering: auto; }
+.fig-box img { width: auto; height: 162px; }
+.fig-box.sm img { width: auto; height: 108px; }
+.sprite-box.base img { height: 82px; width: auto; animation: none; image-rendering: auto; }

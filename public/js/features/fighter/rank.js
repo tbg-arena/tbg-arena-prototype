@@ -2,6 +2,7 @@
 import { esc, svg, avatar, record } from '../../core/ui.js';
 import { api } from '../../core/api.js';
 import { memberTab } from '../../core/tabs.js';
+import { figureURL } from '../../arena/figure.js';
 
 memberTab({
   id: 'rank', order: 30, label: '랭킹',
@@ -24,10 +25,21 @@ function rankView(me, members) {
         ${i < ranked ? `<div class="center"><b class="pts">${o.points}</b><div class="muted px" style="font-size:9px">PTS</div></div>` : '<span class="badge">배치 전</span>'}
       </div>`;
   return `<div class="section-title">TBG 랭킹</div>
+    ${podium(members.slice(0, Math.min(3, ranked)))}
     ${ranked ? members.slice(0, ranked).map(item).join('') : '<div class="card empty">아직 경기를 치른 회원이 없어요.</div>'}
     ${ranked < members.length ? `<div class="section-title">배치 전 <span class="muted">${members.length - ranked}명 · 첫 경기를 치르면 순위가 매겨져요</span></div>
     ${members.slice(ranked).map((o, j) => item(o, ranked + j)).join('')}` : ''}
     ${myBar(me, members, ranked)}`;
+}
+
+// 상위 3명 시상대: 가운데 1위가 가장 크게. 누르면 선수 분석
+function podium(top) {
+  if (!top.length) return '';
+  return `<div class="podium">${[1, 0, 2].filter((i) => top[i]).map((i) => `
+    <div class="pod p${i + 1}" data-go="#/fighter/${top[i].id}">
+      <img src="${figureURL(top[i], 2)}" alt="" />
+      <div class="pod-base"><span class="px">${i + 1}</span><b class="ellipsis">${esc(top[i].name)}</b><em class="px">${top[i].points}</em></div>
+    </div>`).join('')}</div>`;
 }
 
 // 내 순위: 목록 어디를 보고 있어도 탭바 위에 붙어 있고, 바로 콜아웃으로 이어진다
